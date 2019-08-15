@@ -17,6 +17,7 @@ Example using a conda environment (recommended):
 ```bash
 conda create python=3.7 -n <my_lasso_environment>
 source activate <my_lasso_environment>
+conda install shapely
 conda install rtree
 pip install git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install git+https://github.com/wsp-sag/client_met_council_wrangler_utilities@master#egg=lasso
@@ -27,6 +28,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install Lasso f
 
 ```bash
 conda install rtree
+conda install shapely
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e git+https://github.com/wsp-sag/client_met_council_wrangler_utilities@master#egg=lasso
 ```
