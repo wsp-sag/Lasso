@@ -11,6 +11,8 @@ scratch/*
 
 # Logs
 *.log
+# except logs in the cube example
+!examples/cube/*.log
 
 # Jupyter
 .ipynb_checkpoints/

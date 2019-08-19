@@ -2,6 +2,8 @@ from typing import Any, Dict
 from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
 from .transit import CubeTransit
+import pandas as pd
+import re
 
 class Project(object):
     def __init__(
@@ -46,7 +48,7 @@ class Project(object):
         roadway_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
-        base_transit_network: Optional[CubeTransit] = None):) -> Project:
+        base_transit_network: Optional[CubeTransit] = None) -> Project:
         """
 
         Parameters
@@ -108,7 +110,26 @@ class Project(object):
         -------
         """
         ##TODO Sijia
-        pass
+        with open(logfilename) as f:
+            content = f.readlines()
+
+        NodeLines = [x.strip() for x in content if x.startswith('N')]
+
+        LinkLines = [x.strip() for x in content if x.startswith('L')]
+
+        linkcol_names = ['OBJECT', 'OPERATION', 'GROUP'] + LinkLines[0].split(',')[1:]
+
+        nodecol_names = ['OBJECT', 'OPERATION', 'GROUP'] + NodeLines[0].split(',')[1:]
+
+        link_df = pd.DataFrame(data = [re.split(',|;', x) for x in LinkLines[1:]],
+                      columns = linkcol_names)
+
+        node_df = pd.DataFrame(data = [re.split(',|;', x) for x in NodeLines[1:]],
+                      columns = nodecol_names)
+
+        log_df = pd.concat([link_df, node_df], ignore_index = True, sort = False)
+
+        return log_df
 
     def evaluate_changes(self):
         """
@@ -141,6 +162,7 @@ class Project(object):
         ## if worth it, could also add some functionality  to network wrangler itself.
 
         # process deletions
+
 
         # process additions
 
