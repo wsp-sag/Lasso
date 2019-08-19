@@ -26,7 +26,7 @@ class CubeTransit(object):
         ## TODO Sijia
         pass
 
-    def evaluate_differences(base_transit:CubeTransit):
+    def evaluate_differences(base_transit):
         """
 
         Parameters

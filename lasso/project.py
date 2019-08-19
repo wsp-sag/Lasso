@@ -1,9 +1,14 @@
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Optional
+
+import pandas as pd
+from pandas import DataFrame
+
 from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
+
+
 from .transit import CubeTransit
-import pandas as pd
-import re
 
 class Project(object):
     def __init__(
@@ -48,7 +53,7 @@ class Project(object):
         roadway_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
-        base_transit_network: Optional[CubeTransit] = None) -> Project:
+        base_transit_network: Optional[CubeTransit] = None):
         """
 
         Parameters
@@ -58,6 +63,7 @@ class Project(object):
 
         Returns
         -------
+        Project object
         """
 
         if build_transit_dir and transit_changes:
@@ -98,7 +104,7 @@ class Project(object):
         return project
 
     @staticmethod
-    def read_logfile(self, logfilename: str) -> DataFrame:
+    def read_logfile(logfilename: str) -> DataFrame:
         """
         Reads a Cube log file and returns a dataframe of roadway_changes
         Parameters
