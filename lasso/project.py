@@ -6,6 +6,7 @@ from pandas import DataFrame
 
 from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
+import os
 
 
 from .transit import CubeTransit
@@ -83,7 +84,10 @@ class Project(object):
         if base_roadway_network and base_roadway_dir:
             raise("only need one base roadway file")
         if base_roadway_dir:
-            base_roadway_network = RoadwayNetwork(base_roadway_dir)
+            base_roadway_network = RoadwayNetwork.read(os.path.join(base_roadway_dir,"link.json"),
+                                                    os.path.join(base_roadway_dir,"node.geojson"),
+                                                    os.path.join(base_roadway_dir,"shape.geojson"),
+                                                    True)
         else:
             base_roadway_network = None
 
@@ -99,6 +103,7 @@ class Project(object):
             transit_changes = transit_changes,
             base_roadway_network = base_roadway_network,
             base_transit_network = base_transit_network,
+            evaluate = True
             )
 
         return project
@@ -119,23 +124,37 @@ class Project(object):
         with open(logfilename) as f:
             content = f.readlines()
 
-        NodeLines = [x.strip() for x in content if x.startswith('N')]
+        # (content[0].startswith('HighwayLayerLogX')):
+        try:
+            if(content[0].startswith('HighwayLayerLogX')):
 
-        LinkLines = [x.strip() for x in content if x.startswith('L')]
+                NodeLines = [x.strip() for x in content if x.startswith('N')]
 
-        linkcol_names = ['OBJECT', 'OPERATION', 'GROUP'] + LinkLines[0].split(',')[1:]
+                LinkLines = [x.strip() for x in content if x.startswith('L')]
 
-        nodecol_names = ['OBJECT', 'OPERATION', 'GROUP'] + NodeLines[0].split(',')[1:]
+                linkcol_names = ['OBJECT', 'OPERATION', 'GROUP'] + LinkLines[0].split(',')[1:]
 
-        link_df = pd.DataFrame(data = [re.split(',|;', x) for x in LinkLines[1:]],
-                      columns = linkcol_names)
+                nodecol_names = ['OBJECT', 'OPERATION', 'GROUP'] + NodeLines[0].split(',')[1:]
 
-        node_df = pd.DataFrame(data = [re.split(',|;', x) for x in NodeLines[1:]],
-                      columns = nodecol_names)
+                link_df = DataFrame(data = [re.split(',|;', x) for x in LinkLines[1:]],
+                                    columns = linkcol_names)
 
-        log_df = pd.concat([link_df, node_df], ignore_index = True, sort = False)
+                node_df = DataFrame(data = [re.split(',|;', x) for x in NodeLines[1:]],
+                                    columns = nodecol_names)
 
-        return log_df
+                log_df = pd.concat([link_df, node_df], ignore_index = True, sort = False)
+
+                return log_df
+
+            else:
+
+                return DataFrame()
+
+        except:
+
+            #pass
+            return DataFrame()
+
 
     def evaluate_changes(self):
         """
@@ -166,13 +185,85 @@ class Project(object):
         """
         ## TODO Sijia
         ## if worth it, could also add some functionality  to network wrangler itself.
+        base_links_df = self.base_roadway_network.links_df
+        changes_df = self.roadway_changes
+
+        node_changes_df = changes_df[changes_df.OBJECT == 'N']
+        link_changes_df = changes_df[changes_df.OBJECT == 'L']
+
+        action_history_df = link_changes_df.groupby(['A', 'B'])['OPERATION'].agg(lambda x: x.tolist()).rename("OPERATION_history")
+        link_changes_df = pd.merge(link_changes_df,
+                                    action_history_df,
+                                    on = ['A', 'B'],
+                                    how = 'left')
+        link_changes_df.drop_duplicates(subset = ['A', 'B'],
+                                        keep = 'last',
+                                        inplace = True)
+
+        def final_op(x):
+            if x.OPERATION_history[-1] == 'D':
+                if 'A' in x.OPERATION_history[:-1]:
+                    return 'N'
+                else:
+                    return 'D'
+            elif x.OPERATION_history[-1] == 'A':
+                if 'D' in x.OPERATION_history[:-1]:
+                    return 'C'
+                else:
+                    return 'A'
+            else:
+                if 'A' in x.OPERATION_history[:-1]:
+                    return 'A'
+                else:
+                    return 'C'
+
+        link_changes_df['OPERATION_final'] = link_changes_df.apply(lambda x: final_op(x),
+                                                                    axis = 1)
 
         # process deletions
+        cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == 'D']
+        delete_link_df = base_links_df[base_links_df.LINK_ID.isin(cube_delete_df.LINK_ID.tolist())]
+        delete_link_dict = delete_link_df[['LINK_ID', 'osmid', 'name', 'u', 'v']].to_dict('record')
 
+        for i in range(len(delete_link_dict)):
+            link_delete_dict[i] = {'Link' : link_delete_dict[i]}
 
         # process additions
+        cube_add_df = link_changes_df[link_changes_df.OPERATION_final == 'A']
+        #cube_add_df = cube_add_df.groupby()
+        add_link_dict = cube_add_df.to_dict('record')
+
+        for i in range(len(add_link_dict)):
+            add_link_dict[i] = {'Link' : add_link_dict[i]}
 
         # process changes
+        cube_change_df = link_changes_df[link_changes_df.OPERATION_final == 'C']
+        changeable_col = [x for x in link_add_df.columns if x in link_add_df.columns]
+        for i in cube_change_df.index:
+            change_df = cube_change_df.loc[i]
+            base_df = base_links_df[(base_links_df['A'] == change_df.A) &
+                                    (base_links_df['B'] == change_df.B)]
+            out_col = []
+            for x in changeable_col:
+                if change_df[x] == base_df[x]:
+                    continue
+                else:
+                    out_col += x
 
+            property_dict = {}
+            for x in out_col:
+                property_dict[x] = change_df[x]
+            card_df = pd.DataFrame({'facility':{'link':base_df.LINKID,
+                                                'A':base_df.A,
+                                                'B':base_df.B},
+                                    'properties':property_dict})
+
+        change_link_dict_df = pd.concat([change_link_dict_df,
+                                        card_df],
+                                        ignore_index = True,
+                                        sort = False)
+        change_link_dict_df = change_link_dict_df.groupby('properties')['facility'].apply(list).reset_index()
+
+        self.card_data = change_link_dict_df.to_dict('records')  #return changes only for testing
 
         pass
