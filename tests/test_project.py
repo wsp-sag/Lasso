@@ -45,14 +45,8 @@ def test_highway_change(request,logfilename):
     lf = Project.read_logfile(logfilename)
     assert(type(lf)==DataFrame)
 
-    test_project = Project.create_project( logfilename,
-                                            BASE_ROADWAY_DIR,
-                                            None,
-                                            None,
-                                            None,
-                                            None,
-                                            None,
-                                            None)
+    test_project = Project.create_project( roadway_log_file=logfilename,
+                                           base_roadway_dir=BASE_ROADWAY_DIR)
 
     assert(type(test_project.roadway_changes)==DataFrame)
     assert(type(test_project.card_data)==Dict[str, Dict[str, Any]])

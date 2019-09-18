@@ -33,17 +33,16 @@ class Project(object):
         if evaluate:
             self.evaluate_changes()
 
-    def write_project_card(self):
+    def write_project_card(self, filename):
         """
 
         Parameters
         -----------
-
+        filename
         Returns
         -------
         """
-        ## TODO SIJIA
-        pass
+        ProjectCard(self.card_data).write(filename)
 
     @staticmethod
     def create_project(
@@ -72,14 +71,14 @@ class Project(object):
         if build_transit_dir:
             transit_changes = CubeTransit(build_transit_dir)
         else:
-            transit_changes = None
+            transit_changes = pd.DataFrame({})
 
         if roadway_log_file and roadway_changes:
             raise("only need one roadway changes file")
         if roadway_log_file:
-            roadway_changes = read_logfile(roadway_log_file)
+            roadway_changes = Project.read_logfile(roadway_log_file)
         else:
-            roadway_changes = None
+            roadway_changes = pd.DataFrame({})
 
         if base_roadway_network and base_roadway_dir:
             raise("only need one base roadway file")
@@ -161,10 +160,10 @@ class Project(object):
         Determines which changes should be evaluated.
         """
 
-        if self.roadway_changes:
+        if not self.roadway_changes.empty:
             self.add_highway_changes()
 
-        if self.transit_changes:
+        if not self.transit_changes.empty:
             self.add_transit_changes()
 
 
