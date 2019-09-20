@@ -1,5 +1,7 @@
 import os
 import glob
+import re
+from typing import Any, Dict, Optional
 
 import pytest
 from pandas import DataFrame
@@ -49,4 +51,7 @@ def test_highway_change(request,logfilename):
                                            base_roadway_dir=BASE_ROADWAY_DIR)
 
     assert(type(test_project.roadway_changes)==DataFrame)
-    assert(type(test_project.card_data)==Dict[str, Dict[str, Any]])
+    #assert(type(test_project.card_data)==Dict[str, Dict[str, Any]])
+    assert(type(test_project.card_data)==dict)
+
+    test_project.write_project_card("Z:/Data/Users/Sijia/Met_Council/github/client_met_council_wrangler_utilities/examples/cube/test_out.yml")

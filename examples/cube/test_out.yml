@@ -1,0 +1,16 @@
+Category: Roadway Attribute Change
+facility:
+  A:
+  - 3230
+  B:
+  - 52771
+  link:
+  - 224
+properties:
+- property: ASGNGRP
+  set: 5
+- property: RC_NUM
+  set: 40
+- property: DISTANCE
+  set: 0.10462
+valid: false
