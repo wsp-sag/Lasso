@@ -1,16 +1,91 @@
-Category: Roadway Attribute Change
-facility:
-  A:
-  - 3230
-  B:
-  - 52771
-  link:
-  - 224
-properties:
-- property: ASGNGRP
-  set: 5
-- property: RC_NUM
-  set: 40
-- property: DISTANCE
-  set: 0.10462
+changes:
+- Category: Roadway Deletion
+  facility:
+    A:
+    - 3261
+    B:
+    - 131209
+    link:
+    - 281
+- Category: New Roadway
+  facility:
+    A:
+    - 3230
+    - 3262
+    B:
+    - 3262
+    - 3230
+    link:
+    - 999998
+    - 999997
+  properties:
+  - property: COUNTY
+    set: 5
+  - property: T_PRIORITY
+    set: 0
+  - property: AREA
+    set: 4
+  - property: HOV
+    set: 0
+  - property: AADT
+    set: 0
+  - property: AM_CNT
+    set: 0
+  - property: MD_CNT
+    set: 0
+  - property: PM_CNT
+    set: 0
+  - property: NT_CNT
+    set: 0
+  - property: DY_CNT
+    set: 0
+  - property: ASGNGRP
+    set: 5
+  - property: LANES
+    set: 1
+  - property: CENTROID
+    set: 0
+  - property: RC_NUM
+    set: 40
+  - property: BIKE
+    set: 3
+  - property: DISTANCE
+    set: 0.10462
+  - property: T_MANTIME
+    set: 0.0
+- Category: Roadway Attribute Change
+  facility:
+    A:
+    - 3261
+    B:
+    - 3262
+    link:
+    - 280
+  properties:
+  - property: ASGNGRP
+    set: 5
+  - property: LANES
+    set: 1
+  - property: RC_NUM
+    set: 40
+  - property: BIKE
+    set: 3
+  - property: DISTANCE
+    set: 10.0
+- Category: Roadway Attribute Change
+  facility:
+    A:
+    - 3230
+    B:
+    - 52771
+    link:
+    - 224
+  properties:
+  - property: ASGNGRP
+    set: 5
+  - property: RC_NUM
+    set: 40
+  - property: DISTANCE
+    set: 0.10462
+project: TO DO User Define
 valid: false

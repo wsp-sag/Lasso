@@ -186,7 +186,7 @@ class Project(object):
         ## TODO Sijia
         ## if worth it, could also add some functionality  to network wrangler itself.
         base_links_df = self.base_roadway_network.links_df
-        print(base_links_df.info())
+
         changes_df = self.roadway_changes
 
         node_changes_df = changes_df[changes_df.OBJECT == "N"]
@@ -195,8 +195,6 @@ class Project(object):
         changeable_col = [x for x in link_changes_df.columns if x in base_links_df.columns]
         for x in changeable_col:
             link_changes_df[x] = link_changes_df[x].astype(base_links_df[x].dtype)
-
-        print(link_changes_df.info())
 
         action_history_df = link_changes_df.groupby(["A", "B"])["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history")
         link_changes_df = pd.merge(link_changes_df,
@@ -229,19 +227,50 @@ class Project(object):
 
         # process deletions
         cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-        delete_link_df = base_links_df[base_links_df.LINK_ID.isin(cube_delete_df.LINK_ID.tolist())]
-        delete_link_dict = delete_link_df[["LINK_ID", "osmid", "name", "u", "v"]].to_dict("record")
+        #delete_link_df = base_links_df[base_links_df.LINK_ID.isin(cube_delete_df.LINK_ID.tolist())]
+        #delete_link_dict = delete_link_df[["LINK_ID", "osmid", "name", "u", "v"]].to_dict("record")
+        delete_link_dict_df = cube_delete_df.copy()
+        delete_link_dict_df["facility"] = delete_link_dict_df.apply(lambda x: {"link":x.LINK_ID,
+                                                                                "A":x.A,
+                                                                                "B":x.B},
+                                                                        axis = 1)
+        print(delete_link_dict_df)
+        delete_link_dict = {}
+        delete_link_dict["Category"] = "Roadway Deletion"
+        delete_link_dict["facility"] = pd.DataFrame(delete_link_dict_df.facility.tolist()).to_dict("list")
 
-        for i in range(len(delete_link_dict)):
-            link_delete_dict[i] = {"Link" : link_delete_dict[i]}
 
         # process additions
         cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
         #cube_add_df = cube_add_df.groupby()
-        add_link_dict = cube_add_df.to_dict("record")
+        add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
+        add_link_dict_df = cube_add_df.copy()
 
-        for i in range(len(add_link_dict)):
-            add_link_dict[i] = {"Link" : add_link_dict[i]}
+        add_link_dict_df["facility"] = add_link_dict_df.apply(lambda x: {"link":x.LINK_ID,
+                                                                        "A":x.A,
+                                                                        "B":x.B},
+                                                                axis = 1)
+        def prop_dict(x):
+            ls = []
+            for c in [t for t in add_col if t not in ["LINK_ID", "A", "B"]]:
+                d = {}
+                d['property'] = c
+                d['set'] = x[c]
+                ls.append(d)
+            return ls
+
+        add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
+                                                                axis = 1)
+
+        add_link_dict_df["properties"] = add_link_dict_df["properties"].astype(str)
+
+        add_link_dict_df = add_link_dict_df.groupby("properties")["facility"].apply(list).reset_index()
+        add_link_dict_df['facility'] = add_link_dict_df['facility'].apply(lambda x:pd.DataFrame(x).to_dict('list'))
+        add_link_dict_df['properties'] = add_link_dict_df['properties'].apply(lambda x:json.loads(x.replace("'", "\"")))
+
+        add_link_dict_list = add_link_dict_df.to_dict("record")
+        for add in add_link_dict_list:
+            add["Category"] = "New Roadway"
 
         # process changes
         cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
@@ -250,10 +279,10 @@ class Project(object):
 
         for i in cube_change_df.index:
             change_df = cube_change_df.loc[i]
-            print(change_df)
+
             base_df = base_links_df[(base_links_df["A"] == change_df.A) &
                                     (base_links_df["B"] == change_df.B)].iloc[0]
-            print(base_df)
+
             out_col = []
             for x in changeable_col:
                 if change_df[x] == base_df[x]:
@@ -271,7 +300,12 @@ class Project(object):
                                                 "A":base_df.A,
                                                 "B":base_df.B}]),
                                     "properties":pd.Series([property_dict_list])})
-
+            '''
+            card_df = pd.DataFrame({"facility":pd.Series([{"link":{"LINK_ID":base_df.LINK_ID},
+                                                "A":{"N":base_df.A},
+                                                "B":{"N":base_df.B}}]),
+                                    "properties":pd.Series([property_dict_list])})
+            '''
             change_link_dict_df = pd.concat([change_link_dict_df,
                                             card_df],
                                             ignore_index = True,
@@ -284,9 +318,18 @@ class Project(object):
         print(change_link_dict_df)
         change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
 
-        change_link_dict = change_link_dict_df.to_dict("record")[0]
-        change_link_dict["Category"] = "Roadway Attribute Change"
+        change_link_dict_list = change_link_dict_df.to_dict("record")
 
-        self.card_data = change_link_dict  #return changes only for testing
+        for change in change_link_dict_list:
+            change["Category"] = "Roadway Attribute Change"
+
+        print(change_link_dict_list)
+
+        card_dict = {"project":"TO DO User Define",
+                    "changes": [delete_link_dict] + add_link_dict_list + change_link_dict_list}
+
+        print(card_dict)
+
+        self.card_data = card_dict  #return changes only for testing
 
         pass
