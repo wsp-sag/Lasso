@@ -227,22 +227,19 @@ class Project(object):
 
         # process deletions
         cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-        #delete_link_df = base_links_df[base_links_df.LINK_ID.isin(cube_delete_df.LINK_ID.tolist())]
-        #delete_link_dict = delete_link_df[["LINK_ID", "osmid", "name", "u", "v"]].to_dict("record")
-        delete_link_dict_df = cube_delete_df.copy()
-        delete_link_dict_df["facility"] = delete_link_dict_df.apply(lambda x: {"link":{"LINK_ID":x.LINK_ID},
-                                                                                "A":{"N":x.A},
-                                                                                "B":{"N":x.B}},
                                                                         axis = 1)
-        print(delete_link_dict_df)
+        print(cube_delete_df)
+
         delete_link_dict = {}
         delete_link_dict["category"] = "Roadway Deletion"
-        delete_link_dict["facility"] = pd.DataFrame(delete_link_dict_df.facility.tolist()).to_dict("list")
+        delete_link_dict["facility"] = {"link" : {"LINK_ID":cube_delete_df.LINK_ID.tolist()},
+                                        "A" : {"N":cube_delete_df.A.tolist()},
+                                        "B" : {"N":cube_delete_df.B.tolist()}}
 
 
         # process additions
         cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
-        #cube_add_df = cube_add_df.groupby()
+
         add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
         add_link_dict_df = cube_add_df.copy()
 

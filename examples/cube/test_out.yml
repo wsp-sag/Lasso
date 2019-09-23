@@ -2,11 +2,14 @@ changes:
 - category: Roadway Deletion
   facility:
     A:
-    - N: 3261
+      N:
+      - 3261
     B:
-    - N: 131209
+      N:
+      - 131209
     link:
-    - LINK_ID: 281
+      LINK_ID:
+      - 281
 - category: New Roadway
   facility:
     A:
