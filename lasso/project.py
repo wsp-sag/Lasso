@@ -227,7 +227,7 @@ class Project(object):
 
         # process deletions
         cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-                                                                        axis = 1)
+                                                                    
         print(cube_delete_df)
 
         delete_link_dict = {}
