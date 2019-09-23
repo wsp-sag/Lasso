@@ -230,13 +230,13 @@ class Project(object):
         #delete_link_df = base_links_df[base_links_df.LINK_ID.isin(cube_delete_df.LINK_ID.tolist())]
         #delete_link_dict = delete_link_df[["LINK_ID", "osmid", "name", "u", "v"]].to_dict("record")
         delete_link_dict_df = cube_delete_df.copy()
-        delete_link_dict_df["facility"] = delete_link_dict_df.apply(lambda x: {"link":x.LINK_ID,
-                                                                                "A":x.A,
-                                                                                "B":x.B},
+        delete_link_dict_df["facility"] = delete_link_dict_df.apply(lambda x: {"link":{"LINK_ID":x.LINK_ID},
+                                                                                "A":{"N":x.A},
+                                                                                "B":{"N":x.B}},
                                                                         axis = 1)
         print(delete_link_dict_df)
         delete_link_dict = {}
-        delete_link_dict["Category"] = "Roadway Deletion"
+        delete_link_dict["category"] = "Roadway Deletion"
         delete_link_dict["facility"] = pd.DataFrame(delete_link_dict_df.facility.tolist()).to_dict("list")
 
 
@@ -246,10 +246,6 @@ class Project(object):
         add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
         add_link_dict_df = cube_add_df.copy()
 
-        add_link_dict_df["facility"] = add_link_dict_df.apply(lambda x: {"link":x.LINK_ID,
-                                                                        "A":x.A,
-                                                                        "B":x.B},
-                                                                axis = 1)
         def prop_dict(x):
             ls = []
             for c in [t for t in add_col if t not in ["LINK_ID", "A", "B"]]:
@@ -264,13 +260,20 @@ class Project(object):
 
         add_link_dict_df["properties"] = add_link_dict_df["properties"].astype(str)
 
-        add_link_dict_df = add_link_dict_df.groupby("properties")["facility"].apply(list).reset_index()
-        add_link_dict_df['facility'] = add_link_dict_df['facility'].apply(lambda x:pd.DataFrame(x).to_dict('list'))
-        add_link_dict_df['properties'] = add_link_dict_df['properties'].apply(lambda x:json.loads(x.replace("'", "\"")))
+        add_link_dict_df = add_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
 
-        add_link_dict_list = add_link_dict_df.to_dict("record")
+        add_link_dict_df['properties'] = add_link_dict_df['properties'].apply(lambda x:json.loads(x.replace("'", "\"")))
+        add_link_dict_df["facility"] = add_link_dict_df.apply(lambda x: {"A":{"N":x.A},
+                                                                                "B":{"N":x.B},
+                                                                                "link":{"LINK_ID":x.LINK_ID}},
+                                                                    axis = 1)
+
+        add_link_dict_list = add_link_dict_df[["facility", "properties"]].to_dict("record")
         for add in add_link_dict_list:
-            add["Category"] = "New Roadway"
+            add["category"] = "New Roadway"
+
+        print("\n print addition dictionary \n")
+        print(add_link_dict_list)
 
         # process changes
         cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
@@ -296,38 +299,45 @@ class Project(object):
                 property_dict["property"] = x
                 property_dict["set"] = change_df[x]
                 property_dict_list.append(property_dict)
-            card_df = pd.DataFrame({"facility":pd.Series([{"link":base_df.LINK_ID,
-                                                "A":base_df.A,
-                                                "B":base_df.B}]),
-                                    "properties":pd.Series([property_dict_list])})
-            '''
-            card_df = pd.DataFrame({"facility":pd.Series([{"link":{"LINK_ID":base_df.LINK_ID},
-                                                "A":{"N":base_df.A},
-                                                "B":{"N":base_df.B}}]),
-                                    "properties":pd.Series([property_dict_list])})
-            '''
+
+            card_df = pd.DataFrame({"properties":pd.Series([property_dict_list]),
+                                    "A":pd.Series(base_df.A),
+                                    "B":pd.Series(base_df.B),
+                                    "LINK_ID":pd.Series(base_df.LINK_ID)})
+            print("print0 \n")
+            print(card_df)
+
             change_link_dict_df = pd.concat([change_link_dict_df,
                                             card_df],
                                             ignore_index = True,
                                             sort = False)
 
         change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
-        change_link_dict_df = change_link_dict_df.groupby("properties")["facility"].apply(list).reset_index()
+        change_link_dict_df = change_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
 
-        change_link_dict_df["facility"] = change_link_dict_df["facility"].apply(lambda x: pd.DataFrame(x).to_dict("list"))
+        print("print1 \n")
+        print(change_link_dict_df)
+
+        change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"N" : x.A},
+                                                                                "B" : {"N" : x.B},
+                                                                                "link" : {"LINK_ID" : x.LINK_ID}},
+                                                                    axis = 1)
+        print("print2 \n")
         print(change_link_dict_df)
         change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
 
-        change_link_dict_list = change_link_dict_df.to_dict("record")
+        change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict("record")
 
         for change in change_link_dict_list:
-            change["Category"] = "Roadway Attribute Change"
+            change["category"] = "Roadway Attribute Change"
 
+        print("\n print change dictionary \n")
         print(change_link_dict_list)
 
         card_dict = {"project":"TO DO User Define",
                     "changes": [delete_link_dict] + add_link_dict_list + change_link_dict_list}
 
+        print("print4 \n")
         print(card_dict)
 
         self.card_data = card_dict  #return changes only for testing

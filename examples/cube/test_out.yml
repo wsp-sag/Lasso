@@ -1,23 +1,26 @@
 changes:
-- Category: Roadway Deletion
+- category: Roadway Deletion
   facility:
     A:
-    - 3261
+    - N: 3261
     B:
-    - 131209
+    - N: 131209
     link:
-    - 281
-- Category: New Roadway
+    - LINK_ID: 281
+- category: New Roadway
   facility:
     A:
-    - 3230
-    - 3262
+      N:
+      - 3230
+      - 3262
     B:
-    - 3262
-    - 3230
+      N:
+      - 3262
+      - 3230
     link:
-    - 999998
-    - 999997
+      LINK_ID:
+      - 999998
+      - 999997
   properties:
   - property: COUNTY
     set: 5
@@ -53,33 +56,40 @@ changes:
     set: 0.10462
   - property: T_MANTIME
     set: 0.0
-- Category: Roadway Attribute Change
+- category: Roadway Attribute Change
   facility:
     A:
-    - 3261
+      N:
+      - 3261
+      - 3261
     B:
-    - 3262
+      N:
+      - 3262
+      - 68075
     link:
-    - 280
+      LINK_ID:
+      - 280
+      - 282
   properties:
   - property: ASGNGRP
     set: 5
-  - property: LANES
-    set: 1
   - property: RC_NUM
     set: 40
   - property: BIKE
     set: 3
   - property: DISTANCE
     set: 10.0
-- Category: Roadway Attribute Change
+- category: Roadway Attribute Change
   facility:
     A:
-    - 3230
+      N:
+      - 3230
     B:
-    - 52771
+      N:
+      - 52771
     link:
-    - 224
+      LINK_ID:
+      - 224
   properties:
   - property: ASGNGRP
     set: 5
