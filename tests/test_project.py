@@ -54,4 +54,18 @@ def test_highway_change(request,logfilename):
     #assert(type(test_project.card_data)==Dict[str, Dict[str, Any]])
     assert(type(test_project.card_data)==dict)
 
-    test_project.write_project_card("Z:/Data/Users/Sijia/Met_Council/github/client_met_council_wrangler_utilities/examples/cube/test_out.yml")
+    test_project.write_project_card(os.path.join("tests","test_out.yml"))
+
+@pytest.mark.parametrize("logfilename", logfile_list)
+def test_highway_change_project_card_valid(request,logfilename):
+    print("\n--Starting:",request.node.name)
+
+    print("Reading: {}".format(logfilename))
+    lf = Project.read_logfile(logfilename)
+    test_project = Project.create_project( roadway_log_file=logfilename,
+                                           base_roadway_dir=BASE_ROADWAY_DIR)
+
+    from network_wrangler import ProjectCard
+    valid = ProjectCard.validate_project_card_schema(test_project.card_data)
+
+    assert(valid == True)
