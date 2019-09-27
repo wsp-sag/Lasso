@@ -186,24 +186,14 @@ class Project(object):
         ## TODO Sijia
         ## if worth it, could also add some functionality  to network wrangler itself.
         base_links_df = self.base_roadway_network.links_df
+        base_links_df.drop("area", axis = 1, inplace = True)
+        base_nodes_df = self.base_roadway_network.nodes_df
 
         changes_df = self.roadway_changes
 
         node_changes_df = changes_df[changes_df.OBJECT == "N"]
+
         link_changes_df = changes_df[changes_df.OBJECT == "L"]
-
-        changeable_col = [x for x in link_changes_df.columns if x in base_links_df.columns]
-        for x in changeable_col:
-            link_changes_df[x] = link_changes_df[x].astype(base_links_df[x].dtype)
-
-        action_history_df = link_changes_df.groupby(["A", "B"])["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history")
-        link_changes_df = pd.merge(link_changes_df,
-                                    action_history_df,
-                                    on = ["A", "B"],
-                                    how = "left")
-        link_changes_df.drop_duplicates(subset = ["A", "B"],
-                                        keep = "last",
-                                        inplace = True)
 
         def final_op(x):
             if x.OPERATION_history[-1] == "D":
@@ -222,121 +212,153 @@ class Project(object):
                 else:
                     return "C"
 
-        link_changes_df["OPERATION_final"] = link_changes_df.apply(lambda x: final_op(x),
-                                                                    axis = 1)
+        def consolidate_actions(log, base, key_list):
+            log_df = log.copy()
+            log_df.columns = [x.upper() for x in log_df.columns]
+
+            base.columns = [x.upper() for x in base.columns]
+
+            changeable_col = [x for x in log_df.columns if x in base.columns]
+
+            for x in changeable_col:
+                log_df[x] = log_df[x].astype(base[x].dtype)
+
+            action_history_df = log_df.groupby(key_list)["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history")
+            log_df = pd.merge(log_df,
+                                action_history_df,
+                                on = key_list,
+                                how = "left")
+            log_df.drop_duplicates(subset = key_list,
+                                    keep = "last",
+                                    inplace = True)
+            log_df['OPERATION_final'] = log_df.apply(lambda x: final_op(x),
+                                                axis = 1)
+            return log_df[changeable_col + ['OPERATION_final']]
+
+        if len(link_changes_df) != 0:
+            link_changes_df = consolidate_actions(link_changes_df,
+                                                base_links_df,
+                                                ['A', 'B'])
+
+
+        if len(node_changes_df) != 0:
+            node_changes_df = consolidate_actions(node_changes_df,
+                                                    base_nodes_df,
+                                                    ['N'])
+
+            # print error message for node change and node deletion
+            if len(node_changes_df[node_changes_df.OPERATION_final.isin(["C", "D"])]) > 0:
+                print("\n ERROR: NODE changes and deletions are not allowed! \n")
+            node_add_df = node_changes_df[node_changes_df.OPERATION_final == "A"]
+        else:
+            node_add_df = pd.DataFrame()
 
         # process deletions
-        cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-                                                                    
-        print(cube_delete_df)
-
-        delete_link_dict = {}
-        delete_link_dict["category"] = "Roadway Deletion"
-        delete_link_dict["facility"] = {"link" : {"LINK_ID":cube_delete_df.LINK_ID.tolist()},
-                                        "A" : {"N":cube_delete_df.A.tolist()},
-                                        "B" : {"N":cube_delete_df.B.tolist()}}
-
+        try:
+            cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
+            if len(cube_delete_df) > 0:
+                delete_link_dict = {}
+                delete_link_dict["category"] = "Roadway Deletion"
+                delete_link_dict["facility"] = {"link" : {"LINK_ID":cube_delete_df.LINK_ID.tolist()},
+                                                "A" : {"N":cube_delete_df.A.tolist()},
+                                                "B" : {"N":cube_delete_df.B.tolist()}}
+            else:
+                delete_link_dict = None
+        except:
+            delete_link_dict = None
 
         # process additions
-        cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
+        try:
+            if len(node_add_df):
+                node_dict_list = node_add_df.to_dict("record")
 
-        add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
-        add_link_dict_df = cube_add_df.copy()
+            cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
 
-        def prop_dict(x):
-            ls = []
-            for c in [t for t in add_col if t not in ["LINK_ID", "A", "B"]]:
+            add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
+            add_link_dict_df = cube_add_df.copy()
+
+            def prop_dict(x):
                 d = {}
-                d['property'] = c
-                d['set'] = x[c]
-                ls.append(d)
-            return ls
+                for c in add_col:
+                    d[c] = x[c]
+                return d
 
-        add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
-                                                                axis = 1)
+            add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
+                                                                        axis = 1)
 
-        add_link_dict_df["properties"] = add_link_dict_df["properties"].astype(str)
+            add_link_dict = {"category" : "New Roadway",
+                            "nodes" : node_dict_list,
+                            "links" : add_link_dict_df[['properties']].to_dict("record")}
+        except:
+            add_link_dict = None
 
-        add_link_dict_df = add_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
-
-        add_link_dict_df['properties'] = add_link_dict_df['properties'].apply(lambda x:json.loads(x.replace("'", "\"")))
-        add_link_dict_df["facility"] = add_link_dict_df.apply(lambda x: {"A":{"N":x.A},
-                                                                                "B":{"N":x.B},
-                                                                                "link":{"LINK_ID":x.LINK_ID}},
-                                                                    axis = 1)
-
-        add_link_dict_list = add_link_dict_df[["facility", "properties"]].to_dict("record")
-        for add in add_link_dict_list:
-            add["category"] = "New Roadway"
-
-        print("\n print addition dictionary \n")
-        print(add_link_dict_list)
+#        print("\n print addition dictionary \n")
+#        print(add_link_dict)
 
         # process changes
-        cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
+        try:
+            changeable_col = [x for x in link_changes_df.columns if x in base_links_df.columns]
 
-        change_link_dict_df = pd.DataFrame()
+            cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
 
-        for i in cube_change_df.index:
-            change_df = cube_change_df.loc[i]
+            change_link_dict_df = pd.DataFrame()
 
-            base_df = base_links_df[(base_links_df["A"] == change_df.A) &
-                                    (base_links_df["B"] == change_df.B)].iloc[0]
+            for i in cube_change_df.index:
+                change_df = cube_change_df.loc[i]
 
-            out_col = []
-            for x in changeable_col:
-                if change_df[x] == base_df[x]:
-                    continue
-                else:
-                    out_col.append(x)
+                base_df = base_links_df[(base_links_df["A"] == change_df.A) &
+                                        (base_links_df["B"] == change_df.B)].iloc[0]
 
-            property_dict_list = []
-            for x in out_col:
-                property_dict = {}
-                property_dict["property"] = x
-                property_dict["set"] = change_df[x]
-                property_dict_list.append(property_dict)
+                out_col = []
+                for x in changeable_col:
+                    if change_df[x] == base_df[x]:
+                        continue
+                    else:
+                        out_col.append(x)
 
-            card_df = pd.DataFrame({"properties":pd.Series([property_dict_list]),
+                property_dict_list = []
+                for x in out_col:
+                    property_dict = {}
+                    property_dict["property"] = x
+                    property_dict["set"] = change_df[x]
+                    property_dict_list.append(property_dict)
+
+                card_df = pd.DataFrame({"properties":pd.Series([property_dict_list]),
                                     "A":pd.Series(base_df.A),
                                     "B":pd.Series(base_df.B),
                                     "LINK_ID":pd.Series(base_df.LINK_ID)})
-            print("print0 \n")
-            print(card_df)
 
-            change_link_dict_df = pd.concat([change_link_dict_df,
+                change_link_dict_df = pd.concat([change_link_dict_df,
                                             card_df],
                                             ignore_index = True,
                                             sort = False)
 
-        change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
-        change_link_dict_df = change_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
+            change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
+            change_link_dict_df = change_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
 
-        print("print1 \n")
-        print(change_link_dict_df)
-
-        change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"N" : x.A},
+            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"N" : x.A},
                                                                                 "B" : {"N" : x.B},
                                                                                 "link" : {"LINK_ID" : x.LINK_ID}},
                                                                     axis = 1)
-        print("print2 \n")
-        print(change_link_dict_df)
-        change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
 
-        change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict("record")
+            change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
 
-        for change in change_link_dict_list:
-            change["category"] = "Roadway Attribute Change"
+            change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict("record")
 
-        print("\n print change dictionary \n")
-        print(change_link_dict_list)
+            for change in change_link_dict_list:
+                change["category"] = "Roadway Attribute Change"
+
+#                print("\n print change dictionary \n")
+#                print(change_link_dict_list)
+
+        except:
+            change_link_dict_list = []
 
         card_dict = {"project":"TO DO User Define",
-                    "changes": [delete_link_dict] + add_link_dict_list + change_link_dict_list}
+                    "changes": list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))}
 
-        print("print4 \n")
-        print(card_dict)
+#        print(card_dict)
 
-        self.card_data = card_dict  #return changes only for testing
+        self.card_data = card_dict
 
         pass
