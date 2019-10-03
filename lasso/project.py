@@ -188,12 +188,19 @@ class Project(object):
         base_links_df = self.base_roadway_network.links_df
         base_links_df.drop("area", axis = 1, inplace = True)
         base_nodes_df = self.base_roadway_network.nodes_df
+        base_nodes_df.rename(columns = {"travelModelId" : "N"},
+                                inplace = True)
 
         changes_df = self.roadway_changes
 
-        node_changes_df = changes_df[changes_df.OBJECT == "N"]
+        node_changes_df = changes_df[changes_df.OBJECT == "N"].copy()
 
-        link_changes_df = changes_df[changes_df.OBJECT == "L"]
+        link_changes_df = changes_df[changes_df.OBJECT == "L"].copy()
+
+        link_changes_df.rename(columns = {"ISDRIVELIN" : "ISDRIVELINK"},
+                                inplace = True)
+        node_changes_df.rename(columns = {"ISDRIVENOD" : "ISDRIVENODE"},
+                                inplace = True)
 
         def final_op(x):
             if x.OPERATION_history[-1] == "D":
@@ -269,9 +276,6 @@ class Project(object):
 
         # process additions
         try:
-            if len(node_add_df):
-                node_dict_list = node_add_df.to_dict("record")
-
             cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
 
             add_col = [x for x in cube_add_df.columns if x in base_links_df.columns]
@@ -287,13 +291,16 @@ class Project(object):
                                                                         axis = 1)
 
             add_link_dict = {"category" : "New Roadway",
-                            "nodes" : node_dict_list,
                             "links" : add_link_dict_df[['properties']].to_dict("record")}
         except:
             add_link_dict = None
 
-#        print("\n print addition dictionary \n")
-#        print(add_link_dict)
+        try:
+            if len(node_add_df):
+                node_dict_list = node_add_df.drop(['OPERATION_final'], axis = 1).to_dict("record")
+            add_link_dict["nodes"] = node_dict_list
+        except:
+            node_dict_list = None
 
         # process changes
         try:
@@ -348,16 +355,11 @@ class Project(object):
             for change in change_link_dict_list:
                 change["category"] = "Roadway Attribute Change"
 
-#                print("\n print change dictionary \n")
-#                print(change_link_dict_list)
-
         except:
             change_link_dict_list = []
 
         card_dict = {"project":"TO DO User Define",
                     "changes": list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))}
-
-#        print(card_dict)
 
         self.card_data = card_dict
 

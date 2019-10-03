@@ -55,7 +55,7 @@ def test_highway_change(request,logfilename):
     #assert(type(test_project.card_data)==Dict[str, Dict[str, Any]])
     assert(type(test_project.card_data)==dict)
 
-    test_project.write_project_card(os.path.join(os.getcwd(),"tests","test_out.yml"))
+    test_project.write_project_card(os.path.join(os.getcwd(),"tests",logfilename.replace(".", "\\").split("\\")[-2]+".yml"))
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 #@pytest.mark.sijia
@@ -68,7 +68,7 @@ def test_highway_change_project_card_valid(request,logfilename):
                                            base_roadway_dir=BASE_ROADWAY_DIR)
 
     from network_wrangler import ProjectCard
-    valid = ProjectCard.validate_project_card_schema(os.path.join(os.getcwd(),"tests","test_out.yml"))
+    valid = ProjectCard.validate_project_card_schema(os.path.join(os.getcwd(),"tests",logfilename,".yml"))
 
     assert(valid == True)
 
