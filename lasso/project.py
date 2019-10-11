@@ -187,9 +187,9 @@ class Project(object):
         ## if worth it, could also add some functionality  to network wrangler itself.
         base_links_df = self.base_roadway_network.links_df
         base_links_df.drop("area", axis = 1, inplace = True)
-        print(base_links_df.columns)
+
         base_nodes_df = self.base_roadway_network.nodes_df
-        print(base_nodes_df.columns)
+
         base_nodes_df.rename(columns = {"x" : "X",
                                         "y" : "Y"},
                                 inplace = True)
@@ -242,8 +242,7 @@ class Project(object):
                 log_df[x] = log_df[x].astype(base[x].dtype)
 
             action_history_df = log_df.groupby(key_list)["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history").reset_index()
-            #print(action_history_df.columns)
-            print(log_df.columns)
+
             log_df = pd.merge(log_df,
                                 action_history_df,
                                 on = key_list,
@@ -278,16 +277,13 @@ class Project(object):
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
             delete_link_df = cube_delete_df.copy()
 
-            def fac_dict(x):
-                d = {}
-                for c in ["A", "B", "LINK_ID"]:
-                    d[c] = x[c]
-                return d
+            _links_dict = {"LINK_ID" : delete_link_df["LINK_ID"].tolist()}
 
-            delete_link_df["facility"] = delete_link_df.apply(fac_dict,
-                                                              axis = 1)
             delete_link_dict = {"category" : "Roadway Deletion",
-                                "links" : delete_link_df[["facility"]].to_dict("record")}
+                                "links" : _links_dict}
+
+            if len(delete_link_df) == 0:
+                delete_link_dict = None
         except:
             delete_link_dict = None
 
@@ -301,23 +297,19 @@ class Project(object):
             def prop_dict(x):
                 d = {}
                 for c in add_col:
-                    if c in ["AREA", "COUNTY", "ASGNGRP", "CENTROID"]:
-                        continue
-                    else:
-                        d[c] = x[c]
+                    d[c] = x[c]
                 return d
 
             add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
                                                                         axis = 1)
 
             add_link_dict = {"category" : "New Roadway",
-                            "links" : add_link_dict_df[['properties']].to_dict("record")}
+                            "links" : add_link_dict_df['properties'].tolist()}
         except:
             add_link_dict = None
 
         try:
             if len(node_add_df):
-                print(node_add_df)
                 node_dict_list = node_add_df.drop(['OPERATION_final'], axis = 1).to_dict("record")
             add_link_dict["nodes"] = node_dict_list
         except:
@@ -348,6 +340,7 @@ class Project(object):
                 for x in out_col:
                     property_dict = {}
                     property_dict["property"] = x
+                    property_dict["existing"] = base_df[x]
                     property_dict["set"] = change_df[x]
                     property_dict_list.append(property_dict)
 

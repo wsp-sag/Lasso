@@ -73,13 +73,22 @@ def test_highway_change_project_card_valid(request,logfilename):
     assert(valid == True)
 
 lineFile_list = glob.glob(os.path.join(EX_DIR,"*.LIN"))
-@pytest.mark.parametrize("linefile", lineFile_list)
+@pytest.mark.parametrize("linefilename", lineFile_list)
 #@pytest.mark.sijia
-def test_transit_linefile(request,linefile):
+def test_transit_linefile(request,linefilename):
     print("\n--Starting:",request.node.name)
 
+    from lasso.TransitNetwork import TransitNetwork
+
     print("Reading: {}".format(linefilename))
-    tn = Wrangler.TranstiNetwrok()
+    tn = TransitNetwork("CHAMP", 1.0)
+    print(tn.isEmpty())
     thisdir = os.path.dirname(os.path.realpath(__file__))
 
-    tn.mergeDir(thisdir)
+    tn.mergeDir(EX_DIR)
+    print(tn.isEmpty())
+
+    #print(tn.lines[1].getFreq("AM", "CHAMP"))
+    print(tn.lines[5].getFreq())
+    print(tn.lines[5].name)
+    print(tn.lines[5].n[0].num)
