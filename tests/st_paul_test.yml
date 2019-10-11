@@ -1,35 +1,25 @@
 changes:
 - category: Roadway Deletion
-  facility:
-    A:
-      N:
-      - 3261
-    B:
-      N:
-      - 131209
-    link:
-      LINK_ID:
-      - 281
+  links:
+  - facility:
+      A: 3261
+      B: 131209
+      LINK_ID: 281
+  - facility:
+      A: 178775
+      B: 42542
+      LINK_ID: 477533
 - category: New Roadway
   links:
   - properties:
       A: 3230
       AADT: 0
       AM_CNT: 0
-      AREA: 4
-      ASGNGRP: 5
       B: 3262
       BIKE: 3
-      CENTROID: 0
-      COUNTY: 5
       DISTANCE: 0.10462
       DY_CNT: 0
       HOV: 0
-      ISBIKELINK: 1
-      ISDRIVELINK: 1
-      ISTRANACCE: 0
-      ISTRANLINK: 0
-      ISWALKLINK: 1
       LANES: 1
       LINK_ID: 999998
       MD_CNT: 0
@@ -38,24 +28,20 @@ changes:
       RC_NUM: 40
       T_MANTIME: 0.0
       T_PRIORITY: 0
+      isBikeLink: 1
+      isDriveLink: 1
+      isTranAcce: 0
+      isTranLink: 0
+      isWalkLink: 1
   - properties:
       A: 3262
       AADT: 0
       AM_CNT: 0
-      AREA: 4
-      ASGNGRP: 5
       B: 3230
       BIKE: 3
-      CENTROID: 0
-      COUNTY: 5
       DISTANCE: 0.10462
       DY_CNT: 0
       HOV: 0
-      ISBIKELINK: 1
-      ISDRIVELINK: 1
-      ISTRANACCE: 0
-      ISTRANLINK: 0
-      ISWALKLINK: 1
       LANES: 1
       LINK_ID: 999997
       MD_CNT: 0
@@ -64,22 +50,27 @@ changes:
       RC_NUM: 40
       T_MANTIME: 0.0
       T_PRIORITY: 0
+      isBikeLink: 1
+      isDriveLink: 1
+      isTranAcce: 0
+      isTranLink: 0
+      isWalkLink: 1
   nodes:
-  - ISBIKENODE: 0
-    ISDRIVENODE: 1
-    ISTRANNODE: 0
-    ISWALKNODE: 0
-    N: 354388
-    X: -93.18389
+  - X: -93.18389
     Y: 44.96898
+    isBikeNode: 0
+    isDriveNode: 1
+    isTranNode: 0
+    isWalkNode: 0
+    travelModelId: 354388
 - category: Roadway Attribute Change
   facility:
     A:
-      N:
+      travelModelId:
       - 3261
       - 3261
     B:
-      N:
+      travelModelId:
       - 3262
       - 68075
     link:
@@ -87,32 +78,28 @@ changes:
       - 280
       - 282
   properties:
-  - property: ASGNGRP
-    set: 5
   - property: RC_NUM
     set: 40
   - property: BIKE
     set: 3
-  - property: ISWALKLINK
+  - property: isWalkLink
     set: 1
-  - property: ISBIKELINK
+  - property: isBikeLink
     set: 1
   - property: DISTANCE
     set: 10.0
 - category: Roadway Attribute Change
   facility:
     A:
-      N:
+      travelModelId:
       - 3230
     B:
-      N:
+      travelModelId:
       - 52771
     link:
       LINK_ID:
       - 224
   properties:
-  - property: ASGNGRP
-    set: 5
   - property: RC_NUM
     set: 40
   - property: DISTANCE

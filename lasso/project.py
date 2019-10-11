@@ -187,8 +187,11 @@ class Project(object):
         ## if worth it, could also add some functionality  to network wrangler itself.
         base_links_df = self.base_roadway_network.links_df
         base_links_df.drop("area", axis = 1, inplace = True)
+        print(base_links_df.columns)
         base_nodes_df = self.base_roadway_network.nodes_df
-        base_nodes_df.rename(columns = {"travelModelId" : "N"},
+        print(base_nodes_df.columns)
+        base_nodes_df.rename(columns = {"x" : "X",
+                                        "y" : "Y"},
                                 inplace = True)
 
         changes_df = self.roadway_changes
@@ -197,9 +200,17 @@ class Project(object):
 
         link_changes_df = changes_df[changes_df.OBJECT == "L"].copy()
 
-        link_changes_df.rename(columns = {"ISDRIVELIN" : "ISDRIVELINK"},
+        link_changes_df.rename(columns = {"ISDRIVELIN" : "isDriveLink",
+                                          "ISWALKLINK" : "isWalkLink",
+                                          "ISBIKELINK" : "isBikeLink",
+                                          "ISTRANLINK" : "isTranLink",
+                                          "ISTRANACCE" : "isTranAcce"},
                                 inplace = True)
-        node_changes_df.rename(columns = {"ISDRIVENOD" : "ISDRIVENODE"},
+        node_changes_df.rename(columns = {"ISDRIVENOD" : "isDriveNode",
+                                          "N" :"travelModelId",
+                                          "ISWALKNODE" : "isWalkNode",
+                                          "ISTRANNODE" : "isTranNode",
+                                          "ISBIKENODE" : "isBikeNode"},
                                 inplace = True)
 
         def final_op(x):
@@ -221,16 +232,18 @@ class Project(object):
 
         def consolidate_actions(log, base, key_list):
             log_df = log.copy()
-            log_df.columns = [x.upper() for x in log_df.columns]
+            #log_df.columns = [x.upper() for x in log_df.columns]
 
-            base.columns = [x.upper() for x in base.columns]
+            #base.columns = [x.upper() for x in base.columns]
 
             changeable_col = [x for x in log_df.columns if x in base.columns]
 
             for x in changeable_col:
                 log_df[x] = log_df[x].astype(base[x].dtype)
 
-            action_history_df = log_df.groupby(key_list)["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history")
+            action_history_df = log_df.groupby(key_list)["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history").reset_index()
+            #print(action_history_df.columns)
+            print(log_df.columns)
             log_df = pd.merge(log_df,
                                 action_history_df,
                                 on = key_list,
@@ -251,7 +264,7 @@ class Project(object):
         if len(node_changes_df) != 0:
             node_changes_df = consolidate_actions(node_changes_df,
                                                     base_nodes_df,
-                                                    ['N'])
+                                                    ['travelModelId'])
 
             # print error message for node change and node deletion
             if len(node_changes_df[node_changes_df.OPERATION_final.isin(["C", "D"])]) > 0:
@@ -263,14 +276,18 @@ class Project(object):
         # process deletions
         try:
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-            if len(cube_delete_df) > 0:
-                delete_link_dict = {}
-                delete_link_dict["category"] = "Roadway Deletion"
-                delete_link_dict["facility"] = {"link" : {"LINK_ID":cube_delete_df.LINK_ID.tolist()},
-                                                "A" : {"N":cube_delete_df.A.tolist()},
-                                                "B" : {"N":cube_delete_df.B.tolist()}}
-            else:
-                delete_link_dict = None
+            delete_link_df = cube_delete_df.copy()
+
+            def fac_dict(x):
+                d = {}
+                for c in ["A", "B", "LINK_ID"]:
+                    d[c] = x[c]
+                return d
+
+            delete_link_df["facility"] = delete_link_df.apply(fac_dict,
+                                                              axis = 1)
+            delete_link_dict = {"category" : "Roadway Deletion",
+                                "links" : delete_link_df[["facility"]].to_dict("record")}
         except:
             delete_link_dict = None
 
@@ -284,7 +301,10 @@ class Project(object):
             def prop_dict(x):
                 d = {}
                 for c in add_col:
-                    d[c] = x[c]
+                    if c in ["AREA", "COUNTY", "ASGNGRP", "CENTROID"]:
+                        continue
+                    else:
+                        d[c] = x[c]
                 return d
 
             add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
@@ -297,6 +317,7 @@ class Project(object):
 
         try:
             if len(node_add_df):
+                print(node_add_df)
                 node_dict_list = node_add_df.drop(['OPERATION_final'], axis = 1).to_dict("record")
             add_link_dict["nodes"] = node_dict_list
         except:
@@ -318,7 +339,7 @@ class Project(object):
 
                 out_col = []
                 for x in changeable_col:
-                    if change_df[x] == base_df[x]:
+                    if (change_df[x] == base_df[x]) | (x in ["AREA", "COUNTY", "ASGNGRP", "CENTROID"]):
                         continue
                     else:
                         out_col.append(x)
@@ -343,8 +364,8 @@ class Project(object):
             change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
             change_link_dict_df = change_link_dict_df.groupby("properties")[["A", "B", "LINK_ID"]].agg(lambda x:list(x)).reset_index()
 
-            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"N" : x.A},
-                                                                                "B" : {"N" : x.B},
+            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"travelModelId" : x.A},
+                                                                                "B" : {"travelModelId" : x.B},
                                                                                 "link" : {"LINK_ID" : x.LINK_ID}},
                                                                     axis = 1)
 
