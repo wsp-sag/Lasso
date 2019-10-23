@@ -17,14 +17,14 @@ from simpleparse.dispatchprocessor import *
 from .cube_transit import TransitLine
 
 
-__all__ = [ 'TransitParser', 'PTSystem', 'transit_file_def' ]
+__all__ = ["TransitParser", "PTSystem", "transit_file_def"]
 
-WRANGLER_FILE_SUFFICES = [ "lin" ]
+WRANGLER_FILE_SUFFICES = ["lin"]
 
 # PARSER DEFINITION ------------------------------------------------------------------------------
 # NOTE: even though XYSPEED and TIMEFAC are node attributes here, I'm not sure that's really ok --
 # Cube documentation implies TF and XYSPD are node attributes...
-transit_file_def=r'''
+transit_file_def = r"""
 transit_file      := smcw*, ( accessli / line / link / pnr / zac / supplink / factor / faresystem / waitcrvdef / crowdcrvdef / operator / mode / vehicletype )+, smcw*, whitespace*
 line              := whitespace?, smcw?, c"LINE", whitespace, lin_attr*, lin_node*, whitespace?
 lin_attr          := ( lin_attr_name, whitespace?, "=", whitespace?, attr_value, whitespace?,
@@ -102,29 +102,31 @@ alphanums         := [a-zA-Z0-9_\.]+
 <whitespace>      := [ \t\r\n]+
 <spaces>          := [ \t]+
 smcw              := whitespace?, (semicolon_comment / c_comment, whitespace?)+
-'''
+"""
+
 
 class TransitFileProcessor(DispatchProcessor):
     """ Class to process transit files
     """
+
     def __init__(self, verbosity=1):
-        self.verbosity=verbosity
+        self.verbosity = verbosity
         self.lines = []
-        self.nodes     = []
-        self.liType    = ''
-        self.factors   = []
+        self.nodes = []
+        self.liType = ""
+        self.factors = []
         # PT System control statements
-        self.waitcrvdefs  = []
+        self.waitcrvdefs = []
         self.crowdcrvdefs = []
-        self.operators    = []
-        self.modes        = []
+        self.operators = []
+        self.modes = []
         self.vehicletypes = []
 
         self.linecomments = []
 
     def crackTags(self, leaf, buffer):
         tag = leaf[0]
-        text = buffer[leaf[1]:leaf[2]]
+        text = buffer[leaf[1] : leaf[2]]
         subtags = leaf[3]
 
         b = []
@@ -133,48 +135,48 @@ class TransitFileProcessor(DispatchProcessor):
             for leaf in subtags:
                 b.append(self.crackTags(leaf, buffer))
 
-        return (tag,text,b)
+        return (tag, text, b)
 
     def line(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
         # this is the whole line
-        if self.verbosity>=1:
-            print(tag,start,stop)
+        if self.verbosity >= 1:
+            print(tag, start, stop)
 
         # Append list items for this line
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.lines.append(xxx)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             # lines are composed of smcw (semicolon-comment / whitespace), line_attr and lin_node
             for linepart in subtags:
-                print("  ",linepart[0], " -> [ "),
+                print("  ", linepart[0], " -> [ "),
                 for partpart in linepart[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]],")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
     def process_line(self, tup, buffer):
         """
         Generic version, returns list of pieces.
         """
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             for part in subtags:
-                print(" ",part[0], " -> [ "),
+                print(" ", part[0], " -> [ "),
                 for partpart in part[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
         # Append list items for this link
         # TODO: make the others more like this -- let the list separate the parse structures!
         retlist = []
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             retlist.append(xxx)
         return retlist
 
@@ -209,31 +211,31 @@ class TransitFileProcessor(DispatchProcessor):
     def smcw(self, tup, buffer):
         """ Semicolon comment whitespace
         """
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.linecomments.append(xxx)
 
 
 class TransitParser(Parser):
 
     # line files are one of these
-    PROGRAM_PT       = "PT"
+    PROGRAM_PT = "PT"
     PROGRAM_TRNBUILD = "TRNBUILD"
-    PROGRAM_UNKNOWN  = "unknown"
+    PROGRAM_UNKNOWN = "unknown"
 
     def __init__(self, filedef=transit_file_def, verbosity=1):
         Parser.__init__(self, filedef)
-        self.verbosity=verbosity
+        self.verbosity = verbosity
         self.tfp = TransitFileProcessor(self.verbosity)
 
-    def setVerbosity(self,verbosity):
-        self.verbosity=verbosity
-        self.tfp.verbosity=verbosity
+    def setVerbosity(self, verbosity):
+        self.verbosity = verbosity
+        self.tfp.verbosity = verbosity
 
     def buildProcessor(self):
         return self.tfp
@@ -244,7 +246,7 @@ class TransitParser(Parser):
         """
         program = TransitParser.PROGRAM_UNKNOWN  # default
         rows = []
-        currentRoute    = None
+        currentRoute = None
         currentComments = []
 
         # try to figure out what type of file this is -- TRNBUILD or PT
@@ -253,7 +255,7 @@ class TransitParser(Parser):
                 cmt = comment[2][0][1]
                 # print("cmt={}".format(cmt))
                 # note the first semicolon is stripped
-                if cmt.startswith(';<<Trnbuild>>;;'):
+                if cmt.startswith(";<<Trnbuild>>;;"):
                     program = TransitParser.PROGRAM_TRNBUILD
                 elif cmt.startswith(";<<PT>><<LINE>>;;"):
                     program = TransitParser.PROGRAM_PT
@@ -266,7 +268,7 @@ class TransitParser(Parser):
             line_num += 1
 
             # Add comments as simple strings
-            if line[0] == 'smcw':
+            if line[0] == "smcw":
                 cmt = line[1].strip()
                 # WranglerLogger.debug("smcw line={}".format(line))
 
@@ -279,24 +281,27 @@ class TransitParser(Parser):
                 continue
 
             # Handle Line attributes
-            if line[0] == 'lin_attr':
+            if line[0] == "lin_attr":
                 key = None
                 value = None
                 comment = None
                 # Pay attention only to the children of lin_attr elements
                 kids = line[2]
                 for child in kids:
-                    if child[0]=='lin_attr_name': key=child[1]
-                    if child[0]=='attr_value': value=child[1]
-                    if child[0]=='semicolon_comment': comment=child[1].strip()
+                    if child[0] == "lin_attr_name":
+                        key = child[1]
+                    if child[0] == "attr_value":
+                        value = child[1]
+                    if child[0] == "semicolon_comment":
+                        comment = child[1].strip()
 
                 # If this is a NAME attribute, we need to start a new TransitLine!
-                if key=='NAME':
+                if key == "NAME":
                     if currentRoute:
                         rows.append(currentRoute)
 
                     # now add the comments stored up
-                    if len(currentComments)>0:
+                    if len(currentComments) > 0:
                         # WranglerLogger.debug("currentComments: {}".format(currentComments))
                         rows.extend(currentComments)
                         currentComments = []
@@ -306,7 +311,8 @@ class TransitParser(Parser):
                     currentRoute[key] = value  # Just store all other attributes
 
                 # And save line comment if there is one
-                if comment: currentRoute.comment = comment
+                if comment:
+                    currentRoute.comment = comment
                 continue
 
             # Handle Node list
@@ -315,27 +321,33 @@ class TransitParser(Parser):
                 kids = line[2]
                 node = None
                 for child in kids:
-                    if child[0]=='nodenum':
+                    if child[0] == "nodenum":
                         node = Node(child[1])
-                    if child[0]=='lin_nodeattr':
+                    if child[0] == "lin_nodeattr":
                         key = None
                         value = None
                         for nodechild in child[2]:
-                            if nodechild[0]=='lin_nodeattr_name': key = nodechild[1]
-                            if nodechild[0]=='attr_value': value = nodechild[1]
-                            if nodechild[0]=='semicolon_comment': comment=nodechild[1].strip()
+                            if nodechild[0] == "lin_nodeattr_name":
+                                key = nodechild[1]
+                            if nodechild[0] == "attr_value":
+                                value = nodechild[1]
+                            if nodechild[0] == "semicolon_comment":
+                                comment = nodechild[1].strip()
                         node[key] = value
-                        if comment: node.comment = comment
+                        if comment:
+                            node.comment = comment
                 currentRoute.n.append(node)
                 continue
 
             # Got something other than lin_node, lin_attr, or smcw:
-            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (line[0], line[1]))
+            WranglerLogger.critical(
+                "** SHOULD NOT BE HERE: %s (%s)" % (line[0], line[1])
+            )
 
         # End of tree; store final route and return
-        if currentRoute: rows.append(currentRoute)
+        if currentRoute:
+            rows.append(currentRoute)
         return (program, rows)
-
 
     def convertPTSystemData(self):
         """ Convert the parsed tree of data into a PTSystem object
@@ -348,10 +360,12 @@ class TransitParser(Parser):
             curve_dict = collections.OrderedDict()
             for attr in crvdef:
                 # just handle curve attributes
-                if attr[0] !="crv_attr": continue
+                if attr[0] != "crv_attr":
+                    continue
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": curve_num = int(val)
+                if key == "NUMBER":
+                    curve_num = int(val)
                 curve_dict[key] = val
             pts.waitCurveDefs[curve_num] = curve_dict
 
@@ -360,57 +374,73 @@ class TransitParser(Parser):
             curve_dict = collections.OrderedDict()
             for attr in crvdef:
                 # just handle curve attributes
-                if attr[0] !="crv_attr": continue
+                if attr[0] != "crv_attr":
+                    continue
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": curve_num = int(val)
+                if key == "NUMBER":
+                    curve_num = int(val)
                 curve_dict[key] = val
             pts.crowdCurveDefs[curve_num] = curve_dict
 
         for operator in self.tfp.operators:
-            op_num  = None
+            op_num = None
             op_dict = collections.OrderedDict()
             for attr in operator:
                 # just handle opmode attributes
-                if attr[0] !="opmode_attr": continue
+                if attr[0] != "opmode_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": op_num = int(val)
-                op_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    op_num = int(val)
+                op_dict[key] = val  # leave as string
             pts.operators[op_num] = op_dict
 
         for mode in self.tfp.modes:
-            mode_num  = None
+            mode_num = None
             mode_dict = collections.OrderedDict()
             for attr in mode:
                 # just handle opmode attributes
-                if attr[0] !="opmode_attr": continue
+                if attr[0] != "opmode_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": mode_num = int(val)
-                mode_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    mode_num = int(val)
+                mode_dict[key] = val  # leave as string
             pts.modes[mode_num] = mode_dict
 
         for vehicletype in self.tfp.vehicletypes:
-            vt_num  = None
+            vt_num = None
             vt_dict = collections.OrderedDict()
             for attr in vehicletype:
                 # just handle vehtype attributes
-                if attr[0] != "vehtype_attr": continue
+                if attr[0] != "vehtype_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": vt_num = int(val)
-                vt_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    vt_num = int(val)
+                vt_dict[key] = val  # leave as string
             pts.vehicleTypes[vt_num] = vt_dict
 
-        if len(pts.waitCurveDefs) > 0 or len(pts.crowdCurveDefs) > 0 or len(pts.operators) > 0 or len(pts.modes) > 0 or len(pts.vehicleTypes) > 0:
+        if (
+            len(pts.waitCurveDefs) > 0
+            or len(pts.crowdCurveDefs) > 0
+            or len(pts.operators) > 0
+            or len(pts.modes) > 0
+            or len(pts.vehicleTypes) > 0
+        ):
             return pts
         return None
 
-__all__ = ['PTSystem']
+
+__all__ = ["PTSystem"]
+
 
 class PTSystem:
     """
@@ -419,16 +449,29 @@ class PTSystem:
     """
 
     def __init__(self):
-        self.waitCurveDefs  = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.crowdCurveDefs = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.operators      = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.modes          = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.vehicleTypes   = collections.OrderedDict()  # key is number, value is also ordered dict
+        self.waitCurveDefs = (
+            collections.OrderedDict()
+        )  # key is number, value is also ordered dict
+        self.crowdCurveDefs = (
+            collections.OrderedDict()
+        )  # key is number, value is also ordered dict
+        self.operators = (
+            collections.OrderedDict()
+        )  # key is number, value is also ordered dict
+        self.modes = (
+            collections.OrderedDict()
+        )  # key is number, value is also ordered dict
+        self.vehicleTypes = (
+            collections.OrderedDict()
+        )  # key is number, value is also ordered dict
 
     def isEmpty(self):
-        if len(self.operators   ) > 0: return False
-        if len(self.modes       ) > 0: return False
-        if len(self.vehicleTypes) > 0: return False
+        if len(self.operators) > 0:
+            return False
+        if len(self.modes) > 0:
+            return False
+        if len(self.vehicleTypes) > 0:
+            return False
         return True
 
     def __repr__(self):
@@ -438,32 +481,37 @@ class PTSystem:
         s = ""
         for pt_num, pt_dict in self.modes.items():
             s += "MODE"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
+            for k, v in pt_dict.items():
+                s += " {}={}".format(k, v)
+            s += "\n"
         s += "\n"
 
         for pt_num, pt_dict in self.operators.items():
             s += "OPERATOR"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
+            for k, v in pt_dict.items():
+                s += " {}={}".format(k, v)
+            s += "\n"
         s += "\n"
 
         for pt_num, pt_dict in self.vehicleTypes.items():
             s += "VEHICLETYPE"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
+            for k, v in pt_dict.items():
+                s += " {}={}".format(k, v)
+            s += "\n"
         s += "\n"
 
         for pt_num, pt_dict in self.waitCurveDefs.items():
             s += "WAITCRVDEF"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
+            for k, v in pt_dict.items():
+                s += " {}={}".format(k, v)
+            s += "\n"
         s += "\n"
 
         for pt_num, pt_dict in self.crowdCurveDefs.items():
             s += "CROWDCRVDEF"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
+            for k, v in pt_dict.items():
+                s += " {}={}".format(k, v)
+            s += "\n"
         s += "\n"
 
         return s
@@ -472,27 +520,41 @@ class PTSystem:
         """
         Merges another pts with self.
         """
-        for key,val_dict in pts.waitCurveDefs.items():
-            if key in self.waitCurveDefs: # collision
-                raise NetworkException("PTSystem: Trying to merge WAITCRVDEF with same key: {}".format(key))
+        for key, val_dict in pts.waitCurveDefs.items():
+            if key in self.waitCurveDefs:  # collision
+                raise NetworkException(
+                    "PTSystem: Trying to merge WAITCRVDEF with same key: {}".format(key)
+                )
             self.waitCurveDefs[key] = val_dict
 
-        for key,val_dict in pts.crowdCurveDefs.items():
-            if key in self.crowdCurveDefs: # collision
-                raise NetworkException("PTSystem: Trying to merge CROWDCRVDEF with same key: {}".format(key))
+        for key, val_dict in pts.crowdCurveDefs.items():
+            if key in self.crowdCurveDefs:  # collision
+                raise NetworkException(
+                    "PTSystem: Trying to merge CROWDCRVDEF with same key: {}".format(
+                        key
+                    )
+                )
             self.crowdCurveDefs[key] = val_dict
 
-        for key,val_dict in pts.operators.items():
-            if key in self.operators: # collision
-                raise NetworkException("PTSystem: Trying to merge OPERATOR with same key: {}".format(key))
+        for key, val_dict in pts.operators.items():
+            if key in self.operators:  # collision
+                raise NetworkException(
+                    "PTSystem: Trying to merge OPERATOR with same key: {}".format(key)
+                )
             self.operators[key] = val_dict
 
-        for key,val_dict in pts.modes.items():
-            if key in self.modes: # collision
-                raise NetworkException("PTSystem: Trying to merge MODE with same key: {}".format(key))
+        for key, val_dict in pts.modes.items():
+            if key in self.modes:  # collision
+                raise NetworkException(
+                    "PTSystem: Trying to merge MODE with same key: {}".format(key)
+                )
             self.modes[key] = val_dict
 
-        for key,val_dict in pts.vehicleTypes.items():
-            if key in self.vehicleTypes: # collision
-                raise NetworkException("PTSystem: Trying to merge VEHICLETYPE with same key: {}".format(key))
+        for key, val_dict in pts.vehicleTypes.items():
+            if key in self.vehicleTypes:  # collision
+                raise NetworkException(
+                    "PTSystem: Trying to merge VEHICLETYPE with same key: {}".format(
+                        key
+                    )
+                )
             self.vehicleTypes[key] = val_dict

@@ -1,10 +1,8 @@
-
-
 class CubeTransit(object):
     def __init__(
         self,
         ## TODO
-        ):
+    ):
         """
 
 
