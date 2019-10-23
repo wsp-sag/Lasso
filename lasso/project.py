@@ -9,7 +9,7 @@ from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
 import os
 
-
+from lasso.TransitNetwork import TransitNetwork
 from .transit import CubeTransit
 
 class Project(object):
@@ -70,7 +70,7 @@ class Project(object):
         if build_transit_dir and transit_changes:
             raise("only need one base roadway file")
         if build_transit_dir:
-            transit_changes = CubeTransit(build_transit_dir)
+            transit_changes = CubeTransit.create_cubetransit(build_transit_dir)
         else:
             transit_changes = pd.DataFrame({})
 
@@ -94,7 +94,7 @@ class Project(object):
         if base_transit_dir and base_transit_network:
             raise("only need one base roadway file")
         if base_transit_dir:
-            base_transit_network = TransitNetwork(base_transit_dir)
+            base_transit_network = CubeTransit.create_cubetransit(base_transit_dir)
         else:
             base_transit_network = None
 
@@ -160,13 +160,18 @@ class Project(object):
         """
         Determines which changes should be evaluated.
         """
+        highway_change_list = []
+        transit_change_list = []
 
         if not self.roadway_changes.empty:
-            self.add_highway_changes()
+            highway_change_list = self.add_highway_changes()
 
-        if not self.transit_changes.empty:
-            self.add_transit_changes()
+        if not self.transit_changes == None:
+            transit_change_list = self.add_transit_changes()
 
+        self.card_data = {"project" : "USER TO define",
+                          "changes" : transit_change_list + highway_change_list}
+        pass
 
     def add_transit_changes(self):
         """
@@ -175,8 +180,11 @@ class Project(object):
         """
         ## TODO Sijia
         ## should do comparisons in transit.py
+        transit_changes = self.transit_changes
+        base_transit_network = self.base_transit_network
+        transit_change_list = transit_changes.evaluate_differences(base_transit_network)
 
-        pass
+        return transit_change_list
 
     def add_highway_changes(self):
         """
@@ -372,9 +380,8 @@ class Project(object):
         except:
             change_link_dict_list = []
 
-        card_dict = {"project":"TO DO User Define",
-                    "changes": list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))}
+        highway_change_list = list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))
 
-        self.card_data = card_dict
+        #self.card_data["highway_card"] = card_dict
 
-        pass
+        return highway_change_list

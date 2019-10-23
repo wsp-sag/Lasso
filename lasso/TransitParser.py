@@ -1,86 +1,97 @@
-"""
-Heavily adopted from Network Wrangler, written by:
-- San Francisco County Transportation Authority
-- Metropolitan Transportation Commission
-
-https://github.com/BayAreaMetro/NetworkWrangler/blob/master/Wrangler/TransitParser.py
-
-"""
-
-import collections, re
-
 from simpleparse.common import numbers, strings, comments
 from simpleparse import generator
 from simpleparse.parser import Parser
 from simpleparse.dispatchprocessor import *
-
+import collections, re
+from .Factor import Factor
+from .Faresystem import Faresystem
+from .Linki import Linki
+from .Logger import WranglerLogger
+from .NetworkException import NetworkException
+from .Node import Node
+from .PNRLink import PNRLink
+from .PTSystem import PTSystem
+from .Supplink import Supplink
 from .TransitLine import TransitLine
+#from .TransitLink import TransitLink
+#from .ZACLink import ZACLink
 
+__all__ = [ 'TransitParser' ]
 
-__all__ = [ 'TransitParser', 'PTSystem', 'transit_file_def' ]
-
-WRANGLER_FILE_SUFFICES = [ "lin" ]
+WRANGLER_FILE_SUFFICES = [ "lin", "link", "pnr", "zac", "access", "xfer", "pts" ]
 
 # PARSER DEFINITION ------------------------------------------------------------------------------
 # NOTE: even though XYSPEED and TIMEFAC are node attributes here, I'm not sure that's really ok --
 # Cube documentation implies TF and XYSPD are node attributes...
 transit_file_def=r'''
 transit_file      := smcw*, ( accessli / line / link / pnr / zac / supplink / factor / faresystem / waitcrvdef / crowdcrvdef / operator / mode / vehicletype )+, smcw*, whitespace*
+
 line              := whitespace?, smcw?, c"LINE", whitespace, lin_attr*, lin_node*, whitespace?
 lin_attr          := ( lin_attr_name, whitespace?, "=", whitespace?, attr_value, whitespace?,
                        comma, whitespace?, semicolon_comment* )
 lin_nodeattr      := ( lin_nodeattr_name, whitespace?, "=", whitespace?, attr_value, whitespace?, comma?, whitespace?, semicolon_comment* )
-lin_attr_name     := c"allstops" / c"color" / (c"freq",'[',[1-5],']') / c"mode" / c"name" / c"oneway" / c"owner" / c"runtime" / c"timefac" / c"xyspeed" / c"longname" / c"shortname" / (c"usera",[1-5]) / (c"headway",'[',[1-5],']') / c"vehicletype" / c"operator" / c"faresystem"
+lin_attr_name     := c"allstops" / c"color" / (c"freq",'[',[1-5],']') / c"mode" / c"name" / c"oneway" / c"owner" / c"runtime" / c"timefac" / c"xyspeed" / c"longname" / c"shortname" / (c"usera",[1-5]) / (c"headway",'[',[1-5],']') / c"vehicletype" / c"operator" / c"faresystem" / c"headway" / c"circular"
 lin_nodeattr_name := c"access_c" / c"access" / c"delay" /  c"xyspeed" / c"timefac" / c"nntime" / c"time"
 lin_node          := lin_nodestart?, whitespace?, nodenum, spaces*, comma?, spaces*, semicolon_comment?, whitespace?, lin_nodeattr*
-lin_nodestart     := (whitespace?, "N", whitespace?, "=")
+lin_nodestart     := (whitespace?, "N", whitespace?, "=") /
+                     (whitespace?, "NODES", whitespace?, "=")
+
 link              := whitespace?, smcw?, c"LINK", whitespace, link_attr*, whitespace?, semicolon_comment*
 link_attr         := (( (link_attr_name, whitespace?, "=", whitespace?,  attr_value) /
                         (word_nodes, whitespace?, "=", whitespace?, nodepair) /
                         (word_modes, whitespace?, "=", whitespace?, numseq) ),
                       whitespace?, comma?, whitespace?)
 link_attr_name    := c"dist" / c"speed" / c"time" / c"oneway"
+
 pnr               := whitespace?, smcw?, c"PNR", whitespace, pnr_attr*, whitespace?
 pnr_attr          := (( (pnr_attr_name, whitespace?, "=", whitespace?, attr_value) /
                         (word_node, whitespace?, "=", whitespace?, ( nodepair / nodenum )) /
                         (word_zones, whitespace?, "=", whitespace?, numseq )),
                        whitespace?, comma?, whitespace?, semicolon_comment*)
 pnr_attr_name     := c"time" / c"maxtime" / c"distfac" / c"cost"
+
 zac               := whitespace?, smcw?, c"ZONEACCESS", whitespace, zac_attr*, whitespace?, semicolon_comment*
 zac_attr          := (( (c"link", whitespace?, "=", whitespace?, nodepair) /
                         (zac_attr_name, whitespace?, "=", whitespace?, attr_value) ),
                       whitespace?, comma?, whitespace?)
 zac_attr_name     := c"mode"
+
 supplink          := whitespace?, smcw?, c"SUPPLINK", whitespace, supplink_attr*, whitespace?, semicolon_comment*
 supplink_attr     := (( (supplink_attr_name, whitespace?, "=", whitespace?, attr_value) /
                         (npair_attr_name, whitespace?, "=", whitespace?, nodepair )),
                        whitespace?, comma?, whitespace?)
 npair_attr_name    := c"nodes" / c"n"
 supplink_attr_name:= c"mode" / c"dist" / c"speed" / c"oneway" / c"time"
+
 factor            := whitespace?, smcw?, c"FACTOR", whitespace, factor_attr*, whitespace?, semicolon_comment*
 factor_attr       := ( (factor_attr_name, whitespace?, "=", whitespace?, attr_value),
                         whitespace?, comma?, whitespace? )
 factor_attr_name  := c"maxwaittime" / word_nodes
+
 faresystem        := whitespace?, smcw?, c"FARESYSTEM", whitespace, faresystem_attr*, whitespace?, semicolon_comment*
 faresystem_attr   := (( (faresystem_attr_name, whitespace?, "=", whitespace?, attr_value) /
                         (faresystem_fff, whitespace?, "=", whitespace?, floatseq )),
                       whitespace?, comma?, whitespace? )
 faresystem_attr_name := c"number" / c"name" / c"longname" / c"structure" / c"same" / c"iboardfare" / c"farematrix" / c"farezones"
 faresystem_fff    := c"farefromfs"
+
 waitcrvdef        := whitespace?, smcw?, c"WAITCRVDEF", whitespace, crv_attr*, whitespace?, semicolon_comment*
 crowdcrvdef       := whitespace?, smcw?, c"CROWDCRVDEF", whitespace, crv_attr*, whitespace?, semicolon_comment*
 crv_attr          := (( (opmode_attr_name, whitespace?, "=", whitespace?, attr_value) /
                         (word_curve, whitespace?, "=", whitespace?, xyseq )),
                        whitespace?, comma?, whitespace? )
+
 operator          := whitespace?, smcw?, c"OPERATOR", whitespace, opmode_attr*, whitespace?, semicolon_comment*
 mode              := whitespace?, smcw?, c"MODE", whitespace, opmode_attr*, whitespace?, semicolon_comment*
 opmode_attr       := ( (opmode_attr_name, whitespace?, "=", whitespace?, attr_value), whitespace?, comma?, whitespace? )
 opmode_attr_name  := c"number" / c"name" / c"longname"
+
 vehicletype       := whitespace?, smcw?, c"VEHICLETYPE", whitespace, vehtype_attr*, whitespace?, semicolon_comment*
 vehtype_attr      := ( (vehtype_attr_name, whitespace?, "=", whitespace?, attr_value), whitespace?, comma?, whitespace? )
 vehtype_attr_name := c"number" / (c"crowdcurve",'[',[0-9]+,']') / c"crushcap" / c"loaddistfac" / c"longname" / c"name" / c"seatcap"
 accessli          := whitespace?, smcw?, nodenumA, spaces?, nodenumB, spaces?, accesstag?, spaces?, (float/int)?, spaces?, semicolon_comment?
 accesstag         := c"wnr" / c"pnr"
+
 word_curve        := c"curve"
 word_nodes        := c"nodes"
 word_node         := c"node"
@@ -110,9 +121,16 @@ class TransitFileProcessor(DispatchProcessor):
     def __init__(self, verbosity=1):
         self.verbosity=verbosity
         self.lines = []
+        self.links = []
+        self.pnrs   = []
+        self.zacs   = []
+        self.accesslis = []
+        self.xferlis   = []
         self.nodes     = []
         self.liType    = ''
+        self.supplinks = []
         self.factors   = []
+        self.faresystems  = []
         # PT System control statements
         self.waitcrvdefs  = []
         self.crowdcrvdefs = []
@@ -154,6 +172,64 @@ class TransitFileProcessor(DispatchProcessor):
                     print(partpart[0], "(", buffer[partpart[1]:partpart[2]],")"),
                 print(" ]")
 
+    def link(self, tup, buffer):
+        (tag,start,stop,subtags) = tup
+
+        # this is the whole link
+        if self.verbosity>=1:
+            print(tag, start, stop)
+
+        # Append list items for this link
+        for leaf in subtags:
+            xxx = self.crackTags(leaf,buffer)
+            self.links.append(xxx)
+
+        if self.verbosity==2:
+            # links are composed of smcw and link_attr
+            for linkpart in subtags:
+                print("  ",linkpart[0], " -> [ "),
+                for partpart in linkpart[3]:
+                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                print(" ]")
+
+    def pnr(self, tup, buffer):
+        (tag,start,stop,subtags) = tup
+
+        if self.verbosity>=1:
+            print(tag, start, stop)
+
+        # Append list items for this link
+        for leaf in subtags:
+            xxx = self.crackTags(leaf,buffer)
+            self.pnrs.append(xxx)
+
+        if self.verbosity==2:
+            # pnrs are composed of smcw and pnr_attr
+            for pnrpart in subtags:
+                print(" ",pnrpart[0], " -> [ "),
+                for partpart in pnrpart[3]:
+                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                print(" ]")
+
+    def zac(self, tup, buffer):
+        (tag,start,stop,subtags) = tup
+
+        if self.verbosity>=1:
+            print(tag, start, stop)
+
+        if self.verbosity==2:
+            # zacs are composed of smcw and zac_attr
+            for zacpart in subtags:
+                print(" ",zacpart[0], " -> [ "),
+                for partpart in zacpart[3]:
+                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                print(" ]")
+
+        # Append list items for this link
+        for leaf in subtags:
+            xxx = self.crackTags(leaf,buffer)
+            self.zacs.append(xxx)
+
     def process_line(self, tup, buffer):
         """
         Generic version, returns list of pieces.
@@ -177,6 +253,10 @@ class TransitFileProcessor(DispatchProcessor):
             xxx = self.crackTags(leaf,buffer)
             retlist.append(xxx)
         return retlist
+
+    def supplink(self, tup, buffer):
+        supplink = self.process_line(tup, buffer)
+        self.supplinks.append(supplink)
 
     def factor(self, tup, buffer):
         factor = self.process_line(tup, buffer)
@@ -218,6 +298,22 @@ class TransitFileProcessor(DispatchProcessor):
             xxx = self.crackTags(leaf,buffer)
             self.linecomments.append(xxx)
 
+    def accessli(self, tup, buffer):
+        (tag,start,stop,subtags) = tup
+
+        if self.verbosity>=1:
+            print(tag, start, stop)
+
+        for leaf in subtags:
+            xxx = self.crackTags(leaf,buffer)
+            if self.liType=="access":
+                self.accesslis.append(xxx)
+            elif self.liType=="xfer":
+                self.xferlis.append(xxx)
+            elif self.liType=="node":
+                self.nodes.append(xxx)
+            else:
+                raise NetworkException("Found access or xfer link without classification. {}".format(self.liType))
 
 class TransitParser(Parser):
 
@@ -336,6 +432,313 @@ class TransitParser(Parser):
         if currentRoute: rows.append(currentRoute)
         return (program, rows)
 
+    def convertLinkData(self):
+        """ Convert the parsed tree of data into a usable python list of transit links
+            returns list of comments and transit link & factor objects
+        """
+        rows = []
+        currentLink = None
+        currentFactor = None
+        key = None
+        value = None
+        comments = []
+
+        for link in self.tfp.links:
+            # Each link is a 3-tuple:  key, value, list-of-children.
+
+            # Add comments as simple strings:
+            if link[0] in ('smcw','semicolon_comment'):
+                if currentLink:
+                    currentLink.comment = " "+link[1].strip()  # Link comment
+                    rows.append(currentLink)
+                    currentLink = None
+                else:
+                    rows.append(link[1].strip())  # Line comment
+                continue
+
+            # Link records
+            if link[0] == 'link_attr':
+                # Pay attention only to the children of lin_attr elements
+                kids = link[2]
+                for child in kids:
+                    if child[0] in ('link_attr_name','word_nodes','word_modes'):
+                        key = child[1]
+                        # If this is a NAME attribute, we need to start a new TransitLink.
+                        if key in ('nodes','NODES'):
+                            if currentLink: rows.append(currentLink)
+                            currentLink = TransitLink() # Create new dictionary for this transit support link
+
+                    if child[0]=='nodepair':
+                        currentLink.setId(child[1])
+
+                    if child[0] in ('attr_value','numseq'):
+                        currentLink[key] = child[1]
+                continue
+
+            # Got something unexpected:
+            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (link[0], link[1]))
+
+        # Save last link too
+        if currentLink: rows.append(currentLink)
+
+
+        for factor in self.tfp.factors:
+            currentFactor = Factor()
+
+            # factor[0]:
+            # ('smcw', '; BART-eBART timed transfer\n',
+            #    [('semicolon_comment', '; BART-eBART timed transfer\n',
+            #      [('comment', ' BART-eBART timed transfer', [])])])
+            # keep as line comment
+            if factor[0][0] == 'smcw':
+                smcw = factor.pop(0)
+                rows.append(smcw[1].strip())
+
+            # the rest are attributes
+            # [('factor_attr', 'MAXWAITTIME=1, ', [('factor_attr_name', 'MAXWAITTIME', []), ('attr_value', '1', [('alphanums', '1', [])])]),
+            #  ('factor_attr', 'NODES=15536\n',   [('factor_attr_name', 'NODES', [('word_nodes', 'NODES', [])]), ('attr_value', '15536', [('alphanums', '15536', [])])])]
+            for factor_attr in factor:
+                if factor_attr[0] == 'semicolon_comment':
+                    comments.append(factor_attr[1])
+                    continue
+
+                if factor_attr[0] != 'factor_attr':
+                    WranglerLogger.critical("** unexpected factor item: {}".format(factor_attr))
+
+                factor_attr_name = factor_attr[2][0]  # ('factor_attr_name', 'MAXWAITTIME', [])
+                factor_attr_val  = factor_attr[2][1]  # ('attr_value', '1', [('alphanums', '1', [])])
+
+                # set it
+                currentFactor[factor_attr_name[1]] = factor_attr_val[1]
+
+            rows.append(currentFactor)
+            if len(comments)>0:
+                rows.extend(comments)
+                comments = []
+
+        return rows
+
+    def convertPNRData(self):
+        """ Convert the parsed tree of data into a usable python list of PNR objects
+            returns list of strings and PNR objects
+        """
+        rows = []
+        currentPNR = None
+        key = None
+        value = None
+
+        for pnr in self.tfp.pnrs:
+            # Each pnr is a 3-tuple:  key, value, list-of-children.
+            # Add comments as simple strings
+
+            # Textline Comments
+            if pnr[0] =='smcw':
+                # Line comment; thus existing PNR must be finished.
+                if currentPNR:
+                    rows.append(currentPNR)
+                    currentPNR = None
+
+                rows.append(pnr[1].strip())  # Append line-comment
+                continue
+
+            # PNR records
+            if pnr[0] == 'pnr_attr':
+                # Pay attention only to the children of attr elements
+                kids = pnr[2]
+                for child in kids:
+                    if child[0] in ('pnr_attr_name','word_node','word_zones'):
+                        key = child[1]
+                        # If this is a NAME attribute, we need to start a new PNR.
+                        if key in ('node','NODE'):
+                            if currentPNR:
+                                rows.append(currentPNR)
+                            currentPNR = PNRLink() # Create new dictionary for this PNR
+
+                    if child[0]=='nodepair' or child[0]=='nodenum':
+                        #print "child[0]/[1]",child[0],child[1]
+                        currentPNR.id = child[1]
+                        currentPNR.parseID()
+
+                    if child[0] in ('attr_value','numseq'):
+                        currentPNR[key.upper()] = child[1]
+
+                    if child[0]=='semicolon_comment':
+                        currentPNR.comment = ' '+child[1].strip()
+
+                continue
+
+            # Got something unexpected:
+            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (pnr[0], pnr[1]))
+
+        # Save last link too
+        if currentPNR: rows.append(currentPNR)
+        return rows
+
+    def convertZACData(self):
+        """ Convert the parsed tree of data into a usable python list of ZAC objects
+            returns list of strings and ZAC objects
+        """
+        rows = []
+        currentZAC = None
+        key = None
+        value = None
+
+        for zac in self.tfp.zacs:
+            # Each zac is a 3-tuple:  key, value, list-of-children.
+            # Add comments as simple strings
+
+            # Textline Comments
+            if zac[0] in ('smcw','semicolon_comment'):
+                if currentZAC:
+                    currentZAC.comment = ' '+zac[1].strip()
+                    rows.append(currentZAC)
+                    currentZAC = None
+                else:
+                    rows.append(zac[1].strip())  # Append value
+
+                continue
+
+            # Link records
+            if zac[0] == 'zac_attr':
+                # Pay attention only to the children of lin_attr elements
+                kids = zac[2]
+                for child in kids:
+                    if child[0]=='nodepair':
+                        # Save old ZAC
+                        if currentZAC: rows.append(currentZAC)
+                        # Start new ZAC
+                        currentZAC = ZACLink() # Create new dictionary for this ZAC.
+                        currentZAC.id=child[1]
+
+                    if child[0] =='zac_attr_name':
+                        key = child[1]
+
+                    if child[0]=='attr_value':
+                        currentZAC[key] = child[1]
+
+                continue
+
+            # Got something unexpected:
+            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (zac[0], zac[1]))
+
+        # Save last link too
+        if currentZAC: rows.append(currentZAC)
+        return rows
+
+    def convertLinkiData(self, linktype):
+        """ Convert the parsed tree of data into a usable python list of ZAC objects
+            returns list of strings and ZAC objects
+        """
+        rows = []
+        currentLinki = None
+        key = None
+        value = None
+
+        linkis = []
+        if linktype=="access":
+            linkis=self.tfp.accesslis
+        elif linktype=="xfer":
+            linkis=self.tfp.xferlis
+        elif linktype=="node":
+            linkis=self.tfp.nodes
+        else:
+            raise NetworkException("ConvertLinkiData with invalid linktype")
+
+        for accessli in linkis:
+            # whitespace?, smcw?, nodenumA, spaces?, nodenumB, spaces?, (float/int)?, spaces?, semicolon_comment?
+            if accessli[0]=='smcw':
+                rows.append(accessli[1].strip())
+            elif accessli[0]=='nodenumA':
+                currentLinki = Linki()
+                rows.append(currentLinki)
+                currentLinki.A = accessli[1].strip()
+            elif accessli[0]=='nodenumB':
+                currentLinki.B = accessli[1].strip()
+            elif accessli[0]=='float':
+                currentLinki.distance = accessli[1].strip()
+            elif accessli[0]=='int':
+                currentLinki.xferTime = accessli[1].strip()
+            elif accessli[0]=='semicolon_comment':
+                currentLinki.comment = accessli[1].strip()
+            elif accessli[0]=='accesstag':
+                currentLinki.accessType = accessli[1].strip()
+            else:
+                # Got something unexpected:
+                WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (accessli[0], accessli[1]))
+
+        return rows
+
+    def convertSupplinksData(self):
+        """ Convert the parsed tree of data into a usable python list of Supplink objects
+            returns list of strings and Supplink objects
+        """
+        rows = []
+        currentSupplink = None
+        key = None
+        value = None
+
+        for supplink in self.tfp.supplinks:
+
+            # Supplink records are lists
+            if currentSupplink: rows.append(currentSupplink)
+            currentSupplink = Supplink() # Create new dictionary for this PNR
+
+            for supplink_attr in supplink:
+                if supplink_attr[0] == 'supplink_attr':
+                    if supplink_attr[2][0][0]=='supplink_attr_name':
+                        currentSupplink[supplink_attr[2][0][1]] = supplink_attr[2][1][1]
+                    elif supplink_attr[2][0][0]=='npair_attr_name':
+                        currentSupplink.setId(supplink_attr[2][1][1])
+                    else:
+                        WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (supplink[0], supplink[1]))
+                        raise
+                elif supplink_attr[0] == "semicolon_comment":
+                    currentSupplink.comment = supplink_attr[1].strip()
+                elif supplink_attr[0] == 'smcw':
+                    currentSupplink.comment = supplink_attr[1].strip()
+                else:
+                    WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (supplink[0], supplink[1]))
+                    raise
+
+        # Save last link too
+        if currentSupplink: rows.append(currentSupplink)
+        return rows
+
+    def convertFaresystemData(self):
+        """ Convert the parsed tree of data into a usable python list of Faresystem objects
+            returns list of strings and Faresystem objects
+        """
+        rows = {}
+        currentFaresystem = None
+
+        for faresystem in self.tfp.faresystems:
+
+            # faresystem records are lists
+            if currentFaresystem: rows[currentFaresystem.getId()] = currentFaresystem
+            currentFaresystem = Faresystem()
+
+            for fs_attr in faresystem:
+                if fs_attr[0] == 'faresystem_attr':
+                    if fs_attr[2][0][0]=='faresystem_attr_name':
+                        currentFaresystem[fs_attr[2][0][1]] = fs_attr[2][1][1]
+
+                    # for now, save this as FAREFROMFS => "0,0,1.0,0," etc
+                    elif fs_attr[2][0][0]=='faresystem_fff':
+                        # fs_attr[2] = [('faresystem_fff', 'FAREFROMFS', []),
+                        #               ('floatseq', '0,0,0,0,..,0,0', [('floatnum', '0', []), ('floatnum', '0', []), ..
+                        currentFaresystem[fs_attr[2][0][1]] = fs_attr[2][1][1]
+
+                elif fs_attr[0] == "semicolon_comment":
+                    currentFaresystem.comment = fs_attr[1].strip()
+                elif fs_attr[0] == 'smcw':
+                    currentFaresystem.comment = fs_attr[1].strip()
+                else:
+                    WranglerLogger.critical("** SHOULD NOT BE HERE: %s".format(fs_attr))
+                    raise
+
+        # save last faresystem too
+        if currentFaresystem: rows[currentFaresystem.getId()] = currentFaresystem
+        return rows
 
     def convertPTSystemData(self):
         """ Convert the parsed tree of data into a PTSystem object
@@ -409,90 +812,3 @@ class TransitParser(Parser):
         if len(pts.waitCurveDefs) > 0 or len(pts.crowdCurveDefs) > 0 or len(pts.operators) > 0 or len(pts.modes) > 0 or len(pts.vehicleTypes) > 0:
             return pts
         return None
-
-__all__ = ['PTSystem']
-
-class PTSystem:
-    """
-    Public Transport System definition.  Corresponds to the information in Cube's Public Transport system,
-    including data for modes, operators, wait curves and crowding curves.
-    """
-
-    def __init__(self):
-        self.waitCurveDefs  = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.crowdCurveDefs = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.operators      = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.modes          = collections.OrderedDict()  # key is number, value is also ordered dict
-        self.vehicleTypes   = collections.OrderedDict()  # key is number, value is also ordered dict
-
-    def isEmpty(self):
-        if len(self.operators   ) > 0: return False
-        if len(self.modes       ) > 0: return False
-        if len(self.vehicleTypes) > 0: return False
-        return True
-
-    def __repr__(self):
-        """ Returns string representation.
-        """
-
-        s = ""
-        for pt_num, pt_dict in self.modes.items():
-            s += "MODE"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
-        s += "\n"
-
-        for pt_num, pt_dict in self.operators.items():
-            s += "OPERATOR"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
-        s += "\n"
-
-        for pt_num, pt_dict in self.vehicleTypes.items():
-            s += "VEHICLETYPE"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
-        s += "\n"
-
-        for pt_num, pt_dict in self.waitCurveDefs.items():
-            s += "WAITCRVDEF"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
-        s += "\n"
-
-        for pt_num, pt_dict in self.crowdCurveDefs.items():
-            s += "CROWDCRVDEF"
-            for k,v in pt_dict.items(): s+= " {}={}".format(k,v)
-            s+= "\n"
-        s += "\n"
-
-        return s
-
-    def merge(self, pts):
-        """
-        Merges another pts with self.
-        """
-        for key,val_dict in pts.waitCurveDefs.items():
-            if key in self.waitCurveDefs: # collision
-                raise NetworkException("PTSystem: Trying to merge WAITCRVDEF with same key: {}".format(key))
-            self.waitCurveDefs[key] = val_dict
-
-        for key,val_dict in pts.crowdCurveDefs.items():
-            if key in self.crowdCurveDefs: # collision
-                raise NetworkException("PTSystem: Trying to merge CROWDCRVDEF with same key: {}".format(key))
-            self.crowdCurveDefs[key] = val_dict
-
-        for key,val_dict in pts.operators.items():
-            if key in self.operators: # collision
-                raise NetworkException("PTSystem: Trying to merge OPERATOR with same key: {}".format(key))
-            self.operators[key] = val_dict
-
-        for key,val_dict in pts.modes.items():
-            if key in self.modes: # collision
-                raise NetworkException("PTSystem: Trying to merge MODE with same key: {}".format(key))
-            self.modes[key] = val_dict
-
-        for key,val_dict in pts.vehicleTypes.items():
-            if key in self.vehicleTypes: # collision
-                raise NetworkException("PTSystem: Trying to merge VEHICLETYPE with same key: {}".format(key))
-            self.vehicleTypes[key] = val_dict

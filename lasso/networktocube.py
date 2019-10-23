@@ -64,17 +64,10 @@ class CubeTransit(object):
         ## TODO Sijia
         # loop thru every record in new .lin
         transit_change_list = []
-        '''
-        should be like this eventually
         time_enum = {"pk": {"start_time" : "06:00:00",
                             "end_time" : "09:00:00"},
                      "op" : {"start_time" : "09:00:00",
                             "end_time" : "15:00:00"}}
-        '''
-        time_enum = {"pk":
-                    list(['06:00:00', '09:00:00']),
-                     "op" :
-                     list(['09:00:00', '15:00:00'])}
 
         for line in self.transit_network.lines[1:]:
             _name = line.name
@@ -82,17 +75,11 @@ class CubeTransit(object):
                 if line_base.name == _name:
                     properties_list = CubeTransit.evaluate_route_level(line, line_base)
                     if len(properties_list) > 0:
-                        if _name[-3:-1] == "pk":
-                            time = ['06:00:00', '09:00:00']
-                        else:
-                            time = ['09:00:00', '15:00:00']
                         card_dict = {"category" : "Transit Service Property Change",
                                     "facility" : {"route_id" : _name.split("_")[1],
                                                   "direction_id" : int(_name[-1]),
-                                                  "time" : time
-                                                  #"start_time" : time_enum[_name[-3:-1]]["start_time"],
-                                                  #"end_time" : time_enum[_name[-3:-1]]["end_time"]
-                                                  },
+                                                  "start_time" : time_enum[_name[-3:-1]]["start_time"],
+                                                  "end_time" : time_enum[_name[-3:-1]]["end_time"]},
                                     "properties" : properties_list}
                         transit_change_list.append(card_dict)
                 else:
