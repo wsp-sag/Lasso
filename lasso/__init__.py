@@ -6,6 +6,8 @@ from .cube_transit import process_line_file#, TransitLine
 from .transit_parser import TransitParser, PTSystem, transit_file_def
 from .util import get_shared_streets_intersection_hash
 from .TransitLine import TransitLine
+from .Roadway import ModelRoadwayNetwork
+from .Parameters import Parameters
 
 __all__ = [
     "Project",
@@ -16,6 +18,8 @@ __all__ = [
     "transit_file_def",
     "TransitLine",
     "get_shared_streets_intersection_hash",
+    "ModelRodwayNetwork",
+    "Parameters"
 ]
 
 if __name__ == "__main__":
