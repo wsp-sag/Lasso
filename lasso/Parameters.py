@@ -9,9 +9,7 @@ class Parameters():
 
 
     """
-    Time period splitting info
-
-
+    Time period and category  splitting info
     """
     DEFAULT_TIME_PERIOD_TO_TIME = {
       'AM': ('6:00','9:00'), ##TODO FILL IN with real numbers
@@ -20,19 +18,26 @@ class Parameters():
       'NT': ('19:00','6:00'),
     }
 
-    DEFAULT_VARIABLES_TO_SPLIT_BY_TIME_PERIOD = [
-        'transit_priority',
-        'traveltime_assert',
-        'lanes',
-        'price',
-        'access',
-    ]
+    DEFAULT_CATEGORIES = {
+        #suffix, source (in order of search)
+        'sov': ['sov','default'],
+        'hov2': ['hov2','default', 'sov'],
+        'hov3': ['hov3','hov2','default','sov'],
+        'truck':['trk','sov','default'],
+    }
+
+    #prefix, source variable, categories
+    DEFAULT_VARIABLES_TO_SPLIT = {
+        'transit_priority' : {'v':'transit_priority', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+        'traveltime_assert' : {'v':'traveltime_assert', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+        'lanes' : {'v':'lanes', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+        'price' : {'v':'price', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
+        'access' : {'v':'access', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME},
+    }
 
     """
     Details for calculating the county based on the centroid of the link.
-    The COUNTY_VARIABLE should be the name of a field in shapefile
-
-
+    The COUNTY_VARIABLE should be the name of a field in shapefile.
     """
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
@@ -116,6 +121,8 @@ class Parameters():
         'count_NT',
         'count_daily',
     ]
+
+
 
 
     def __init__(self, time_period_to_time=None, calculated_variables_roadway=None, **kwargs):

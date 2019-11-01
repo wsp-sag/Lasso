@@ -66,7 +66,14 @@ def test_network_split_variables_by_time(request):
         shape_file=STPAUL_SHAPE_FILE,
         fast=True,
     )
-    net.split_variables_by_time_period(
-        net.parameters.DEFAULT_VARIABLES_TO_SPLIT_BY_TIME_PERIOD,
-        net.parameters.time_to_time_period,
-        )
+    net.split_properties_by_time_period_and_category(
+        {
+        'transit_priority' :
+            {
+                'v':'T_PRIORITY',
+                'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
+                #'categories': Parameters.DEFAULT_CATEGORIES
+            }
+        }
+    )
+    assert('transit_priority_AM' in net.links_df.columns)

@@ -24,9 +24,48 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return m_road_net
 
-    def split_variables_by_time_period(variable_list, time_to_time_period):
-        ##TODO
-        pass
+    def split_properties_by_time_period_and_category(self,properties_to_split):
+        '''
+        Splits properties by time period, assuming a variable structure of
+
+        Params
+        ------
+        properties_to_split: dict
+             dictionary of output variable prefix mapped to the source variable and what to stratify it by
+             e.g.
+             {
+                 'transit_priority' : {'v':'transit_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                 'traveltime_assert' : {'v':'traveltime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                 'lanes' : {'v':'lanes', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                 'price' : {'v':'price', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
+                 'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
+             }
+
+        '''
+        import itertools
+
+        for out_var, params in properties_to_split.items():
+            if params["v"] not in self.links_df.columns:
+                raise ValueError("Specified variable to split: {} not in network variables: {}".format(params["v"], str(self.links_df.columns)))
+            if params.get("time_periods") and params.get("categories"):
+                for time_suffix, category_suffix in itertools.product(params['time_periods'], params['categories']):
+                    self.links_df[out_var+"_"+time_suffix+"_"+category_suffix] = \
+                        self.get_property_by_time_period_and_group(
+                            params["v"],
+                            category = params['categories'][category_suffix],
+                            time_period = params['time_periods'][time_suffix],
+                        )
+            elif params.get("time_periods"):
+                for time_suffix in params['time_periods']:
+                    self.links_df[out_var+"_"+time_suffix] = \
+                        self.get_property_by_time_period_and_group(
+                            params["v"],
+                            category = None,
+                            time_period = params['time_periods'][time_suffix],
+                        )
+            else:
+                raise ValueError("Shoudn't have a category without a time period: {}".format(params))
+
 
     def create_calculated_variables(self, calculated_variables):
         '''
