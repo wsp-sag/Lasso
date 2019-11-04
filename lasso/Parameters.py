@@ -27,7 +27,7 @@ class Parameters():
     }
 
     #prefix, source variable, categories
-    DEFAULT_VARIABLES_TO_SPLIT = {
+    DEFAULT_PROPERTIES_TO_SPLIT = {
         'transit_priority' : {'v':'transit_priority', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
         'traveltime_assert' : {'v':'traveltime_assert', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
         'lanes' : {'v':'lanes', 'time_periods':DEFAULT_TIME_PERIOD_TO_TIME },
@@ -51,14 +51,13 @@ class Parameters():
     DEFAULT_HIGHEST_TAZ_NUMBER = 9999
 
     DEFAULT_CALCULATED_VARIABLES_ROADWAY = [
-      'self.calculate_area_type(DEFAULT_TAZ_SHAPE, DEFAULT_TAZ_DATA, network_variable = "area")',
-      'self.calculate_county(DEFAULT_COUNTY_SHAPE, DEFAULT_COUNTY_VARIABLE_SHP, network_variable = "county")',
-      'self.calculate_centroid_connector(DEFAULT_HIGHEST_TAZ_NUMBER, network_variable = "centroid_connector")',
-      'self.calculate_mpo(DEFAULT_MPO_COUNTIES, network_variable = "mpo")',
+      'self.calculate_area_type(network_variable = "area")',
+      'self.calculate_county(network_variable = "county")',
+      'self.calculate_centroid_connector(network_variable = "centroid_connector")',
+      'self.calculate_mpo(network_variable = "mpo")',
       'self.calculate_roadway_class_index(network_variable="roadway_class_index")',
       'self.calculate_assignment_group(network_variable="assignment_group")',
     ]
-
 
     DEFAULT_OUTPUT_VARIABLES = [
         'model_link_id',
@@ -122,16 +121,29 @@ class Parameters():
         'count_daily',
     ]
 
+    def __init__(self, **kwargs):
 
+        self.__dict__.update(kwargs)
 
-
-    def __init__(self, time_period_to_time=None, calculated_variables_roadway=None, **kwargs):
-        self.time_period_to_time = Parameters.DEFAULT_TIME_PERIOD_TO_TIME
-        if time_period_to_time:
-            self.time_period_to_time = time_period_to_time
-
-        self.calculated_variables_roadway = Parameters.DEFAULT_CALCULATED_VARIABLES_ROADWAY
-        if calculated_variables_roadway:
-            self.calculated_variables_roadway = calculated_variables_roadway
-
-        self.time_to_time_period= {v: k for k, v in self.time_period_to_time.items()}
+        if 'time_period_to_time' not in kwargs:
+            self.time_period_to_time = Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+        if 'categories' not in kwargs:
+            self.categories = Parameters.DEFAULT_CATEGORIES
+        if 'properties_to_split' not in kwargs:
+            self.properties_to_split = Parameters.DEFAULT_PROPERTIES_TO_SPLIT
+        if 'county_shape' not in kwargs:
+            self.county_shape = Parameters.DEFAULT_COUNTY_SHAPE
+        if 'county_variable_shp' not in kwargs:
+            self.county_variable_shp = Parameters.DEFAULT_COUNTY_VARIABLE_SHP
+        if 'mpo_counties' not in kwargs:
+            self.mpo_counties = Parameters.DEFAULT_MPO_COUNTIES
+        if 'taz_shape' not in kwargs:
+            self.taz_shape = Parameters.DEFAULT_TAZ_SHAPE
+        if 'taz_data' not in kwargs:
+            self.taz_data = Parameters.DEFAULT_TAZ_DATA
+        if 'highest_taz_number' not in kwargs:
+            self.highest_taz_number = Parameters.DEFAULT_HIGHEST_TAZ_NUMBER
+        if 'calculated_variables_roadway' not in kwargs:
+            self.calculated_variables_roadway = Parameters.DEFAULT_CALCULATED_VARIABLES_ROADWAY
+        if 'output_variables' not in kwargs:
+            self.output_variables = Parameters.DEFAULT_OUTPUT_VARIABLES

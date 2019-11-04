@@ -1,0 +1,88 @@
+base_scenario:
+    input_dir: "examples/stpaul"
+    shape_file_name: "shape.geojson"
+    link_file_name: "link.json"
+    node_file_name: "node.geojson"
+    transit_directory: ""
+    validate_network: False
+
+scenario:
+    project_cards_filenames: []
+    card_directory: "../../network_wrangler/examples/stpaul/project_cards"
+    glob_search: "*attribute*.yml"
+    tags: []
+
+
+output:
+    format: 'geojson' # geojson or shp
+    directory: ''
+    prefix: ''
+
+
+# my_parameters:
+# dictionary of time period definitions
+#    time_period_to_time:
+#        AM: ('6:00','9:00')
+#        MD: ('9:00','16:00')
+#        PM: ('16:00','19:00')
+#        NT: ('19:00','6:00')
+#
+# dictionary of category definitions
+# suffix, source (in order of search)
+#    categories:
+#        sov': ['sov','default']
+#        hov2': ['hov2','default', 'sov']
+#        hov3': ['hov3','hov2','default','sov']
+#        truck':['trk','sov','default']
+#
+# dictionary of properties to split by time of day or category
+#    variables_to_split:
+#        transit_priority:
+#            v: 'transit_priority'
+#            time_periods': Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#        traveltime_assert:
+#            v: 'traveltime_assert'
+#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#        lanes:
+#            v: 'lanes'
+#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#        price:
+#            v:'price'
+#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#            categories: Parameters.DEFAULT_CATEGORIES},
+#        access:
+#            v: 'access'
+#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#
+# location of county shapefile
+#    county_shape:
+#
+# variable with county names in shapefile
+#    Default: 'CO_NAME'
+#    county_variable_shp:
+#
+# list of county names in MPO boundary
+#    Default: ['ANOKA', 'DAKOTA', 'HENNEPIN', 'RAMSEY', 'SCOTT', 'WASHINGTON', 'CARVER']
+#    mpo_counties:
+#
+# location of taz shapefile
+#   taz_shape:
+#
+# location of taz data for calculating area type
+#   taz_data:
+#
+# integer, for identifying centroid connectors
+#    highest_taz_number:
+#
+# list of additional methods to calculate additional variables
+#    calculated_variables_roadway:
+#        - 'self.calculate_area_type(network_variable = "area")'
+#          'self.calculate_county(network_variable = "county")'
+#          'self.calculate_centroid_connector(network_variable = "centroid_connector")'
+#          'self.calculate_mpo(network_variable = "mpo")'
+#          'self.calculate_roadway_class_index(network_variable="roadway_class_index")'
+#          'self.calculate_assignment_group(network_variable="assignment_group")'
+#
+# list of variables to keep in final output
+#    output_variables:
+#

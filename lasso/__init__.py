@@ -8,6 +8,7 @@ from .util import get_shared_streets_intersection_hash
 from .TransitLine import TransitLine
 from .Roadway import ModelRoadwayNetwork
 from .Parameters import Parameters
+from .Logger import WranglerLogger, setupLogging
 
 __all__ = [
     "Project",
@@ -19,8 +20,9 @@ __all__ = [
     "TransitLine",
     "get_shared_streets_intersection_hash",
     "ModelRodwayNetwork",
-    "Parameters"
+    "Parameters",
+    "WranglerLogger"
 ]
 
 if __name__ == "__main__":
-    pass
+    setupLogging(logFileName="network_wrangler_lasso.log")

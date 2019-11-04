@@ -1,30 +1,33 @@
 import geopandas as gpd
 from geopandas import GeoDataFrame
 from pandas import DataFrame
-
 from network_wrangler import RoadwayNetwork
 from .Parameters import Parameters
 
 class ModelRoadwayNetwork(RoadwayNetwork):
 
-    def __init__(self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame):
+    def __init__(self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters = {}):
         super().__init__(nodes, links, shapes)
-
+        print("PARAMS", parameters)
         #will have to change if want to alter them
-        self.parameters = Parameters()
+        self.parameters = Parameters(**parameters)
 
     @staticmethod
     def read(
-        link_file: str, node_file: str, shape_file: str, fast: bool = False
-    ) -> RoadwayNetwork:
+        link_file: str, node_file: str, shape_file: str, fast: bool = False, parameters = {}
+    ):
         #road_net =  super().read(link_file, node_file, shape_file, fast=fast)
         road_net = RoadwayNetwork.read(link_file, node_file, shape_file, fast=fast)
 
-        m_road_net = ModelRoadwayNetwork(road_net.nodes_df, road_net.links_df, road_net.shapes_df)
+        m_road_net = ModelRoadwayNetwork(road_net.nodes_df, road_net.links_df, road_net.shapes_df, parameters = parameters)
 
         return m_road_net
 
-    def split_properties_by_time_period_and_category(self,properties_to_split):
+    @staticmethod
+    def from_RoadwayNetwork(roadway_network_object, parameters = {}):
+        return ModelRoadwayNetwork(roadway_network_object.nodes_df, roadway_network_object.links_df, roadway_network_object.shapes_df, parameters=parameters)
+
+    def split_properties_by_time_period_and_category(self):
         '''
         Splits properties by time period, assuming a variable structure of
 
@@ -44,7 +47,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         '''
         import itertools
 
-        for out_var, params in properties_to_split.items():
+        for out_var, params in self.parameters.properties_to_split.items():
             if params["v"] not in self.links_df.columns:
                 raise ValueError("Specified variable to split: {} not in network variables: {}".format(params["v"], str(self.links_df.columns)))
             if params.get("time_periods") and params.get("categories"):
@@ -67,59 +70,52 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 raise ValueError("Shoudn't have a category without a time period: {}".format(params))
 
 
-    def create_calculated_variables(self, calculated_variables):
+    def create_calculated_variables(self):
         '''
         Params
         -------
-        roadway_network
-            network_wrangler RoadwayNetwork object
-
-        calculated_variables_dict
-            variable name: method to calculate variable
         '''
 
-        for method in calculated_variables:
+        for method in self.parameters.calculated_variables_roadway:
             eval(method)
 
-    def calculate_county(self, county_shapefile, county_variable_shp, network_variable = 'county'):
+    def calculate_county(self, network_variable = 'county'):
         '''
         This uses the centroid of the geometry field to determine which county it should be labeled.
         This isn't perfect, but it much quicker than other methods.
 
         params
         -------
-        county_shapefile: string
-          file location of the shapefile with county borders and names
-         county_variable_shp
-          the variable from the shapefile that should be returned
+
         '''
 
         centroids_gdf = self.links_df.copy()
         centroids_gdf['geometry'] = centroids_gdf['geometry'].centroid
 
-        county_gdf = gpd.read_file(county_shapefile)
+        county_gdf = gpd.read_file(self.parameters.county_shape)
         county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
         joined_gdf = gpd.sjoin(centroids_gdf, county_gdf,  how='left', op='intersects')
 
-        self.links_df[network_variable] = joined_gdf[county_variable_shp]
+        self.links_df[network_variable] = joined_gdf[self.parameters.county_variable_shp]
 
 
-    def calculate_area_type(self, taz_shapefile, taz_data):
+    def calculate_area_type(self, network_variable = 'area_type'):
+        if not self.parameters.taz_shape:
+            return
+
+        taz_gdf = gpd.read_file(self.parameters.taz_shape)
+        taz_gdf = taz_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
+
         centroids_gdf = self.links_df.copy()
         centroids_gdf['geometry'] = centroids_gdf['geometry'].centroid
-
-        taz_gdf = gpd.read_file(taz_shapefile)
-        taz_gdf = taz_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
 
         joined_gdf = gpd.sjoin(centroids_gdf, taz_gdf,  how='left', op='intersects')
         ## QUESTION FOR MET COUNCIL: HOW IS AREA TYPE CURRENTLY  CALCULATED
 
-    def calculate_centroid_connector(self,highest_taz_number, network_variable = 'centroid_connector', as_integer = True):
+    def calculate_centroid_connector(self,network_variable = 'centroid_connector', as_integer = True):
         '''
         Params
         ------
-        highest_taz_number: int
-          highest number to assume is a taz
         network_variable: str
           variable that should be written to in the network
         as_integer: bool
@@ -128,21 +124,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_df[network_variable] = False
 
-        self.links_df[
-            self.links_df['A'] <= highest_taz_number or
-            self.links_df['B'] <= highest_taz_number
-            ][network_variable] = True
+        self.links_df.loc[
+            (self.links_df['A'] <= self.parameters.highest_taz_number) |
+            (self.links_df['B'] <= self.parameters.highest_taz_number),
+            network_variable
+            ] = True
 
         if as_integer:
             self.links_df[network_variable] = self.links_df[network_variable].astype(int)
 
 
-    def calculate_mpo(self, counties_in_mpo, county_network_variable='county', network_variable = 'mpo', as_integer = True):
+    def calculate_mpo(self, county_network_variable='county', network_variable = 'mpo', as_integer = True):
         '''
         Params
         ------
-        counties_in_mpo: list
-          list of counties that are in the MPO boundary
         county_variable: string
           name of the variable where the county names are stored.
         network_variable: string
@@ -151,7 +146,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
           if true, will convert true/false to 1/0s
         '''
 
-        mpo = self.links_df[county_network_variable].isin(counties_in_mpo)
+        mpo = self.links_df[county_network_variable].isin(self.parameters.mpo_counties)
 
         if as_integer:
             mpo = mpo.astype(int)
