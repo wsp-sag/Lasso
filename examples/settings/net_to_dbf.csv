@@ -1,6 +1,6 @@
 'net', 'dbf'
 'model_link_id', 'link_id'
-'geometryId', 'geoId'
+'shstGeometryId', 'geoId'
 'roadway_class', 'rdclass'
 'bike_access', 'bike'
 'transit_access', 'transit'
