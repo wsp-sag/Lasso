@@ -83,9 +83,9 @@ class CubeTransit(object):
                     properties_list = CubeTransit.evaluate_route_level(line, line_base)
                     if len(properties_list) > 0:
                         if _name[-3:-1] == "pk":
-                            time = ['06:00:00', '09:00:00']
+                            time = ["06:00:00", "09:00:00"]
                         else:
-                            time = ['09:00:00', '15:00:00']
+                            time = ["09:00:00", "15:00:00"]
                         card_dict = {"category" : "Transit Service Property Change",
                                     "facility" : {"route_id" : _name.split("_")[1],
                                                   "direction_id" : int(_name[-1]),
@@ -97,7 +97,7 @@ class CubeTransit(object):
                         transit_change_list.append(card_dict)
                 else:
                     continue
-
+        print(transit_change_list)
         return transit_change_list
 
     def evaluate_route_level(
