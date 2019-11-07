@@ -41,29 +41,97 @@ class Parameters():
     """
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "Counties.shp"
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "county", "cb_2017_us_county_5m.shp"
     )
-    DEFAULT_COUNTY_VARIABLE_SHP   = 'CO_NAME'
+    DEFAULT_COUNTY_VARIABLE_SHP  = 'NAME'
 
     DEFAULT_MPO_COUNTIES = ['ANOKA', 'DAKOTA', 'HENNEPIN', 'RAMSEY', 'SCOTT', 'WASHINGTON', 'CARVER']
-    DEFAULT_TAZ_SHAPE = None
+
+    DEFAULT_TAZ_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "TAZ", "TAZOfficialWCurrentForecasts.shp"
+    )
     DEFAULT_TAZ_DATA  = None
-    DEFAULT_HIGHEST_TAZ_NUMBER = 9999
+    DEFAULT_HIGHEST_TAZ_NUMBER = 3100
+
+    DEFAULT_AREA_TYPE_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "area_type", "ThriveMSP2040CommunityDesignation.shp"
+    )
+    DEFAULT_AREA_TYPE_VARIABLE_SHP  = 'COMDES2040'
+    # area type map from raw data to model category
+    DEFAULT_AREA_TYPE_CODE_DICT = {23 : 4, 24 : 3, 25 : 2, 35 : 2, 36 : 1, 41 : 1, 51 : 1, 52 : 1, 53 : 1, 60 : 1}
+
+    DEFAULT_OSM_ASSGNGRP_DICT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "osm_highway_asgngrp_crosswalk.csv"
+    )
+
+    DEFAULT_MRCC_ROADWAY_CLASS_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "mrcc", "trans_mrcc_centerlines.shp"
+    )
+
+    DEFAULT_MRCC_ROADWAY_CLASS_VARIABLE_SHP  = 'ROUTE_SYS'
+
+    DEFAULT_MRCC_ASSGNGRP_DICT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "mrcc_route_sys_asgngrp_crosswalk.xlsx"
+    )
+
+    DEFAULT_MRCC_SHST_DATA = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "mrcc", "*.mrcc.out.matched.geojson"
+    )
+
+    DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "Wisconsin_Lanes_Counts_Median", "WISLR.shp"
+    )
+
+    DEFAULT_WIDOT_ROADWAY_CLASS_VARIABLE_SHP  = 'RDWY_CTGY_'
+
+    DEFAULT_WIDOT_ASSGNGRP_DICT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "widot_ctgy_asgngrp_crosswalk.csv"
+    )
+
+    DEFAULT_WIDOT_SHST_DATA = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "Wisconsin_Lanes_Counts_Median", "widot.out.matched.geojson"
+    )
+
+    DEFAULT_ROADWAY_CLASS_DICT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "asgngrp_rc_num_crosswalk.csv"
+    )
+
+    DEFAULT_MNDOT_COUNT_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "shp_trans_aadt_traffic_count_locs", "AADT_2017_Count_Locations.shp"
+    )
+
+    DEFAULT_MNDOT_COUNT_SHST_DATA = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "shp_trans_aadt_traffic_count_locs", "mn_count_ShSt_API_match.csv"
+    )
+
+    DEFAULT_MNDOT_COUNT_VARIABLE_SHP  = 'AADT_mn'
+
+    DEFAULT_WIDOT_COUNT_SHAPE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "Wisconsin_Lanes_Counts_Median", "TRADAS_(counts).shp"
+    )
+
+    DEFAULT_WIDOT_COUNT_SHST_DATA = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "Wisconsin_Lanes_Counts_Median", "wi_count_ShSt_API_match.csv"
+    )
+
+    DEFAULT_WIDOT_COUNT_VARIABLE_SHP  = 'AADT_wi'
 
     DEFAULT_CALCULATED_VARIABLES_ROADWAY = [
-      'self.calculate_area_type(network_variable = "area")',
+      'self.calculate_area_type(network_variable = "area_type")',
       'self.calculate_county(network_variable = "county")',
       'self.calculate_centroid_connector(network_variable = "centroid_connector")',
       'self.calculate_mpo(network_variable = "mpo")',
-      'self.calculate_roadway_class_index(network_variable="roadway_class_index")',
+      #'self.calculate_roadway_class_index(network_variable="roadway_class_index")', # cube takes care of this, using roadway class
       'self.calculate_assignment_group(network_variable="assignment_group")',
+      'self.calculate_roadway_class(network_variable="roadway_class")',
+      'self.calculate_count(network_variable="AADT")'
     ]
 
     DEFAULT_OUTPUT_VARIABLES = [
         'model_link_id',
         'A',
         'B',
-        'geometryId',
+        'shstGeometryId',
         'distance',
         'roadway',
         'name',
@@ -101,7 +169,7 @@ class Parameters():
         'price_hov2_NT',
         'price_hov3_NT',
         'price_truck_NT',
-        'roadway_class_index',
+        #'roadway_class_index',
         'assignment_group',
         'access_AM',
         'access_MD',
@@ -111,7 +179,7 @@ class Parameters():
         'area_type',
         'county',
         'centroid_connector',
-        'mrcc_id',
+        #'mrcc_id',
         'AADT',
         'count_year',
         'count_AM',
@@ -147,3 +215,41 @@ class Parameters():
             self.calculated_variables_roadway = Parameters.DEFAULT_CALCULATED_VARIABLES_ROADWAY
         if 'output_variables' not in kwargs:
             self.output_variables = Parameters.DEFAULT_OUTPUT_VARIABLES
+        if 'area_type_shape' not in kwargs:
+            self.area_type_shape = Parameters.DEFAULT_AREA_TYPE_SHAPE
+        if 'mrcc_roadway_class_shape' not in kwargs:
+            self.mrcc_roadway_class_shape = Parameters.DEFAULT_MRCC_ROADWAY_CLASS_SHAPE
+        if 'widot_roadway_class_shape' not in kwargs:
+            self.widot_roadway_class_shape = Parameters.DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE
+        if 'mndot_count_shape' not in kwargs:
+            self.mndot_count_shape = Parameters.DEFAULT_MNDOT_COUNT_SHAPE
+        if 'widot_count_shape' not in kwargs:
+            self.widot_count_shape = Parameters.DEFAULT_WIDOT_COUNT_SHAPE
+        if 'area_type_code_dict' not in kwargs:
+            self.area_type_code_dict = Parameters.DEFAULT_AREA_TYPE_CODE_DICT
+        if 'mrcc_shst_data' not in kwargs:
+            self.mrcc_shst_data = Parameters.DEFAULT_MRCC_SHST_DATA
+        if 'widot_shst_data' not in kwargs:
+            self.widot_shst_data = Parameters.DEFAULT_WIDOT_SHST_DATA
+        if 'mndot_count_shst_data' not in kwargs:
+            self.mndot_count_shst_data = Parameters.DEFAULT_MNDOT_COUNT_SHST_DATA
+        if 'widot_count_shst_data' not in kwargs:
+            self.widot_count_shst_data = Parameters.DEFAULT_WIDOT_COUNT_SHST_DATA
+        if 'mrcc_assgngrp_dict' not in kwargs:
+            self.mrcc_assgngrp_dict = Parameters.DEFAULT_MRCC_ASSGNGRP_DICT
+        if 'widot_assgngrp_dict' not in kwargs:
+            self.widot_assgngrp_dict = Parameters.DEFAULT_WIDOT_ASSGNGRP_DICT
+        if 'osm_assgngrp_dict' not in kwargs:
+            self.osm_assgngrp_dict = Parameters.DEFAULT_OSM_ASSGNGRP_DICT
+        if 'roadway_class_dict' not in kwargs:
+            self.roadway_class_dict = Parameters.DEFAULT_ROADWAY_CLASS_DICT
+        if 'area_type_variable_shp' not in kwargs:
+            self.area_type_variable_shp = Parameters.DEFAULT_AREA_TYPE_VARIABLE_SHP
+        if 'mrcc_roadway_class_variable_shp' not in kwargs:
+            self.mrcc_roadway_class_variable_shp = Parameters.DEFAULT_MRCC_ROADWAY_CLASS_VARIABLE_SHP
+        if 'widot_roadway_class_variable_shp' not in kwargs:
+            self.widot_roadway_class_variable_shp = Parameters.DEFAULT_WIDOT_ROADWAY_CLASS_VARIABLE_SHP
+        if 'mndot_count_variable_shp' not in kwargs:
+            self.mndot_count_variable_shp = Parameters.DEFAULT_MNDOT_COUNT_VARIABLE_SHP
+        if 'widot_count_variable_shp' not in kwargs:
+            self.widot_count_variable_shp = Parameters.DEFAULT_WIDOT_COUNT_VARIABLE_SHP

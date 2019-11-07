@@ -68,12 +68,6 @@ changes:
     walk_node: 0
 - category: Roadway Attribute Change
   facility:
-    A:
-      model_node_id:
-      - 3230
-    B:
-      model_node_id:
-      - 52771
     link:
       model_link_id:
       - 224
@@ -83,14 +77,6 @@ changes:
     set: 0.10462
 - category: Roadway Attribute Change
   facility:
-    A:
-      model_node_id:
-      - 3261
-      - 3261
-    B:
-      model_node_id:
-      - 3262
-      - 68075
     link:
       model_link_id:
       - 280

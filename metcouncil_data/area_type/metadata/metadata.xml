@@ -1,0 +1,85 @@
+<?xml version="1.0"?><metadata><idinfo><citation><citeinfo><origin>Metropolitan Council</origin><pubdate>20180910</pubdate><title>ThriveMSP 2040 Community Designations</title><mgmg1cid>N/A</mgmg1cid><pubinfo><publish>Metropolitan Council</publish></pubinfo><onlink>https://gisdata.mn.gov/dataset/us-mn-state-metc-society-thrive-msp2040-com-des</onlink></citeinfo></citation><descript><abstract>The ThriveMSP 2040 Community Designations was adopted on May 28, 2014. This dataset reflects the agreed upon community designation between a community and the Metropolitan Council and is intended to supplement ThriveMSP 2040  - the planning guide for the 7-county Twin Cities metropolitan area of Minneapolis and Saint Paul, Minnesota. 
+
+Community designations definitions and strategies for the designations are available in the ThriveMSP 2040 document. For questions about how decisions were made regarding individual communities' designations, please contact the Metropolitan Council Regional Policy and Research staff, Dan Marckel, 651-602-1548.
+
+See Currentness Reference and Lineage in Data Quality Section of this metadata for more information.</abstract><purpose>This dataset was created to allow the depictions of ThriveMSP 2040 Community Designations.</purpose><supplinf>Twin Cities 7 County Metropolitan Area.  This includes the counties of Anoka, Carver, Dakota, Hennepin, Ramsey, Scott and Washington in Minnesota.</supplinf></descript><timeperd><timeinfo><sngdate><caldate>20180910</caldate></sngdate></timeinfo><current>Planning areas were first defined to analyze land use and development trends and socio-economic characteristics to assist in preparing the Council's 1975 Metropolitan Development Framework.  They have subsequently been used for a wide range of general analysis purposes.  These areas were defined to reflect stages of development of metropolitan area communities.  A major factor in their determination has been the proportion of land developed.  As such, these areas have been periodically adjusted to reflect the continued outward growth of the region. The Metropolitan Council originally approval the 2040 community designations on May 28, 2014. Community designations reflect municipal boundaries and Metropolitan Urban Service Areas (MUSA) as of September 10, 2018. Minor changes occurred since the last release: the communities of Helena Twp., Inver Grove Heights, Jackson Twp., Medina, New Prague, Orono, and Shakopee due to 2018 Comprehensive Plan Updates, MUSA expansion or municipality boundary adjustment.</current></timeperd><status><progress>Complete</progress><update>As needed</update></status><spdom><bounding><westbc>-94.012</westbc><eastbc>-92.732</eastbc><northbc>45.415</northbc><southbc>44.471</southbc></bounding></spdom><keywords><theme><themekt>None</themekt><themekey>planning and development, ThriveMSP 2040, community designation, growth strategy</themekey></theme><place><placekey>Twin Cities, Anoka County, Carver County, Dakota County, Hennepin County, Ramsey County, Scott County, Washington County</placekey></place></keywords><accconst>None</accconst><useconst>None</useconst><native>ArcView 9.3</native><ptcontac><cntinfo><cntperp><cntorg>Metropolitan Council</cntorg><cntper>Paul Hanson</cntper></cntperp><cntpos>GIS Coordinator - Community Development</cntpos><cntaddr><addrtype> mailing and physical address </addrtype><address>390 Robert Street North</address><city>St. Paul</city><state>Minnesota</state><postal>55101-1805</postal></cntaddr><cntvoice>651.602.1642</cntvoice><cntfax>651.602.1674</cntfax><cntemail>paul.hanson@metc.state.mn.us</cntemail></cntinfo></ptcontac></idinfo><dataqual><logic>The dataset is topologically 'clean'.</logic><complete>Entire seven county geographic area is covered.</complete><lineage><srcinfo><srcscale></srcscale></srcinfo><procstep><procdesc>The 2030 Regional Development Framework Planning Areas were initially adopted on January 14, 2004. Six planning areas make up the 2030 Regional Development Framework Planning Areas - Developed Areas, Developing Areas, Rural Centers, Diversidied Rural Areas, Rural Residential Areas, and Agricultural Areas. The Planning Areas were ammended in 2006 to include a new planning area designation - Rural Growth Centers - for the City of East Bethel. 
+
+In January 2007, Lake Elmo's Comprehensive Plan was finalized. The data and maps were updated in 2010.
+
+Starting in 2006, communities began adopting their 2030 Comprehensive Plan Updates. Through these updates, based on a community's recent growth, desire for future grow, or existing development pattern, communities could request a change in their planning area designation. All changes in planning area designations were agreed upon by the community and the Metropolitan Council. Most designation changes occurred between Developing Areas to Developed Areas, Rural Centers to Rural Growth Centers, and Diversified Rural to Rural Residential. 
+
+This dataset (2030 Regional Development Framework Planning Areas - 2011) reflects the 2030 Planning Areas as agreed upon between the community and the Metropolitan Council derived from the 2030 Comprehensive Plan Updates.  
+
+Sources data used to define the 2030 Regional Development Framework Planning Areas - 2011 includes:
+- 2010 Municipal Boundaries
+- 2010 County parcel data
+- Communities Planned Land Use data from their Comprehensive Plan Update
+- Metropolitan Urban Service Area (MUSA)
+
+The dataset also contains a planning area category for four communities within the 7-county Twni Cities metropolitan area not under the Metropolitan Council planning jurisdiction (Hanover, New Prague, Northfield, and Rockford) 
+
+Planning Area Definitions and Strategies for Geographic Planning Areas are available in the 2030 Regional Development Framework document at https://metrocouncil.org/Planning/Planning/2030-Regional-Development-Framework.aspx  (See Chapter 3).
+
+With a growing need to have current geographic information, the 2030 Regional Development Framework Planning Areas - 2011 dataset will be updated on a quarterly basis to reflect changes in municipal or Metropolitan Urban Service Area (MUSA) boundaries.</procdesc></procstep><procstep><procdesc>Source data used to define the Geographic Planning Areas of the Growth Strategy
+- 2000 Municipal Boundaries
+- 2000 Generalized Land Use
+- Comprehensive Plan Composite data from early in 2002 (communities that had not completed their comprehensive plan review process included Rockford, Minnetonka Beach, Shorewood, Eden Prairie, Jordan, Ham Lake, Linwood Twp., Lake Elmo, St. Mary's Point, New Market and Elko)
+
+Many boundaries from the Comprehensive Plan Composite data were generalized to portray a more general growth strategy policy. 
+
+The 640 polygons in the approved dataset were dissolved into the 6 Geographic Planning Areas plus a category for the 4 metro communities not under Council jurisdiction (Northfield, New Prague, Hanover and Rockford)
+
+The 6 planning areas are further broken down to either Urban or Rural planning areas.  In the Urban Planning area are the Developing and Developed areas.  In the Rural Planning area are the Rural Center, Agricultural, Diversified Rural and Rural Residential areas.  
+
+Several sliver polygons can be seen on screen at the metro scale but 'disappear' when zoomed in to a closer range.  Slivers are not visible when printed on 36x36 inch map or at other map sizes.
+
+
+The Regional Growth Strategy (titled 2030 Framework Planning Areas) that was adopted on January 14, 2004 was a map that also included:
+- Regional Natural Resource Areas (including Terrestrial and Wetland Areas) from the Metro DNR in coordination with the Metropolitan Council (Preliminary Regionally Significant Natural Resources Areas)
+- Regional Parks (Regional Recreation Open Space Features)
+- 2 proposed Regional Parks (Metropolitan Council Parks and Recreation staff)
+- Existing, Planned and Proposed Regional and State Trails (Park Operating Agencies) 
+- Transit 2025 Corridor (Transitways on Dedicated Rights-of-Way, 2025 dataset)
+- Principal Arterials (Functional Class Roads and Proposed Functional Class Roads, 2002, Principal Arterials only)
+
+Planning Area Definitions and Strategies for Geographic Planning Areas are available in the 2030 Regional Development Framework document at 
+http://www.metrocouncil.org/planning/framework/overview.htm  (See Chapter 3)</procdesc><srcused Sync="TRUE">L:\Metadata\Layers\fw_2030_planning_areas</srcused><date Sync="TRUE">20051206</date><time Sync="TRUE">09111500</time></procstep><procstep><procdesc Sync="TRUE">Dataset copied.</procdesc><srcused Sync="TRUE">L:\Metadata\Layers\fw_2030_planning_areas</srcused><procdate Sync="TRUE">20110103</procdate><proctime Sync="TRUE">08223500</proctime></procstep></lineage></dataqual><spdoinfo><indspref>None</indspref><direct>Vector</direct><mgmg3obj>Polygon shapes</mgmg3obj><mgmg3til>One layer for entire seven county region.</mgmg3til></spdoinfo><spref><horizsys><geograph></geograph><geodetic><horizdn>NAD83</horizdn><ellips>GRS80</ellips></geodetic></horizsys></spref><eainfo><overview><eaover>Polygon Attributes:
+
+COCTU_DESC: Description of the COCTU; e.g. Linwood Township,
+            Blaine (Anoka Co. part) 
+
+COCTU_ID: 8 digit code (concatenation of CO_CODE and CTU_CODE
+          attributes defined in the Counties and Cities &amp; Townships, 
+          Twin Cities Metropolitan Area GIS layer available at 
+          https://gisdata.mn.gov/dataset/us-mn-state-metc-bdry-metro-counties-and-ctus 
+
+CTU_ID: The Geographic Names Information System (GNIS) official
+        federal unique identifier for each city, township or
+        unorganized territory.   
+
+CTU_NAME: Name of the city, township or unorganized territory,        
+          e.g. Linwood Twp., Blaine
+
+COMDES2040: A two digit numeric code for the community designation
+
+COMDESNAME: The name of the community designation in ThiveMSP 2040
+          (Includes distinction of the "Core
+          Cities" of Minneapolis and Saint Paul although ThriveMSP 2040
+          does not distinguish these communities from other Urban 
+          Center communities)
+
+URB_RURAL:  Urban vs. Rural service area designation
+
+COMDES2040 : COMDESNAME : URB_RURAL
+
+21 :  Urban Center - Core City : Urban Service Area
+23 :  Urban Center : Urban Service Area
+24 :  Urban : Urban Service Area
+25 :  Surburban : Urban Service Area
+35 :  Suburban Edge : Urban Service Area
+36 :  Emerging Suburban Edge : Urban Service Area
+41 :  Rural Center : Rural Service Area
+51 :  Diversified Rural : Rural Service Area
+52 :  Rural Residential : Rural Service Area
+53 :  Agricultural : Rural Service Area
+60 :  Non-Council Area : Non-Council Area</eaover><eadetcit>Definitions and Strategies for 2040 Community Designationa are available in the ThriveMSP 2040 document</eadetcit></overview></eainfo><distinfo><resdesc>ThriveMSP_2040_CommuityDesignations</resdesc><distliab>NOTICE:  The Geographic Information System (GIS) Data to which this notice is attached are made available pursuant to the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).  THE GIS DATA ARE PROVIDED TO YOU AS IS AND WITHOUT ANY WARRANTY AS TO THEIR PERFORMANCE, MERCHANTABILITY, OR FITNESS FOR ANY PARTICULAR PURPOSE.  The GIS Data were developed by the Metropolitan Council for its own internal business purposes.  The Metropolitan Council does not represent or warrant that the GIS Data or the data documentation are error-free, complete, current, or accurate.  You are responsible for any consequences resulting from your use of the GIS Data or your reliance on the GIS Data.  You should consult the data documentation for this particular GIS Data to determine the limitations of the GIS Data and the precision with which the GIS Data may depict distance, direction, location, or other geographic features.  If you transmit or provide the GIS Data (or any portion of it) to another user, it is recommended that the GIS Data include a copy of this disclaimer and this metadata.</distliab><stdorder><digform><digtinfo><formname>ArcView Shape Files</formname><formvern>ArcGIS 9x</formvern><transize>2 MB for zip file</transize></digtinfo></digform><ordering>See Online Linkage Below</ordering></stdorder><distrib><cntinfo><cntperp><cntorg>Metropolitan Council</cntorg><cntper>Jon Hoekenga</cntper></cntperp><cntpos>GIS System Administrator</cntpos><cntaddr><addrtype>mailing and physical</addrtype><address>390 Robert Street North</address><city>St. Paul</city><state>MN</state><postal>55101-1805</postal></cntaddr><cntvoice>651.602.1561</cntvoice><cntemail>jonathan.hoekenga@metc.state.mn.us</cntemail></cntinfo></distrib></distinfo><metainfo><metd>20180910</metd><metstdn>Minnesota Geographic Metadata Guidelines</metstdn><metstdv>1.2</metstdv><metextns><onlink>http://www.mngeo.state.mn.us/committee/standards/mgmg/metadata.htm</onlink></metextns><metc><cntinfo><cntperp><cntorg>Metropolitan Council</cntorg><cntper>Paul Hanson</cntper></cntperp><cntpos>GIS Coordinator - Community Development</cntpos><cntaddr><addrtype>mailing and physical</addrtype><address>390 Robert Street North</address><city>St. Paul</city><state>Minnesota</state><postal>55101-1805</postal></cntaddr><cntvoice>651.602.1642</cntvoice><cntfax>651.602.1674</cntfax><cntemail>paul.hanson@metc.state.mn.us</cntemail></cntinfo></metc></metainfo><Esri><ModDate>20110722</ModDate><ModTime>15004100</ModTime><CreaDate>20110103</CreaDate><CreaTime>08223500</CreaTime><SyncOnce>TRUE</SyncOnce><MetaID>{F033CC0E-D0B0-4E28-BF94-F38FA05B8575}</MetaID></Esri><mdDateSt Sync="TRUE">20110722</mdDateSt><distInfo><distributor><distorTran><onLineSrc><linkage Sync="TRUE">file://\\rafs\gis\devel\data_devel\comp_plans\tcma_pa\fw_2030_planning_areas</linkage><protocol Sync="TRUE">Local Area Network</protocol></onLineSrc></distorTran></distributor></distInfo></metadata>

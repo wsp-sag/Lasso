@@ -63,3 +63,8 @@ env/
 .project
 .pydevproject
 .settings
+
+
+# large metcouncil data file
+metcouncil_data/mrcc/*.mrcc.out.matched.geojson
+metcouncil_data/mrcc/*.dbf
