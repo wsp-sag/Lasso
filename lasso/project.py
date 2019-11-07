@@ -332,8 +332,6 @@ class Project(object):
                     property_dict_list.append(property_dict)
 
                 card_df = pd.DataFrame({"properties":pd.Series([property_dict_list]),
-                                    "A":pd.Series(base_df.A),
-                                    "B":pd.Series(base_df.B),
                                     "model_link_id":pd.Series(base_df.model_link_id)})
 
                 change_link_dict_df = pd.concat([change_link_dict_df,
@@ -342,11 +340,9 @@ class Project(object):
                                             sort = False)
 
             change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
-            change_link_dict_df = change_link_dict_df.groupby("properties")[["A", "B", "model_link_id"]].agg(lambda x:list(x)).reset_index()
+            change_link_dict_df = change_link_dict_df.groupby("properties")[["model_link_id"]].agg(lambda x:list(x)).reset_index()
 
-            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"A" : {"model_node_id" : x.A},
-                                                                                "B" : {"model_node_id" : x.B},
-                                                                                "link" : {"model_link_id" : x.model_link_id}},
+            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"link" : {"model_link_id" : x.model_link_id}},
                                                                     axis = 1)
 
             change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
@@ -360,7 +356,5 @@ class Project(object):
             change_link_dict_list = []
 
         highway_change_list = list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))
-
-        #self.card_data["highway_card"] = card_dict
 
         return highway_change_list
