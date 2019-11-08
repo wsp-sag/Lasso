@@ -272,13 +272,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                             mndot_count_shst_df,
                             how = "left",
                             on = "shstReferenceId")
-        join_gdf[self.parameters.mndot_count_variable_shp].fillna(0)
+        join_gdf[self.parameters.mndot_count_variable_shp].fillna(0, inplace = True)
 
-        join_gdf = pd.merge(self.links_df,
+        join_gdf = pd.merge(join_gdf,
                             widot_count_shst_df,
                             how = "left",
                             on = "shstReferenceId")
-        join_gdf[self.parameters.widot_count_variable_shp].fillna(0)
+        join_gdf[self.parameters.widot_count_variable_shp].fillna(0, inplace = True)
 
         join_gdf[network_variable] = join_gdf[[self.parameters.mndot_count_variable_shp, self.parameters.widot_count_variable_shp]].max(axis = 1).astype(int)
 
@@ -332,3 +332,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         #self.links_df[field_name] = join_refId_df[field_name]
 
         return join_refId_df[links_df.columns.tolist() + [field_name]]
+
+    def roadway_standard_to_dbf_for_cube(self):
+        pass

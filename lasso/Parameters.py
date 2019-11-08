@@ -97,11 +97,11 @@ class Parameters():
     )
 
     DEFAULT_MNDOT_COUNT_SHAPE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "shp_trans_aadt_traffic_count_locs", "AADT_2017_Count_Locations.shp"
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "count_mn", "AADT_2017_Count_Locations.shp"
     )
 
     DEFAULT_MNDOT_COUNT_SHST_DATA = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "shp_trans_aadt_traffic_count_locs", "mn_count_ShSt_API_match.csv"
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "metcouncil_data", "count_mn", "mn_count_ShSt_API_match.csv"
     )
 
     DEFAULT_MNDOT_COUNT_VARIABLE_SHP  = 'AADT_mn'

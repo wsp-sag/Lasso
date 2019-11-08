@@ -111,7 +111,6 @@ def test_calculate_area_type(request):
 
 
 @pytest.mark.roadway
-@pytest.mark.menow
 def test_calculate_assignment_group_rdclass(request):
     '''
     Tests that parameters are read
@@ -132,3 +131,24 @@ def test_calculate_assignment_group_rdclass(request):
     assert('roadway_class' in net.links_df.columns)
     print(net.links_df[net.links_df.drive_access==1].assignment_group.value_counts())
     print(net.links_df[net.links_df.drive_access==1].roadway_class.value_counts())
+
+
+@pytest.mark.roadway
+@pytest.mark.menow
+def test_calculate_count(request):
+    '''
+    Tests that parameters are read
+    '''
+    print("\n--Starting:",request.node.name)
+
+    net = ModelRoadwayNetwork.read(
+        link_file=STPAUL_LINK_FILE,
+        node_file=STPAUL_NODE_FILE,
+        shape_file=STPAUL_SHAPE_FILE,
+        fast=True,
+    )
+
+
+    net.calculate_count()
+    assert('AADT' in net.links_df.columns)
+    print(net.links_df[net.links_df.drive_access==1].AADT.value_counts())
