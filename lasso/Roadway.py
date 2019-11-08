@@ -1,4 +1,6 @@
 import geopandas as gpd
+import pandas as pd
+import glob
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from network_wrangler import RoadwayNetwork
@@ -27,7 +29,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     def from_RoadwayNetwork(roadway_network_object, parameters = {}):
         return ModelRoadwayNetwork(roadway_network_object.nodes_df, roadway_network_object.links_df, roadway_network_object.shapes_df, parameters=parameters)
 
-    def split_properties_by_time_period_and_category(self):
+    def split_properties_by_time_period_and_category(self, properties_to_split = None):
         '''
         Splits properties by time period, assuming a variable structure of
 
@@ -47,7 +49,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         '''
         import itertools
 
-        for out_var, params in self.parameters.properties_to_split.items():
+        if properties_to_split == None:
+            properties_to_split = self.parameters.properties_to_split
+
+        for out_var, params in properties_to_split.items():
             if params["v"] not in self.links_df.columns:
                 raise ValueError("Specified variable to split: {} not in network variables: {}".format(params["v"], str(self.links_df.columns)))
             if params.get("time_periods") and params.get("categories"):
@@ -117,7 +122,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         area_type_gdf = gpd.read_file(self.parameters.area_type_shape)
         area_type_gdf = area_type_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
         joined_gdf = gpd.sjoin(centroids_gdf, area_type_gdf,  how='left', op='intersects')
-        joined_gdf[self.parameters.area_type_variable_shp] = osm_edge_gdf[self.parameters.area_type_variable_shp].map(self.parameters.area_type_code_dict).fillna(10).astype(int)
+        joined_gdf[self.parameters.area_type_variable_shp] = joined_gdf[self.parameters.area_type_variable_shp].map(self.parameters.area_type_code_dict).fillna(10).astype(int)
 
         self.links_df[network_variable] = joined_gdf[self.parameters.area_type_variable_shp]
         ## QUESTION FOR MET COUNCIL: HOW IS AREA TYPE CURRENTLY  CALCULATED
@@ -168,20 +173,25 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         join network with mrcc and widot roadway data by shst js matcher returns
         """
+        self.calculate_centroid_connector()
 
         mrcc_gdf = gpd.read_file(self.parameters.mrcc_roadway_class_shape)
-        mrcc_shst_ref_df = self.read_match_result(self.parameters.mrcc_shst_data)
+        mrcc_gdf['LINK_ID'] = range(1, 1+len(mrcc_gdf))
+        mrcc_shst_ref_df = ModelRoadwayNetwork.read_match_result(self.parameters.mrcc_shst_data)
 
         widot_gdf = gpd.read_file(self.parameters.widot_roadway_class_shape)
-        widot_shst_ref_df = self.read_match_result(self.parameters.widot_shst_data)
+        widot_gdf['LINK_ID'] = range(1, 1+len(widot_gdf))
+        widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(self.parameters.widot_shst_data)
 
-        join_gdf = self.get_attribute(self.links_df,
+        join_gdf = ModelRoadwayNetwork.get_attribute(
+                           self.links_df,
                            "shstGeometryId",
                            mrcc_shst_ref_df,
                            mrcc_gdf,
                            self.parameters.mrcc_roadway_class_variable_shp)
 
-        join_gdf = self.get_attribute(self.links_df,
+        join_gdf = ModelRoadwayNetwork.get_attribute(
+                           join_gdf,
                            "shstGeometryId",
                            widot_shst_ref_df,
                            widot_gdf,
@@ -198,7 +208,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf = pd.merge(join_gdf,
                     osm_asgngrp_crosswalk_df.rename(columns = {"assignment_group":"assignment_group_osm"}),
                     how = "left",
-                    on = "highway")
+                    on = "roadway")
+
+        print(join_gdf.columns)
+        print(mrcc_asgngrp_crosswalk_df.columns)
 
         join_gdf = pd.merge(join_gdf,
                     mrcc_asgngrp_crosswalk_df.rename(columns = {"assignment_group" : "assignment_group_mrcc"}),
@@ -267,17 +280,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                             on = "shstReferenceId")
         join_gdf[self.parameters.widot_count_variable_shp].fillna(0)
 
-        join_gdf[network_variable] = join_gdf[[self.parameters.mndot_count_variable_shp, self.parameters.widot_count_variable_shp]].max(axis = 1).astype(int))
+        join_gdf[network_variable] = join_gdf[[self.parameters.mndot_count_variable_shp, self.parameters.widot_count_variable_shp]].max(axis = 1).astype(int)
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
+    @staticmethod
     def read_match_result(path):
         """
         read the shst geojson match returns
 
         return shst dataframe
         """
-        refId_gdf = pd.DataFrame()
+        refId_gdf = DataFrame()
         refid_file = glob.glob(path)
         for i in refid_file:
             new = gpd.read_file(i)
@@ -286,22 +300,23 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                                     sort = False)
         return refId_gdf
 
+    @staticmethod
     def get_attribute(
-        self,
+        links_df,
         join_key, #either "shstReferenceId", or "shstGeometryId", tests showed the latter gave better coverage
         source_shst_ref_df, # source shst refId
         source_gdf, # source dataframe
-        field_name_list#, # targetted attribute from source
+        field_name#, # targetted attribute from source
         ):
 
-        join_refId_df = pd.merge(self.links_df,
-                                source_ref[[join_key, "pp_link_id", "score"]].rename(columns = {"pp_link_id" : "source_link_id",
+        join_refId_df = pd.merge(links_df,
+                                source_shst_ref_df[[join_key, "pp_link_id", "score"]].rename(columns = {"pp_link_id" : "source_link_id",
                                                                                                  "score" : "source_score"}),
                                 how = "left",
                                 on = join_key)
 
         join_refId_df = pd.merge(join_refId_df,
-                                source_gdf[['LINK_ID' + field_name_list]].rename(columns = {"LINK_ID" : "source_link_id"}),
+                                source_gdf[['LINK_ID', field_name]].rename(columns = {"LINK_ID" : "source_link_id"}),
                                 how = "left",
                                 on = "source_link_id")
 
@@ -316,4 +331,4 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         #self.links_df[field_name] = join_refId_df[field_name]
 
-        return join_refId_df[self.links_df.columns.tolist() + [field_name]]
+        return join_refId_df[links_df.columns.tolist() + [field_name]]
