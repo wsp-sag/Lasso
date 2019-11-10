@@ -333,5 +333,50 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return join_refId_df[links_df.columns.tolist() + [field_name]]
 
+
     def roadway_standard_to_dbf_for_cube(self):
-        pass
+        """
+        rename attributes for dbf
+        """
+
+        links_dbf_df = self.links_df.copy()
+        links_dbf_df = links_dbf_df.to_crs(epsg = 26915)
+
+        nodes_dbf_df = self.nodes_df.copy()
+        nodes_dbf_df = nodes_dbf_df.to_crs(epsg = 26915)
+
+        nodes_dbf_df = nodes_dbf_df.reset_index()
+        nodes_dbf_df.rename(columns = {"index" : "osm_node_id"},
+                                          inplace = True)
+
+        crosswalk_df = pd.read_csv(self.parameters.net_to_dbf)
+        print(crosswalk_df.info())
+        net_to_dbf_dict = dict(zip(crosswalk_df['net'],crosswalk_df['dbf']))
+
+        links_dbf_name_list = []
+        nodes_dbf_name_list = []
+
+        for c in links_dbf_df.columns:
+            if c in self.parameters.output_variables:
+                try:
+                    links_dbf_df.rename(columns = {c : net_to_dbf_dict[c]},
+                                        inplace = True)
+                    links_dbf_name_list += [net_to_dbf_dict[c]]
+                except:
+                    links_dbf_name_list += [c]
+
+        for c in nodes_dbf_df.columns:
+            print(c)
+            if c in self.parameters.output_variables:
+                try:
+                    nodes_dbf_df.rename(columns = {c : net_to_dbf_dict[c]},
+                                        inplace = True)
+                    nodes_dbf_name_list += [net_to_dbf_dict[c]]
+                except:
+                    nodes_dbf_name_list += [c]
+            if c == "geometry":
+                nodes_dbf_df["X"] = nodes_dbf_df.geometry.apply(lambda g : g.x)
+                nodes_dbf_df["Y"] = nodes_dbf_df.geometry.apply(lambda g : g.y)
+                nodes_dbf_name_list += ["X", "Y"]
+
+        return links_dbf_df[links_dbf_name_list], nodes_dbf_df[nodes_dbf_name_list]

@@ -134,7 +134,6 @@ def test_calculate_assignment_group_rdclass(request):
 
 
 @pytest.mark.roadway
-@pytest.mark.menow
 def test_calculate_count(request):
     '''
     Tests that parameters are read
@@ -148,7 +147,46 @@ def test_calculate_count(request):
         fast=True,
     )
 
-
     net.calculate_count()
     assert('AADT' in net.links_df.columns)
     print(net.links_df[net.links_df.drive_access==1].AADT.value_counts())
+
+
+@pytest.mark.roadway
+@pytest.mark.menow
+def test_roadway_stanrard_to_dbf_for_cube(request):
+    '''
+    Tests that parameters are read
+    '''
+    print("\n--Starting:",request.node.name)
+
+    net = ModelRoadwayNetwork.read(
+        link_file=STPAUL_LINK_FILE,
+        node_file=STPAUL_NODE_FILE,
+        shape_file=STPAUL_SHAPE_FILE,
+        fast=True,
+    )
+
+    net.create_calculated_variables()
+    net.split_properties_by_time_period_and_category(
+        {
+        'transit_priority' :
+            {
+                'v':'transit_priority',
+                'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
+                #'categories': Parameters.DEFAULT_CATEGORIES
+            },
+        'traveltime_assert' :
+            {
+                'v':'traveltime_assert',
+                'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+            },
+        'lanes' :
+            {
+                'v':'lanes',
+                'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME }
+        }
+    )
+    links_dbf_df, nodes_dbf_df = net.roadway_standard_to_dbf_for_cube()
+    print(links_dbf_df.info())
+    print(nodes_dbf_df.info())

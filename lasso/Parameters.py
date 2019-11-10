@@ -127,6 +127,10 @@ class Parameters():
       'self.calculate_count(network_variable="AADT")'
     ]
 
+    DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "examples", "settings", "net_to_dbf.csv"
+    )
+
     DEFAULT_OUTPUT_VARIABLES = [
         'model_link_id',
         'A',
@@ -187,6 +191,13 @@ class Parameters():
         'count_PM',
         'count_NT',
         'count_daily',
+        'model_node_id',
+        'osm_node_id',
+        'bike_node',
+        'transit_node',
+        'walk_node',
+        'drive_node',
+        'geometry'
     ]
 
     def __init__(self, **kwargs):
@@ -253,3 +264,5 @@ class Parameters():
             self.mndot_count_variable_shp = Parameters.DEFAULT_MNDOT_COUNT_VARIABLE_SHP
         if 'widot_count_variable_shp' not in kwargs:
             self.widot_count_variable_shp = Parameters.DEFAULT_WIDOT_COUNT_VARIABLE_SHP
+        if "net_to_dbf" not in kwargs:
+            self.net_to_dbf = Parameters.DEFAULT_NET_TO_DBF_CROSSWALK
