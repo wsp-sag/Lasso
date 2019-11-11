@@ -9,7 +9,7 @@ from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
 import os
 
-from lasso.TransitNetwork import TransitNetwork
+from lasso.TransitNetwork import TransitNetworkLasso
 from .transit import CubeTransit
 
 class Project(object):
@@ -70,7 +70,7 @@ class Project(object):
         if build_transit_dir and transit_changes:
             raise("only need one base roadway file")
         if build_transit_dir:
-            transit_changes = CubeTransit.create_cubetransit(build_transit_dir)
+            transit_changes = CubeTransit.create_cubetransit(build_transit_dir, build_transit_dir)
         else:
             transit_changes = pd.DataFrame({})
 
@@ -94,7 +94,7 @@ class Project(object):
         if base_transit_dir and base_transit_network:
             raise("only need one base roadway file")
         if base_transit_dir:
-            base_transit_network = CubeTransit.create_cubetransit(base_transit_dir)
+            base_transit_network = CubeTransit.create_cubetransit(base_transit_dir, base_transit_dir)
         else:
             base_transit_network = None
 

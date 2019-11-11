@@ -78,10 +78,10 @@ lineFile_list = glob.glob(os.path.join(EX_DIR,"*.LIN"))
 def test_read_transit_linefile(request,linefilename):
     print("\n--Starting:",request.node.name)
 
-    from lasso.TransitNetwork import TransitNetwork
+    from lasso.TransitNetwork import TransitNetworkLasso
 
     print("Reading: {}".format(linefilename))
-    tn = TransitNetwork("CHAMP", 1.0)
+    tn = TransitNetworkLasso("CHAMP", 1.0)
     print(tn.isEmpty())
     thisdir = os.path.dirname(os.path.realpath(__file__))
 

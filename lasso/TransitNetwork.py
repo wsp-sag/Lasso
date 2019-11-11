@@ -16,9 +16,9 @@ from .TransitLine import TransitLine
 from .TransitParser import TransitParser, transit_file_def
 #from .ZACLink import ZACLink
 
-__all__ = ['TransitNetwork']
+__all__ = ['TransitNetworkLasso']
 
-class TransitNetwork(Network):
+class TransitNetworkLasso(Network):
     """
     Full Cube representation of a transit network (all components)
     """
@@ -61,7 +61,7 @@ class TransitNetwork(Network):
         self.ptsystem     = PTSystem()  # single instance
         self.farefiles    = {} # farefile name -> [ lines in farefile ]
 
-        for farefile in TransitNetwork.FARE_FILES[self.modelType]:
+        for farefile in TransitNetworkLasso.FARE_FILES[self.modelType]:
             self.farefiles[farefile] = []
 
         self.DELAY_VALUES = None
@@ -133,7 +133,7 @@ class TransitNetwork(Network):
                             self.parseFile(filename, insert_replace=False)
 
             # fares
-            for farefile in TransitNetwork.FARE_FILES[self.modelType]:
+            for farefile in TransitNetworkLasso.FARE_FILES[self.modelType]:
 
                 fullfarefile = os.path.join(basenetworkpath, farefile)
 
@@ -828,7 +828,7 @@ class TransitNetwork(Network):
         # fares
         if self.modelType in [Network.MODEL_TYPE_CHAMP, Network.MODEL_TYPE_TM1]:
 
-            for farefile in TransitNetwork.FARE_FILES[self.modelType]:
+            for farefile in TransitNetworkLasso.FARE_FILES[self.modelType]:
                 # don't write an empty one unless there isn't anything there
                 if len(self.farefiles[farefile]) == 0:
                     if writeEmptyFiles and not os.path.exists(os.path.join(path,farefile)):
@@ -1034,7 +1034,7 @@ class TransitNetwork(Network):
 
     @staticmethod
     def initializeTransitCapacity(directory="."):
-        TransitNetwork.capacity = TransitCapacity(directory=directory)
+        TransitNetworkLasso.capacity = TransitCapacity(directory=directory)
 
     def findSimpleDwellDelay(self, line):
         """
@@ -1043,7 +1043,7 @@ class TransitNetwork(Network):
         :py:class:`TransitNetwork` specific...
         """
         # use AM to lookup the vehicle
-        simpleDwell = TransitNetwork.capacity.getSimpleDwell(line.name, "AM")
+        simpleDwell = TransitNetworkLasso.capacity.getSimpleDwell(line.name, "AM")
 
         owner = None
         if 'OWNER' in line.attr:
@@ -1105,7 +1105,7 @@ class TransitNetwork(Network):
         logstr = "addDelay: Size of linkset = %d" % (len(linkSet))
 
         if additionalLinkFile:
-            linknet = TransitNetwork(self.modelType, self.modelVersion)
+            linknet = TransitNetworkLasso(self.modelType, self.modelVersion)
             linknet.parser = TransitParser(transit_file_def, verbosity=0)
             f = open(additionalLinkFile, 'r');
             junk,junk,additionallinks,junk,junk,junk,junk,junk,junk,junk,junk = \
@@ -1290,8 +1290,8 @@ class TransitNetwork(Network):
         To save heart-ache later.
         return Success
         """
-        if not TransitNetwork.capacity:
-            TransitNetwork.capacity = TransitCapacity()
+        if not TransitNetworkLasso.capacity:
+            TransitNetworkLasso.capacity = TransitCapacity()
 
         failures = 0
         for line in self:
@@ -1303,9 +1303,9 @@ class TransitNetwork(Network):
                     if line.getFreq(timeperiod, self.modelType) == 0: continue
 
                     try:
-                        (vehicletype, cap) = TransitNetwork.capacity.getVehicleTypeAndCapacity(linename, timeperiod)
+                        (vehicletype, cap) = TransitNetworkLasso.capacity.getVehicleTypeAndCapacity(linename, timeperiod)
                         if mode in complexDelayModes:
-                            (delc,delpb,delpa) = TransitNetwork.capacity.getComplexDwells(linename, timeperiod)
+                            (delc,delpb,delpa) = TransitNetworkLasso.capacity.getComplexDwells(linename, timeperiod)
 
                     except NetworkException as e:
                         print(e)
@@ -1565,7 +1565,7 @@ class TransitNetwork(Network):
         # print "pdesc=" + str(pdesc)
 
         # fares
-        for farefile in TransitNetwork.FARE_FILES[self.modelType]:
+        for farefile in TransitNetworkLasso.FARE_FILES[self.modelType]:
             fullfarefile = os.path.join(gitdir, farefile)
             linecount = 0
             # WranglerLogger.debug("cwd=%s  farefile %s exists? %d" % (os.getcwd(), fullfarefile, os.path.exists(fullfarefile)))
