@@ -339,6 +339,27 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         rename attributes for dbf
         """
 
+        self.create_calculated_variables()
+        self.split_properties_by_time_period_and_category(
+            {
+            'transit_priority' :
+                {
+                    'v':'transit_priority',
+                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
+                    #'categories': Parameters.DEFAULT_CATEGORIES
+                },
+            'traveltime_assert' :
+                {
+                    'v':'traveltime_assert',
+                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+                },
+            'lanes' :
+                {
+                    'v':'lanes',
+                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME }
+            }
+        )
+
         links_dbf_df = self.links_df.copy()
         links_dbf_df = links_dbf_df.to_crs(epsg = 26915)
 
@@ -366,7 +387,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     links_dbf_name_list += [c]
 
         for c in nodes_dbf_df.columns:
-            print(c)
             if c in self.parameters.output_variables:
                 try:
                     nodes_dbf_df.rename(columns = {c : net_to_dbf_dict[c]},
@@ -380,3 +400,22 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 nodes_dbf_name_list += ["X", "Y"]
 
         return links_dbf_df[links_dbf_name_list], nodes_dbf_df[nodes_dbf_name_list]
+
+
+    def write_cube_roadway(self):
+        """
+        write out dbf/shp for cube
+        write out csv in addition to shp with full length variable names
+        """
+        links_dbf_df, nodes_dbf_df = self.roadway_standard_to_dbf_for_cube()
+
+        link_output_variables = [c for c in self.links_df if c in self.parameters.output_variables]
+        node_output_variables = [c for c in self.nodes_df if c in self.parameters.output_variables]
+
+        self.links_df[link_output_variables].to_csv(self.parameters.output_link_csv,
+                                                    index = False)
+        self.nodes_df[node_output_variables].to_csv(self.parameters.output_node_csv,
+                                                    index = False)
+
+        links_dbf_df.to_file(self.parameters.output_link_shp)
+        nodes_dbf_df.to_file(self.parameters.output_node_shp)

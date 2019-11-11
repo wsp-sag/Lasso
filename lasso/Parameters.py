@@ -200,6 +200,22 @@ class Parameters():
         'geometry'
     ]
 
+    DEFAULT_OUTPUT_LINK_SHP = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "tests", "links.shp"
+    )
+
+    DEFAULT_OUTPUT_NODE_SHP = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "tests", "nodes.shp"
+    )
+
+    DEFAULT_OUTPUT_LINK_CSV = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "tests", "links.csv"
+    )
+
+    DEFAULT_OUTPUT_NODE_CSV = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "tests", "nodes.csv"
+    )
+
     def __init__(self, **kwargs):
 
         self.__dict__.update(kwargs)
@@ -266,3 +282,11 @@ class Parameters():
             self.widot_count_variable_shp = Parameters.DEFAULT_WIDOT_COUNT_VARIABLE_SHP
         if "net_to_dbf" not in kwargs:
             self.net_to_dbf = Parameters.DEFAULT_NET_TO_DBF_CROSSWALK
+        if "output_link_shp" not in kwargs:
+            self.output_link_shp = Parameters.DEFAULT_OUTPUT_LINK_SHP
+        if "output_node_shp" not in kwargs:
+            self.output_node_shp = Parameters.DEFAULT_OUTPUT_NODE_SHP
+        if "output_link_csv" not in kwargs:
+            self.output_link_csv = Parameters.DEFAULT_OUTPUT_LINK_CSV
+        if "output_node_csv" not in kwargs:
+            self.output_node_csv = Parameters.DEFAULT_OUTPUT_NODE_CSV
