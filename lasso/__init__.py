@@ -2,7 +2,7 @@ __version__ = "0.0.0"
 
 from .project import Project
 from .transit import CubeTransit
-from .cube_transit import process_line_file#, TransitLine
+from .cube_transit import process_line_file  # , TransitLine
 from .transit_parser import TransitParser, PTSystem, transit_file_def
 from .util import get_shared_streets_intersection_hash
 from .TransitLine import TransitLine
@@ -21,7 +21,7 @@ __all__ = [
     "get_shared_streets_intersection_hash",
     "ModelRodwayNetwork",
     "Parameters",
-    "WranglerLogger"
+    "WranglerLogger",
 ]
 
 if __name__ == "__main__":

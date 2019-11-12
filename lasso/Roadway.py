@@ -6,31 +6,47 @@ from pandas import DataFrame
 from network_wrangler import RoadwayNetwork
 from .Parameters import Parameters
 
-class ModelRoadwayNetwork(RoadwayNetwork):
 
-    def __init__(self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters = {}):
+class ModelRoadwayNetwork(RoadwayNetwork):
+    def __init__(
+        self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
+    ):
         super().__init__(nodes, links, shapes)
         print("PARAMS", parameters)
-        #will have to change if want to alter them
+        # will have to change if want to alter them
         self.parameters = Parameters(**parameters)
 
     @staticmethod
     def read(
-        link_file: str, node_file: str, shape_file: str, fast: bool = False, parameters = {}
+        link_file: str,
+        node_file: str,
+        shape_file: str,
+        fast: bool = False,
+        parameters={},
     ):
-        #road_net =  super().read(link_file, node_file, shape_file, fast=fast)
+        # road_net =  super().read(link_file, node_file, shape_file, fast=fast)
         road_net = RoadwayNetwork.read(link_file, node_file, shape_file, fast=fast)
 
-        m_road_net = ModelRoadwayNetwork(road_net.nodes_df, road_net.links_df, road_net.shapes_df, parameters = parameters)
+        m_road_net = ModelRoadwayNetwork(
+            road_net.nodes_df,
+            road_net.links_df,
+            road_net.shapes_df,
+            parameters=parameters,
+        )
 
         return m_road_net
 
     @staticmethod
-    def from_RoadwayNetwork(roadway_network_object, parameters = {}):
-        return ModelRoadwayNetwork(roadway_network_object.nodes_df, roadway_network_object.links_df, roadway_network_object.shapes_df, parameters=parameters)
+    def from_RoadwayNetwork(roadway_network_object, parameters={}):
+        return ModelRoadwayNetwork(
+            roadway_network_object.nodes_df,
+            roadway_network_object.links_df,
+            roadway_network_object.shapes_df,
+            parameters=parameters,
+        )
 
-    def split_properties_by_time_period_and_category(self, properties_to_split = None):
-        '''
+    def split_properties_by_time_period_and_category(self, properties_to_split=None):
+        """
         Splits properties by time period, assuming a variable structure of
 
         Params
@@ -46,7 +62,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                  'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
              }
 
-        '''
+        """
         import itertools
 
         if properties_to_split == None:
@@ -54,103 +70,127 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         for out_var, params in properties_to_split.items():
             if params["v"] not in self.links_df.columns:
-                raise ValueError("Specified variable to split: {} not in network variables: {}".format(params["v"], str(self.links_df.columns)))
+                raise ValueError(
+                    "Specified variable to split: {} not in network variables: {}".format(
+                        params["v"], str(self.links_df.columns)
+                    )
+                )
             if params.get("time_periods") and params.get("categories"):
-                for time_suffix, category_suffix in itertools.product(params['time_periods'], params['categories']):
-                    self.links_df[out_var+"_"+time_suffix+"_"+category_suffix] = \
-                        self.get_property_by_time_period_and_group(
-                            params["v"],
-                            category = params['categories'][category_suffix],
-                            time_period = params['time_periods'][time_suffix],
-                        )
+                for time_suffix, category_suffix in itertools.product(
+                    params["time_periods"], params["categories"]
+                ):
+                    self.links_df[
+                        out_var + "_" + time_suffix + "_" + category_suffix
+                    ] = self.get_property_by_time_period_and_group(
+                        params["v"],
+                        category=params["categories"][category_suffix],
+                        time_period=params["time_periods"][time_suffix],
+                    )
             elif params.get("time_periods"):
-                for time_suffix in params['time_periods']:
-                    self.links_df[out_var+"_"+time_suffix] = \
-                        self.get_property_by_time_period_and_group(
-                            params["v"],
-                            category = None,
-                            time_period = params['time_periods'][time_suffix],
-                        )
+                for time_suffix in params["time_periods"]:
+                    self.links_df[
+                        out_var + "_" + time_suffix
+                    ] = self.get_property_by_time_period_and_group(
+                        params["v"],
+                        category=None,
+                        time_period=params["time_periods"][time_suffix],
+                    )
             else:
-                raise ValueError("Shoudn't have a category without a time period: {}".format(params))
-
+                raise ValueError(
+                    "Shoudn't have a category without a time period: {}".format(params)
+                )
 
     def create_calculated_variables(self):
-        '''
+        """
         Params
         -------
-        '''
+        """
 
         for method in self.parameters.calculated_variables_roadway:
             eval(method)
 
-    def calculate_county(self, network_variable = 'county'):
-        '''
+    def calculate_county(self, network_variable="county"):
+        """
         This uses the centroid of the geometry field to determine which county it should be labeled.
         This isn't perfect, but it much quicker than other methods.
 
         params
         -------
 
-        '''
+        """
 
         centroids_gdf = self.links_df.copy()
-        centroids_gdf['geometry'] = centroids_gdf['geometry'].centroid
+        centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
         county_gdf = gpd.read_file(self.parameters.county_shape)
         county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
-        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf,  how='left', op='intersects')
+        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
 
-        self.links_df[network_variable] = joined_gdf[self.parameters.county_variable_shp]
+        self.links_df[network_variable] = joined_gdf[
+            self.parameters.county_variable_shp
+        ]
 
-
-    def calculate_area_type(self, network_variable = 'area_type'):
-        '''
+    def calculate_area_type(self, network_variable="area_type"):
+        """
         This uses the centroid of the geometry field to determine which area type it should be labeled.
         PER PRD
 
         params
         -------
 
-        '''
+        """
         if not self.parameters.taz_shape:
             return
 
         centroids_gdf = self.links_df.copy()
-        centroids_gdf['geometry'] = centroids_gdf['geometry'].centroid
+        centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
         area_type_gdf = gpd.read_file(self.parameters.area_type_shape)
         area_type_gdf = area_type_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
-        joined_gdf = gpd.sjoin(centroids_gdf, area_type_gdf,  how='left', op='intersects')
-        joined_gdf[self.parameters.area_type_variable_shp] = joined_gdf[self.parameters.area_type_variable_shp].map(self.parameters.area_type_code_dict).fillna(10).astype(int)
+        joined_gdf = gpd.sjoin(
+            centroids_gdf, area_type_gdf, how="left", op="intersects"
+        )
+        joined_gdf[self.parameters.area_type_variable_shp] = (
+            joined_gdf[self.parameters.area_type_variable_shp]
+            .map(self.parameters.area_type_code_dict)
+            .fillna(10)
+            .astype(int)
+        )
 
-        self.links_df[network_variable] = joined_gdf[self.parameters.area_type_variable_shp]
+        self.links_df[network_variable] = joined_gdf[
+            self.parameters.area_type_variable_shp
+        ]
         ## QUESTION FOR MET COUNCIL: HOW IS AREA TYPE CURRENTLY  CALCULATED
 
-    def calculate_centroid_connector(self,network_variable = 'centroid_connector', as_integer = True):
-        '''
+    def calculate_centroid_connector(
+        self, network_variable="centroid_connector", as_integer=True
+    ):
+        """
         Params
         ------
         network_variable: str
           variable that should be written to in the network
         as_integer: bool
           if true, will convert true/false to 1/0s
-        '''
+        """
 
         self.links_df[network_variable] = False
 
         self.links_df.loc[
-            (self.links_df['A'] <= self.parameters.highest_taz_number) |
-            (self.links_df['B'] <= self.parameters.highest_taz_number),
-            network_variable
-            ] = True
+            (self.links_df["A"] <= self.parameters.highest_taz_number)
+            | (self.links_df["B"] <= self.parameters.highest_taz_number),
+            network_variable,
+        ] = True
 
         if as_integer:
-            self.links_df[network_variable] = self.links_df[network_variable].astype(int)
+            self.links_df[network_variable] = self.links_df[network_variable].astype(
+                int
+            )
 
-
-    def calculate_mpo(self, county_network_variable='county', network_variable = 'mpo', as_integer = True):
-        '''
+    def calculate_mpo(
+        self, county_network_variable="county", network_variable="mpo", as_integer=True
+    ):
+        """
         Params
         ------
         county_variable: string
@@ -159,7 +199,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
           name of the variable that should be written to
         as_integer: bool
           if true, will convert true/false to 1/0s
-        '''
+        """
 
         mpo = self.links_df[county_network_variable].isin(self.parameters.mpo_counties)
 
@@ -168,60 +208,77 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_df[network_variable] = mpo
 
-
-    def calculate_assignment_group(self, network_variable = 'assignment_group'):
+    def calculate_assignment_group(self, network_variable="assignment_group"):
         """
         join network with mrcc and widot roadway data by shst js matcher returns
         """
         self.calculate_centroid_connector()
 
         mrcc_gdf = gpd.read_file(self.parameters.mrcc_roadway_class_shape)
-        mrcc_gdf['LINK_ID'] = range(1, 1+len(mrcc_gdf))
-        mrcc_shst_ref_df = ModelRoadwayNetwork.read_match_result(self.parameters.mrcc_shst_data)
+        mrcc_gdf["LINK_ID"] = range(1, 1 + len(mrcc_gdf))
+        mrcc_shst_ref_df = ModelRoadwayNetwork.read_match_result(
+            self.parameters.mrcc_shst_data
+        )
 
         widot_gdf = gpd.read_file(self.parameters.widot_roadway_class_shape)
-        widot_gdf['LINK_ID'] = range(1, 1+len(widot_gdf))
-        widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(self.parameters.widot_shst_data)
+        widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
+        widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(
+            self.parameters.widot_shst_data
+        )
 
         join_gdf = ModelRoadwayNetwork.get_attribute(
-                           self.links_df,
-                           "shstGeometryId",
-                           mrcc_shst_ref_df,
-                           mrcc_gdf,
-                           self.parameters.mrcc_roadway_class_variable_shp)
+            self.links_df,
+            "shstGeometryId",
+            mrcc_shst_ref_df,
+            mrcc_gdf,
+            self.parameters.mrcc_roadway_class_variable_shp,
+        )
 
         join_gdf = ModelRoadwayNetwork.get_attribute(
-                           join_gdf,
-                           "shstGeometryId",
-                           widot_shst_ref_df,
-                           widot_gdf,
-                           self.parameters.widot_roadway_class_variable_shp)
+            join_gdf,
+            "shstGeometryId",
+            widot_shst_ref_df,
+            widot_gdf,
+            self.parameters.widot_roadway_class_variable_shp,
+        )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(self.parameters.osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_excel(self.parameters.mrcc_assgngrp_dict,
-                                         sheet_name= "mrcc_ctgy_asgngrp_crosswalk",
-                                         dtype = {"ROUTE_SYS" : str,
-                                         "ROUTE_SYS_ref" : str,
-                                         "assignment_group" : int})
+        mrcc_asgngrp_crosswalk_df = pd.read_excel(
+            self.parameters.mrcc_assgngrp_dict,
+            sheet_name="mrcc_ctgy_asgngrp_crosswalk",
+            dtype={"ROUTE_SYS": str, "ROUTE_SYS_ref": str, "assignment_group": int},
+        )
         widot_asgngrp_crosswak_df = pd.read_csv(self.parameters.widot_assgngrp_dict)
 
-        join_gdf = pd.merge(join_gdf,
-                    osm_asgngrp_crosswalk_df.rename(columns = {"assignment_group":"assignment_group_osm"}),
-                    how = "left",
-                    on = "roadway")
+        join_gdf = pd.merge(
+            join_gdf,
+            osm_asgngrp_crosswalk_df.rename(
+                columns={"assignment_group": "assignment_group_osm"}
+            ),
+            how="left",
+            on="roadway",
+        )
 
         print(join_gdf.columns)
         print(mrcc_asgngrp_crosswalk_df.columns)
 
-        join_gdf = pd.merge(join_gdf,
-                    mrcc_asgngrp_crosswalk_df.rename(columns = {"assignment_group" : "assignment_group_mrcc"}),
-                    how = "left",
-                    on = self.parameters.mrcc_roadway_class_variable_shp)
+        join_gdf = pd.merge(
+            join_gdf,
+            mrcc_asgngrp_crosswalk_df.rename(
+                columns={"assignment_group": "assignment_group_mrcc"}
+            ),
+            how="left",
+            on=self.parameters.mrcc_roadway_class_variable_shp,
+        )
 
-        join_gdf = pd.merge(join_gdf,
-                    widot_asgngrp_crosswak_df.rename(columns = {"assignment_group" : "assignment_group_widot"}),
-                    how = "left",
-                    on = self.parameters.widot_roadway_class_variable_shp)
+        join_gdf = pd.merge(
+            join_gdf,
+            widot_asgngrp_crosswak_df.rename(
+                columns={"assignment_group": "assignment_group_widot"}
+            ),
+            how="left",
+            on=self.parameters.widot_roadway_class_variable_shp,
+        )
 
         def get_asgngrp(x):
             try:
@@ -236,14 +293,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             except:
                 return 0
 
-        join_gdf[network_variable] = join_gdf.apply(lambda x: get_asgngrp(x),
-                                       axis = 1)
+        join_gdf[network_variable] = join_gdf.apply(lambda x: get_asgngrp(x), axis=1)
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
-
-
-    def calculate_roadway_class(self, network_variable = 'roadway_class'):
+    def calculate_roadway_class(self, network_variable="roadway_class"):
         """
         roadway_class is a lookup based on assignment group
 
@@ -251,15 +305,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         asgngrp_rc_num_crosswalk_df = pd.read_csv(self.parameters.roadway_class_dict)
 
-        join_gdf = pd.merge(self.links_df,
-                            asgngrp_rc_num_crosswalk_df,
-                            how = "left",
-                            on = "assignment_group")
+        join_gdf = pd.merge(
+            self.links_df,
+            asgngrp_rc_num_crosswalk_df,
+            how="left",
+            on="assignment_group",
+        )
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
-
-    def calculate_count(self, network_variable = 'AADT'):
+    def calculate_count(self, network_variable="AADT"):
 
         """
         join the network with count node data, via SHST API node match result
@@ -268,19 +323,26 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         widot_count_shst_df = pd.read_csv(self.parameters.widot_count_shst_data)
 
-        join_gdf = pd.merge(self.links_df,
-                            mndot_count_shst_df,
-                            how = "left",
-                            on = "shstReferenceId")
-        join_gdf[self.parameters.mndot_count_variable_shp].fillna(0, inplace = True)
+        join_gdf = pd.merge(
+            self.links_df, mndot_count_shst_df, how="left", on="shstReferenceId"
+        )
+        join_gdf[self.parameters.mndot_count_variable_shp].fillna(0, inplace=True)
 
-        join_gdf = pd.merge(join_gdf,
-                            widot_count_shst_df,
-                            how = "left",
-                            on = "shstReferenceId")
-        join_gdf[self.parameters.widot_count_variable_shp].fillna(0, inplace = True)
+        join_gdf = pd.merge(
+            join_gdf, widot_count_shst_df, how="left", on="shstReferenceId"
+        )
+        join_gdf[self.parameters.widot_count_variable_shp].fillna(0, inplace=True)
 
-        join_gdf[network_variable] = join_gdf[[self.parameters.mndot_count_variable_shp, self.parameters.widot_count_variable_shp]].max(axis = 1).astype(int)
+        join_gdf[network_variable] = (
+            join_gdf[
+                [
+                    self.parameters.mndot_count_variable_shp,
+                    self.parameters.widot_count_variable_shp,
+                ]
+            ]
+            .max(axis=1)
+            .astype(int)
+        )
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
@@ -295,44 +357,50 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         refid_file = glob.glob(path)
         for i in refid_file:
             new = gpd.read_file(i)
-            refId_gdf = pd.concat([refId_gdf, new],
-                                    ignore_index = True,
-                                    sort = False)
+            refId_gdf = pd.concat([refId_gdf, new], ignore_index=True, sort=False)
         return refId_gdf
 
     @staticmethod
     def get_attribute(
         links_df,
-        join_key, #either "shstReferenceId", or "shstGeometryId", tests showed the latter gave better coverage
-        source_shst_ref_df, # source shst refId
-        source_gdf, # source dataframe
-        field_name#, # targetted attribute from source
-        ):
+        join_key,  # either "shstReferenceId", or "shstGeometryId", tests showed the latter gave better coverage
+        source_shst_ref_df,  # source shst refId
+        source_gdf,  # source dataframe
+        field_name,  # , # targetted attribute from source
+    ):
 
-        join_refId_df = pd.merge(links_df,
-                                source_shst_ref_df[[join_key, "pp_link_id", "score"]].rename(columns = {"pp_link_id" : "source_link_id",
-                                                                                                 "score" : "source_score"}),
-                                how = "left",
-                                on = join_key)
+        join_refId_df = pd.merge(
+            links_df,
+            source_shst_ref_df[[join_key, "pp_link_id", "score"]].rename(
+                columns={"pp_link_id": "source_link_id", "score": "source_score"}
+            ),
+            how="left",
+            on=join_key,
+        )
 
-        join_refId_df = pd.merge(join_refId_df,
-                                source_gdf[['LINK_ID', field_name]].rename(columns = {"LINK_ID" : "source_link_id"}),
-                                how = "left",
-                                on = "source_link_id")
+        join_refId_df = pd.merge(
+            join_refId_df,
+            source_gdf[["LINK_ID", field_name]].rename(
+                columns={"LINK_ID": "source_link_id"}
+            ),
+            how="left",
+            on="source_link_id",
+        )
 
-        join_refId_df.sort_values(by = ["model_link_id", "source_score"],
-                                  ascending = True,
-                                  na_position = "first",
-                                  inplace = True)
+        join_refId_df.sort_values(
+            by=["model_link_id", "source_score"],
+            ascending=True,
+            na_position="first",
+            inplace=True,
+        )
 
-        join_refId_df.drop_duplicates(subset = ["model_link_id"],
-                                      keep = "last",
-                                      inplace = True)
+        join_refId_df.drop_duplicates(
+            subset=["model_link_id"], keep="last", inplace=True
+        )
 
-        #self.links_df[field_name] = join_refId_df[field_name]
+        # self.links_df[field_name] = join_refId_df[field_name]
 
         return join_refId_df[links_df.columns.tolist() + [field_name]]
-
 
     def roadway_standard_to_dbf_for_cube(self):
         """
@@ -342,37 +410,34 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.create_calculated_variables()
         self.split_properties_by_time_period_and_category(
             {
-            'transit_priority' :
-                {
-                    'v':'transit_priority',
-                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
+                "transit_priority": {
+                    "v": "transit_priority",
+                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
                     #'categories': Parameters.DEFAULT_CATEGORIES
                 },
-            'traveltime_assert' :
-                {
-                    'v':'traveltime_assert',
-                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+                "traveltime_assert": {
+                    "v": "traveltime_assert",
+                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
                 },
-            'lanes' :
-                {
-                    'v':'lanes',
-                    'time_periods':Parameters.DEFAULT_TIME_PERIOD_TO_TIME }
+                "lanes": {
+                    "v": "lanes",
+                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
+                },
             }
         )
 
         links_dbf_df = self.links_df.copy()
-        links_dbf_df = links_dbf_df.to_crs(epsg = 26915)
+        links_dbf_df = links_dbf_df.to_crs(epsg=26915)
 
         nodes_dbf_df = self.nodes_df.copy()
-        nodes_dbf_df = nodes_dbf_df.to_crs(epsg = 26915)
+        nodes_dbf_df = nodes_dbf_df.to_crs(epsg=26915)
 
         nodes_dbf_df = nodes_dbf_df.reset_index()
-        nodes_dbf_df.rename(columns = {"index" : "osm_node_id"},
-                                          inplace = True)
+        nodes_dbf_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
         crosswalk_df = pd.read_csv(self.parameters.net_to_dbf)
         print(crosswalk_df.info())
-        net_to_dbf_dict = dict(zip(crosswalk_df['net'],crosswalk_df['dbf']))
+        net_to_dbf_dict = dict(zip(crosswalk_df["net"], crosswalk_df["dbf"]))
 
         links_dbf_name_list = []
         nodes_dbf_name_list = []
@@ -380,8 +445,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for c in links_dbf_df.columns:
             if c in self.parameters.output_variables:
                 try:
-                    links_dbf_df.rename(columns = {c : net_to_dbf_dict[c]},
-                                        inplace = True)
+                    links_dbf_df.rename(columns={c: net_to_dbf_dict[c]}, inplace=True)
                     links_dbf_name_list += [net_to_dbf_dict[c]]
                 except:
                     links_dbf_name_list += [c]
@@ -389,18 +453,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for c in nodes_dbf_df.columns:
             if c in self.parameters.output_variables:
                 try:
-                    nodes_dbf_df.rename(columns = {c : net_to_dbf_dict[c]},
-                                        inplace = True)
+                    nodes_dbf_df.rename(columns={c: net_to_dbf_dict[c]}, inplace=True)
                     nodes_dbf_name_list += [net_to_dbf_dict[c]]
                 except:
                     nodes_dbf_name_list += [c]
             if c == "geometry":
-                nodes_dbf_df["X"] = nodes_dbf_df.geometry.apply(lambda g : g.x)
-                nodes_dbf_df["Y"] = nodes_dbf_df.geometry.apply(lambda g : g.y)
+                nodes_dbf_df["X"] = nodes_dbf_df.geometry.apply(lambda g: g.x)
+                nodes_dbf_df["Y"] = nodes_dbf_df.geometry.apply(lambda g: g.y)
                 nodes_dbf_name_list += ["X", "Y"]
 
         return links_dbf_df[links_dbf_name_list], nodes_dbf_df[nodes_dbf_name_list]
-
 
     def write_cube_roadway(self):
         """
@@ -409,13 +471,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         links_dbf_df, nodes_dbf_df = self.roadway_standard_to_dbf_for_cube()
 
-        link_output_variables = [c for c in self.links_df if c in self.parameters.output_variables]
-        node_output_variables = [c for c in self.nodes_df if c in self.parameters.output_variables]
+        link_output_variables = [
+            c for c in self.links_df if c in self.parameters.output_variables
+        ]
+        node_output_variables = [
+            c for c in self.nodes_df if c in self.parameters.output_variables
+        ]
 
-        self.links_df[link_output_variables].to_csv(self.parameters.output_link_csv,
-                                                    index = False)
-        self.nodes_df[node_output_variables].to_csv(self.parameters.output_node_csv,
-                                                    index = False)
+        self.links_df[link_output_variables].to_csv(
+            self.parameters.output_link_csv, index=False
+        )
+        self.nodes_df[node_output_variables].to_csv(
+            self.parameters.output_node_csv, index=False
+        )
 
         links_dbf_df.to_file(self.parameters.output_link_shp)
         nodes_dbf_df.to_file(self.parameters.output_node_shp)

@@ -13,17 +13,18 @@ from .PNRLink import PNRLink
 from .PTSystem import PTSystem
 from .Supplink import Supplink
 from .TransitLine import TransitLine
-#from .TransitLink import TransitLink
-#from .ZACLink import ZACLink
 
-__all__ = [ 'TransitParser' ]
+# from .TransitLink import TransitLink
+# from .ZACLink import ZACLink
 
-WRANGLER_FILE_SUFFICES = [ "lin", "link", "pnr", "zac", "access", "xfer", "pts" ]
+__all__ = ["TransitParser"]
+
+WRANGLER_FILE_SUFFICES = ["lin", "link", "pnr", "zac", "access", "xfer", "pts"]
 
 # PARSER DEFINITION ------------------------------------------------------------------------------
 # NOTE: even though XYSPEED and TIMEFAC are node attributes here, I'm not sure that's really ok --
 # Cube documentation implies TF and XYSPD are node attributes...
-transit_file_def=r'''
+transit_file_def = r"""
 transit_file      := smcw*, ( accessli / line / link / pnr / zac / supplink / factor / faresystem / waitcrvdef / crowdcrvdef / operator / mode / vehicletype )+, smcw*, whitespace*
 
 line              := whitespace?, smcw?, c"LINE", whitespace, lin_attr*, lin_node*, whitespace?
@@ -113,36 +114,38 @@ alphanums         := [a-zA-Z0-9_\.]+
 <whitespace>      := [ \t\r\n]+
 <spaces>          := [ \t]+
 smcw              := whitespace?, (semicolon_comment / c_comment, whitespace?)+
-'''
+"""
+
 
 class TransitFileProcessor(DispatchProcessor):
     """ Class to process transit files
     """
+
     def __init__(self, verbosity=1):
-        self.verbosity=verbosity
+        self.verbosity = verbosity
         self.lines = []
         self.links = []
-        self.pnrs   = []
-        self.zacs   = []
+        self.pnrs = []
+        self.zacs = []
         self.accesslis = []
-        self.xferlis   = []
-        self.nodes     = []
-        self.liType    = ''
+        self.xferlis = []
+        self.nodes = []
+        self.liType = ""
         self.supplinks = []
-        self.factors   = []
-        self.faresystems  = []
+        self.factors = []
+        self.faresystems = []
         # PT System control statements
-        self.waitcrvdefs  = []
+        self.waitcrvdefs = []
         self.crowdcrvdefs = []
-        self.operators    = []
-        self.modes        = []
+        self.operators = []
+        self.modes = []
         self.vehicletypes = []
 
         self.linecomments = []
 
     def crackTags(self, leaf, buffer):
         tag = leaf[0]
-        text = buffer[leaf[1]:leaf[2]]
+        text = buffer[leaf[1] : leaf[2]]
         subtags = leaf[3]
 
         b = []
@@ -151,106 +154,106 @@ class TransitFileProcessor(DispatchProcessor):
             for leaf in subtags:
                 b.append(self.crackTags(leaf, buffer))
 
-        return (tag,text,b)
+        return (tag, text, b)
 
     def line(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
         # this is the whole line
-        if self.verbosity>=1:
-            print(tag,start,stop)
+        if self.verbosity >= 1:
+            print(tag, start, stop)
 
         # Append list items for this line
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.lines.append(xxx)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             # lines are composed of smcw (semicolon-comment / whitespace), line_attr and lin_node
             for linepart in subtags:
-                print("  ",linepart[0], " -> [ "),
+                print("  ", linepart[0], " -> [ "),
                 for partpart in linepart[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]],")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
     def link(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
         # this is the whole link
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
         # Append list items for this link
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.links.append(xxx)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             # links are composed of smcw and link_attr
             for linkpart in subtags:
-                print("  ",linkpart[0], " -> [ "),
+                print("  ", linkpart[0], " -> [ "),
                 for partpart in linkpart[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
     def pnr(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
         # Append list items for this link
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.pnrs.append(xxx)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             # pnrs are composed of smcw and pnr_attr
             for pnrpart in subtags:
-                print(" ",pnrpart[0], " -> [ "),
+                print(" ", pnrpart[0], " -> [ "),
                 for partpart in pnrpart[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
     def zac(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             # zacs are composed of smcw and zac_attr
             for zacpart in subtags:
-                print(" ",zacpart[0], " -> [ "),
+                print(" ", zacpart[0], " -> [ "),
                 for partpart in zacpart[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
         # Append list items for this link
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.zacs.append(xxx)
 
     def process_line(self, tup, buffer):
         """
         Generic version, returns list of pieces.
         """
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
-        if self.verbosity==2:
+        if self.verbosity == 2:
             for part in subtags:
-                print(" ",part[0], " -> [ "),
+                print(" ", part[0], " -> [ "),
                 for partpart in part[3]:
-                    print(partpart[0], "(", buffer[partpart[1]:partpart[2]], ")"),
+                    print(partpart[0], "(", buffer[partpart[1] : partpart[2]], ")"),
                 print(" ]")
 
         # Append list items for this link
         # TODO: make the others more like this -- let the list separate the parse structures!
         retlist = []
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             retlist.append(xxx)
         return retlist
 
@@ -289,47 +292,52 @@ class TransitFileProcessor(DispatchProcessor):
     def smcw(self, tup, buffer):
         """ Semicolon comment whitespace
         """
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
+            xxx = self.crackTags(leaf, buffer)
             self.linecomments.append(xxx)
 
     def accessli(self, tup, buffer):
-        (tag,start,stop,subtags) = tup
+        (tag, start, stop, subtags) = tup
 
-        if self.verbosity>=1:
+        if self.verbosity >= 1:
             print(tag, start, stop)
 
         for leaf in subtags:
-            xxx = self.crackTags(leaf,buffer)
-            if self.liType=="access":
+            xxx = self.crackTags(leaf, buffer)
+            if self.liType == "access":
                 self.accesslis.append(xxx)
-            elif self.liType=="xfer":
+            elif self.liType == "xfer":
                 self.xferlis.append(xxx)
-            elif self.liType=="node":
+            elif self.liType == "node":
                 self.nodes.append(xxx)
             else:
-                raise NetworkException("Found access or xfer link without classification. {}".format(self.liType))
+                raise NetworkException(
+                    "Found access or xfer link without classification. {}".format(
+                        self.liType
+                    )
+                )
+
 
 class TransitParser(Parser):
 
     # line files are one of these
-    PROGRAM_PT       = "PT"
+    PROGRAM_PT = "PT"
     PROGRAM_TRNBUILD = "TRNBUILD"
-    PROGRAM_UNKNOWN  = "unknown"
+    PROGRAM_UNKNOWN = "unknown"
 
     def __init__(self, filedef=transit_file_def, verbosity=1):
         Parser.__init__(self, filedef)
-        self.verbosity=verbosity
+        self.verbosity = verbosity
         self.tfp = TransitFileProcessor(self.verbosity)
 
-    def setVerbosity(self,verbosity):
-        self.verbosity=verbosity
-        self.tfp.verbosity=verbosity
+    def setVerbosity(self, verbosity):
+        self.verbosity = verbosity
+        self.tfp.verbosity = verbosity
 
     def buildProcessor(self):
         return self.tfp
@@ -340,7 +348,7 @@ class TransitParser(Parser):
         """
         program = TransitParser.PROGRAM_UNKNOWN  # default
         rows = []
-        currentRoute    = None
+        currentRoute = None
         currentComments = []
 
         # try to figure out what type of file this is -- TRNBUILD or PT
@@ -349,7 +357,7 @@ class TransitParser(Parser):
                 cmt = comment[2][0][1]
                 # print("cmt={}".format(cmt))
                 # note the first semicolon is stripped
-                if cmt.startswith(';<<Trnbuild>>;;'):
+                if cmt.startswith(";<<Trnbuild>>;;"):
                     program = TransitParser.PROGRAM_TRNBUILD
                 elif cmt.startswith(";<<PT>><<LINE>>;;"):
                     program = TransitParser.PROGRAM_PT
@@ -362,7 +370,7 @@ class TransitParser(Parser):
             line_num += 1
 
             # Add comments as simple strings
-            if line[0] == 'smcw':
+            if line[0] == "smcw":
                 cmt = line[1].strip()
                 # WranglerLogger.debug("smcw line={}".format(line))
 
@@ -375,24 +383,27 @@ class TransitParser(Parser):
                 continue
 
             # Handle Line attributes
-            if line[0] == 'lin_attr':
+            if line[0] == "lin_attr":
                 key = None
                 value = None
                 comment = None
                 # Pay attention only to the children of lin_attr elements
                 kids = line[2]
                 for child in kids:
-                    if child[0]=='lin_attr_name': key=child[1]
-                    if child[0]=='attr_value': value=child[1]
-                    if child[0]=='semicolon_comment': comment=child[1].strip()
+                    if child[0] == "lin_attr_name":
+                        key = child[1]
+                    if child[0] == "attr_value":
+                        value = child[1]
+                    if child[0] == "semicolon_comment":
+                        comment = child[1].strip()
 
                 # If this is a NAME attribute, we need to start a new TransitLine!
-                if key=='NAME':
+                if key == "NAME":
                     if currentRoute:
                         rows.append(currentRoute)
 
                     # now add the comments stored up
-                    if len(currentComments)>0:
+                    if len(currentComments) > 0:
                         # WranglerLogger.debug("currentComments: {}".format(currentComments))
                         rows.extend(currentComments)
                         currentComments = []
@@ -402,7 +413,8 @@ class TransitParser(Parser):
                     currentRoute[key] = value  # Just store all other attributes
 
                 # And save line comment if there is one
-                if comment: currentRoute.comment = comment
+                if comment:
+                    currentRoute.comment = comment
                 continue
 
             # Handle Node list
@@ -411,25 +423,32 @@ class TransitParser(Parser):
                 kids = line[2]
                 node = None
                 for child in kids:
-                    if child[0]=='nodenum':
+                    if child[0] == "nodenum":
                         node = Node(child[1])
-                    if child[0]=='lin_nodeattr':
+                    if child[0] == "lin_nodeattr":
                         key = None
                         value = None
                         for nodechild in child[2]:
-                            if nodechild[0]=='lin_nodeattr_name': key = nodechild[1]
-                            if nodechild[0]=='attr_value': value = nodechild[1]
-                            if nodechild[0]=='semicolon_comment': comment=nodechild[1].strip()
+                            if nodechild[0] == "lin_nodeattr_name":
+                                key = nodechild[1]
+                            if nodechild[0] == "attr_value":
+                                value = nodechild[1]
+                            if nodechild[0] == "semicolon_comment":
+                                comment = nodechild[1].strip()
                         node[key] = value
-                        if comment: node.comment = comment
+                        if comment:
+                            node.comment = comment
                 currentRoute.n.append(node)
                 continue
 
             # Got something other than lin_node, lin_attr, or smcw:
-            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (line[0], line[1]))
+            WranglerLogger.critical(
+                "** SHOULD NOT BE HERE: %s (%s)" % (line[0], line[1])
+            )
 
         # End of tree; store final route and return
-        if currentRoute: rows.append(currentRoute)
+        if currentRoute:
+            rows.append(currentRoute)
         return (program, rows)
 
     def convertLinkData(self):
@@ -447,9 +466,9 @@ class TransitParser(Parser):
             # Each link is a 3-tuple:  key, value, list-of-children.
 
             # Add comments as simple strings:
-            if link[0] in ('smcw','semicolon_comment'):
+            if link[0] in ("smcw", "semicolon_comment"):
                 if currentLink:
-                    currentLink.comment = " "+link[1].strip()  # Link comment
+                    currentLink.comment = " " + link[1].strip()  # Link comment
                     rows.append(currentLink)
                     currentLink = None
                 else:
@@ -457,30 +476,35 @@ class TransitParser(Parser):
                 continue
 
             # Link records
-            if link[0] == 'link_attr':
+            if link[0] == "link_attr":
                 # Pay attention only to the children of lin_attr elements
                 kids = link[2]
                 for child in kids:
-                    if child[0] in ('link_attr_name','word_nodes','word_modes'):
+                    if child[0] in ("link_attr_name", "word_nodes", "word_modes"):
                         key = child[1]
                         # If this is a NAME attribute, we need to start a new TransitLink.
-                        if key in ('nodes','NODES'):
-                            if currentLink: rows.append(currentLink)
-                            currentLink = TransitLink() # Create new dictionary for this transit support link
+                        if key in ("nodes", "NODES"):
+                            if currentLink:
+                                rows.append(currentLink)
+                            currentLink = (
+                                TransitLink()
+                            )  # Create new dictionary for this transit support link
 
-                    if child[0]=='nodepair':
+                    if child[0] == "nodepair":
                         currentLink.setId(child[1])
 
-                    if child[0] in ('attr_value','numseq'):
+                    if child[0] in ("attr_value", "numseq"):
                         currentLink[key] = child[1]
                 continue
 
             # Got something unexpected:
-            WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (link[0], link[1]))
+            WranglerLogger.critical(
+                "** SHOULD NOT BE HERE: %s (%s)" % (link[0], link[1])
+            )
 
         # Save last link too
-        if currentLink: rows.append(currentLink)
-
+        if currentLink:
+            rows.append(currentLink)
 
         for factor in self.tfp.factors:
             currentFactor = Factor()
@@ -490,7 +514,7 @@ class TransitParser(Parser):
             #    [('semicolon_comment', '; BART-eBART timed transfer\n',
             #      [('comment', ' BART-eBART timed transfer', [])])])
             # keep as line comment
-            if factor[0][0] == 'smcw':
+            if factor[0][0] == "smcw":
                 smcw = factor.pop(0)
                 rows.append(smcw[1].strip())
 
@@ -498,21 +522,27 @@ class TransitParser(Parser):
             # [('factor_attr', 'MAXWAITTIME=1, ', [('factor_attr_name', 'MAXWAITTIME', []), ('attr_value', '1', [('alphanums', '1', [])])]),
             #  ('factor_attr', 'NODES=15536\n',   [('factor_attr_name', 'NODES', [('word_nodes', 'NODES', [])]), ('attr_value', '15536', [('alphanums', '15536', [])])])]
             for factor_attr in factor:
-                if factor_attr[0] == 'semicolon_comment':
+                if factor_attr[0] == "semicolon_comment":
                     comments.append(factor_attr[1])
                     continue
 
-                if factor_attr[0] != 'factor_attr':
-                    WranglerLogger.critical("** unexpected factor item: {}".format(factor_attr))
+                if factor_attr[0] != "factor_attr":
+                    WranglerLogger.critical(
+                        "** unexpected factor item: {}".format(factor_attr)
+                    )
 
-                factor_attr_name = factor_attr[2][0]  # ('factor_attr_name', 'MAXWAITTIME', [])
-                factor_attr_val  = factor_attr[2][1]  # ('attr_value', '1', [('alphanums', '1', [])])
+                factor_attr_name = factor_attr[2][
+                    0
+                ]  # ('factor_attr_name', 'MAXWAITTIME', [])
+                factor_attr_val = factor_attr[2][
+                    1
+                ]  # ('attr_value', '1', [('alphanums', '1', [])])
 
                 # set it
                 currentFactor[factor_attr_name[1]] = factor_attr_val[1]
 
             rows.append(currentFactor)
-            if len(comments)>0:
+            if len(comments) > 0:
                 rows.extend(comments)
                 comments = []
 
@@ -532,7 +562,7 @@ class TransitParser(Parser):
             # Add comments as simple strings
 
             # Textline Comments
-            if pnr[0] =='smcw':
+            if pnr[0] == "smcw":
                 # Line comment; thus existing PNR must be finished.
                 if currentPNR:
                     rows.append(currentPNR)
@@ -542,28 +572,28 @@ class TransitParser(Parser):
                 continue
 
             # PNR records
-            if pnr[0] == 'pnr_attr':
+            if pnr[0] == "pnr_attr":
                 # Pay attention only to the children of attr elements
                 kids = pnr[2]
                 for child in kids:
-                    if child[0] in ('pnr_attr_name','word_node','word_zones'):
+                    if child[0] in ("pnr_attr_name", "word_node", "word_zones"):
                         key = child[1]
                         # If this is a NAME attribute, we need to start a new PNR.
-                        if key in ('node','NODE'):
+                        if key in ("node", "NODE"):
                             if currentPNR:
                                 rows.append(currentPNR)
-                            currentPNR = PNRLink() # Create new dictionary for this PNR
+                            currentPNR = PNRLink()  # Create new dictionary for this PNR
 
-                    if child[0]=='nodepair' or child[0]=='nodenum':
-                        #print "child[0]/[1]",child[0],child[1]
+                    if child[0] == "nodepair" or child[0] == "nodenum":
+                        # print "child[0]/[1]",child[0],child[1]
                         currentPNR.id = child[1]
                         currentPNR.parseID()
 
-                    if child[0] in ('attr_value','numseq'):
+                    if child[0] in ("attr_value", "numseq"):
                         currentPNR[key.upper()] = child[1]
 
-                    if child[0]=='semicolon_comment':
-                        currentPNR.comment = ' '+child[1].strip()
+                    if child[0] == "semicolon_comment":
+                        currentPNR.comment = " " + child[1].strip()
 
                 continue
 
@@ -571,7 +601,8 @@ class TransitParser(Parser):
             WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (pnr[0], pnr[1]))
 
         # Save last link too
-        if currentPNR: rows.append(currentPNR)
+        if currentPNR:
+            rows.append(currentPNR)
         return rows
 
     def convertZACData(self):
@@ -588,9 +619,9 @@ class TransitParser(Parser):
             # Add comments as simple strings
 
             # Textline Comments
-            if zac[0] in ('smcw','semicolon_comment'):
+            if zac[0] in ("smcw", "semicolon_comment"):
                 if currentZAC:
-                    currentZAC.comment = ' '+zac[1].strip()
+                    currentZAC.comment = " " + zac[1].strip()
                     rows.append(currentZAC)
                     currentZAC = None
                 else:
@@ -599,21 +630,22 @@ class TransitParser(Parser):
                 continue
 
             # Link records
-            if zac[0] == 'zac_attr':
+            if zac[0] == "zac_attr":
                 # Pay attention only to the children of lin_attr elements
                 kids = zac[2]
                 for child in kids:
-                    if child[0]=='nodepair':
+                    if child[0] == "nodepair":
                         # Save old ZAC
-                        if currentZAC: rows.append(currentZAC)
+                        if currentZAC:
+                            rows.append(currentZAC)
                         # Start new ZAC
-                        currentZAC = ZACLink() # Create new dictionary for this ZAC.
-                        currentZAC.id=child[1]
+                        currentZAC = ZACLink()  # Create new dictionary for this ZAC.
+                        currentZAC.id = child[1]
 
-                    if child[0] =='zac_attr_name':
+                    if child[0] == "zac_attr_name":
                         key = child[1]
 
-                    if child[0]=='attr_value':
+                    if child[0] == "attr_value":
                         currentZAC[key] = child[1]
 
                 continue
@@ -622,7 +654,8 @@ class TransitParser(Parser):
             WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (zac[0], zac[1]))
 
         # Save last link too
-        if currentZAC: rows.append(currentZAC)
+        if currentZAC:
+            rows.append(currentZAC)
         return rows
 
     def convertLinkiData(self, linktype):
@@ -635,36 +668,38 @@ class TransitParser(Parser):
         value = None
 
         linkis = []
-        if linktype=="access":
-            linkis=self.tfp.accesslis
-        elif linktype=="xfer":
-            linkis=self.tfp.xferlis
-        elif linktype=="node":
-            linkis=self.tfp.nodes
+        if linktype == "access":
+            linkis = self.tfp.accesslis
+        elif linktype == "xfer":
+            linkis = self.tfp.xferlis
+        elif linktype == "node":
+            linkis = self.tfp.nodes
         else:
             raise NetworkException("ConvertLinkiData with invalid linktype")
 
         for accessli in linkis:
             # whitespace?, smcw?, nodenumA, spaces?, nodenumB, spaces?, (float/int)?, spaces?, semicolon_comment?
-            if accessli[0]=='smcw':
+            if accessli[0] == "smcw":
                 rows.append(accessli[1].strip())
-            elif accessli[0]=='nodenumA':
+            elif accessli[0] == "nodenumA":
                 currentLinki = Linki()
                 rows.append(currentLinki)
                 currentLinki.A = accessli[1].strip()
-            elif accessli[0]=='nodenumB':
+            elif accessli[0] == "nodenumB":
                 currentLinki.B = accessli[1].strip()
-            elif accessli[0]=='float':
+            elif accessli[0] == "float":
                 currentLinki.distance = accessli[1].strip()
-            elif accessli[0]=='int':
+            elif accessli[0] == "int":
                 currentLinki.xferTime = accessli[1].strip()
-            elif accessli[0]=='semicolon_comment':
+            elif accessli[0] == "semicolon_comment":
                 currentLinki.comment = accessli[1].strip()
-            elif accessli[0]=='accesstag':
+            elif accessli[0] == "accesstag":
                 currentLinki.accessType = accessli[1].strip()
             else:
                 # Got something unexpected:
-                WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (accessli[0], accessli[1]))
+                WranglerLogger.critical(
+                    "** SHOULD NOT BE HERE: %s (%s)" % (accessli[0], accessli[1])
+                )
 
         return rows
 
@@ -680,28 +715,35 @@ class TransitParser(Parser):
         for supplink in self.tfp.supplinks:
 
             # Supplink records are lists
-            if currentSupplink: rows.append(currentSupplink)
-            currentSupplink = Supplink() # Create new dictionary for this PNR
+            if currentSupplink:
+                rows.append(currentSupplink)
+            currentSupplink = Supplink()  # Create new dictionary for this PNR
 
             for supplink_attr in supplink:
-                if supplink_attr[0] == 'supplink_attr':
-                    if supplink_attr[2][0][0]=='supplink_attr_name':
+                if supplink_attr[0] == "supplink_attr":
+                    if supplink_attr[2][0][0] == "supplink_attr_name":
                         currentSupplink[supplink_attr[2][0][1]] = supplink_attr[2][1][1]
-                    elif supplink_attr[2][0][0]=='npair_attr_name':
+                    elif supplink_attr[2][0][0] == "npair_attr_name":
                         currentSupplink.setId(supplink_attr[2][1][1])
                     else:
-                        WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (supplink[0], supplink[1]))
+                        WranglerLogger.critical(
+                            "** SHOULD NOT BE HERE: %s (%s)"
+                            % (supplink[0], supplink[1])
+                        )
                         raise
                 elif supplink_attr[0] == "semicolon_comment":
                     currentSupplink.comment = supplink_attr[1].strip()
-                elif supplink_attr[0] == 'smcw':
+                elif supplink_attr[0] == "smcw":
                     currentSupplink.comment = supplink_attr[1].strip()
                 else:
-                    WranglerLogger.critical("** SHOULD NOT BE HERE: %s (%s)" % (supplink[0], supplink[1]))
+                    WranglerLogger.critical(
+                        "** SHOULD NOT BE HERE: %s (%s)" % (supplink[0], supplink[1])
+                    )
                     raise
 
         # Save last link too
-        if currentSupplink: rows.append(currentSupplink)
+        if currentSupplink:
+            rows.append(currentSupplink)
         return rows
 
     def convertFaresystemData(self):
@@ -714,30 +756,32 @@ class TransitParser(Parser):
         for faresystem in self.tfp.faresystems:
 
             # faresystem records are lists
-            if currentFaresystem: rows[currentFaresystem.getId()] = currentFaresystem
+            if currentFaresystem:
+                rows[currentFaresystem.getId()] = currentFaresystem
             currentFaresystem = Faresystem()
 
             for fs_attr in faresystem:
-                if fs_attr[0] == 'faresystem_attr':
-                    if fs_attr[2][0][0]=='faresystem_attr_name':
+                if fs_attr[0] == "faresystem_attr":
+                    if fs_attr[2][0][0] == "faresystem_attr_name":
                         currentFaresystem[fs_attr[2][0][1]] = fs_attr[2][1][1]
 
                     # for now, save this as FAREFROMFS => "0,0,1.0,0," etc
-                    elif fs_attr[2][0][0]=='faresystem_fff':
+                    elif fs_attr[2][0][0] == "faresystem_fff":
                         # fs_attr[2] = [('faresystem_fff', 'FAREFROMFS', []),
                         #               ('floatseq', '0,0,0,0,..,0,0', [('floatnum', '0', []), ('floatnum', '0', []), ..
                         currentFaresystem[fs_attr[2][0][1]] = fs_attr[2][1][1]
 
                 elif fs_attr[0] == "semicolon_comment":
                     currentFaresystem.comment = fs_attr[1].strip()
-                elif fs_attr[0] == 'smcw':
+                elif fs_attr[0] == "smcw":
                     currentFaresystem.comment = fs_attr[1].strip()
                 else:
                     WranglerLogger.critical("** SHOULD NOT BE HERE: %s".format(fs_attr))
                     raise
 
         # save last faresystem too
-        if currentFaresystem: rows[currentFaresystem.getId()] = currentFaresystem
+        if currentFaresystem:
+            rows[currentFaresystem.getId()] = currentFaresystem
         return rows
 
     def convertPTSystemData(self):
@@ -751,10 +795,12 @@ class TransitParser(Parser):
             curve_dict = collections.OrderedDict()
             for attr in crvdef:
                 # just handle curve attributes
-                if attr[0] !="crv_attr": continue
+                if attr[0] != "crv_attr":
+                    continue
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": curve_num = int(val)
+                if key == "NUMBER":
+                    curve_num = int(val)
                 curve_dict[key] = val
             pts.waitCurveDefs[curve_num] = curve_dict
 
@@ -763,52 +809,66 @@ class TransitParser(Parser):
             curve_dict = collections.OrderedDict()
             for attr in crvdef:
                 # just handle curve attributes
-                if attr[0] !="crv_attr": continue
+                if attr[0] != "crv_attr":
+                    continue
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": curve_num = int(val)
+                if key == "NUMBER":
+                    curve_num = int(val)
                 curve_dict[key] = val
             pts.crowdCurveDefs[curve_num] = curve_dict
 
         for operator in self.tfp.operators:
-            op_num  = None
+            op_num = None
             op_dict = collections.OrderedDict()
             for attr in operator:
                 # just handle opmode attributes
-                if attr[0] !="opmode_attr": continue
+                if attr[0] != "opmode_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": op_num = int(val)
-                op_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    op_num = int(val)
+                op_dict[key] = val  # leave as string
             pts.operators[op_num] = op_dict
 
         for mode in self.tfp.modes:
-            mode_num  = None
+            mode_num = None
             mode_dict = collections.OrderedDict()
             for attr in mode:
                 # just handle opmode attributes
-                if attr[0] !="opmode_attr": continue
+                if attr[0] != "opmode_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": mode_num = int(val)
-                mode_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    mode_num = int(val)
+                mode_dict[key] = val  # leave as string
             pts.modes[mode_num] = mode_dict
 
         for vehicletype in self.tfp.vehicletypes:
-            vt_num  = None
+            vt_num = None
             vt_dict = collections.OrderedDict()
             for attr in vehicletype:
                 # just handle vehtype attributes
-                if attr[0] != "vehtype_attr": continue
+                if attr[0] != "vehtype_attr":
+                    continue
 
                 key = attr[2][0][1]
                 val = attr[2][1][1]
-                if key == "NUMBER": vt_num = int(val)
-                vt_dict[key] = val # leave as string
+                if key == "NUMBER":
+                    vt_num = int(val)
+                vt_dict[key] = val  # leave as string
             pts.vehicleTypes[vt_num] = vt_dict
 
-        if len(pts.waitCurveDefs) > 0 or len(pts.crowdCurveDefs) > 0 or len(pts.operators) > 0 or len(pts.modes) > 0 or len(pts.vehicleTypes) > 0:
+        if (
+            len(pts.waitCurveDefs) > 0
+            or len(pts.crowdCurveDefs) > 0
+            or len(pts.operators) > 0
+            or len(pts.modes) > 0
+            or len(pts.vehicleTypes) > 0
+        ):
             return pts
         return None

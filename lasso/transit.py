@@ -6,12 +6,13 @@ import pandas as pd
 import numpy as np
 import partridge as ptg
 
+
 class CubeTransit(object):
     def __init__(
         self,
         cube_transit_network: Optional[TransitNetworkLasso] = None,
-        gtfs_feed: Optional[str] = None
-        ):
+        gtfs_feed: Optional[str] = None,
+    ):
         """
         """
         ## TODO Sijia
@@ -20,31 +21,28 @@ class CubeTransit(object):
 
         self.gtfs_feed = ptg.load_feed(gtfs_feed)
 
-        self.lines = [';;<<PT>><<LINE>>;;']
+        self.lines = [";;<<PT>><<LINE>>;;"]
 
         pass
 
     @staticmethod
     def create_cubetransit(
-        cube_transit_dir: Optional[str] = None,
-        gtfs_feed_dir: Optional[str] = None
-        ):
+        cube_transit_dir: Optional[str] = None, gtfs_feed_dir: Optional[str] = None
+    ):
 
         cube_transit_network = CubeTransit.read_cube_line_file(cube_transit_dir)
-        #feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
+        # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
 
         cubetransit = CubeTransit(
-            cube_transit_network = cube_transit_network,
-            #gtfs_feed = feed
-            gtfs_feed = gtfs_feed_dir
-            )
+            cube_transit_network=cube_transit_network,
+            # gtfs_feed = feed
+            gtfs_feed=gtfs_feed_dir,
+        )
 
         return cubetransit
 
     @staticmethod
-    def read_cube_line_file(
-        dirname: str
-        ):
+    def read_cube_line_file(dirname: str):
         """
         reads a .lin file and stores as TransitNetwork object
 
@@ -62,9 +60,7 @@ class CubeTransit(object):
 
         return tn
 
-    def evaluate_differences(
-        self,
-        base_transit):
+    def evaluate_differences(self, base_transit):
         """
 
         Parameters
@@ -77,17 +73,17 @@ class CubeTransit(object):
         ## TODO Sijia
         # loop thru every record in new .lin
         transit_change_list = []
-        '''
+        """
         should be like this eventually
         time_enum = {"pk": {"start_time" : "06:00:00",
                             "end_time" : "09:00:00"},
                      "op" : {"start_time" : "09:00:00",
                             "end_time" : "15:00:00"}}
-        '''
-        time_enum = {"pk":
-                    list(['06:00:00', '09:00:00']),
-                     "op" :
-                     list(['09:00:00', '15:00:00'])}
+        """
+        time_enum = {
+            "pk": list(["06:00:00", "09:00:00"]),
+            "op": list(["09:00:00", "15:00:00"]),
+        }
 
         for line in self.cube_transit_network.lines[1:]:
             _name = line.name
@@ -99,30 +95,31 @@ class CubeTransit(object):
                             time = ["06:00:00", "09:00:00"]
                         else:
                             time = ["09:00:00", "15:00:00"]
-                        card_dict = {"category" : "Transit Service Property Change",
-                                    "facility" : {"route_id" : _name.split("_")[1],
-                                                  "direction_id" : int(_name[-1]),
-                                                  "time" : time
-                                                  #"start_time" : time_enum[_name[-3:-1]]["start_time"],
-                                                  #"end_time" : time_enum[_name[-3:-1]]["end_time"]
-                                                  },
-                                    "properties" : properties_list}
+                        card_dict = {
+                            "category": "Transit Service Property Change",
+                            "facility": {
+                                "route_id": _name.split("_")[1],
+                                "direction_id": int(_name[-1]),
+                                "time": time
+                                # "start_time" : time_enum[_name[-3:-1]]["start_time"],
+                                # "end_time" : time_enum[_name[-3:-1]]["end_time"]
+                            },
+                            "properties": properties_list,
+                        }
                         transit_change_list.append(card_dict)
                 else:
                     continue
         print(transit_change_list)
         return transit_change_list
 
-    def evaluate_route_level(
-        line_build,
-        line_base
-        ):
+    def evaluate_route_level(line_build, line_base):
         properties_list = []
         if line_build.getFreq() != line_base.getFreq():
             _headway_diff = line_build.getFreq() - line_base.getFreq()
-            properties_list.append({"property" : "headway_secs",
-                                    "change" : _headway_diff*60})
-        #if tn_build.
+            properties_list.append(
+                {"property": "headway_secs", "change": _headway_diff * 60}
+            )
+        # if tn_build.
         return properties_list
 
     @staticmethod
@@ -130,47 +127,77 @@ class CubeTransit(object):
         """
         prepare gtfs for cube lin file
         """
-        mode_dict = {0:8, 2:9}
-        bus_mode_dict = {'Urb Loc':5, 'Sub Loc':6, 'Express':7}
-        metro_operator_dict = {'0':3, '1':3, '2':3, '3':4, '4':2, '5':5, '6':8, '7':1, '8':1, '9':10, '10':3,
-                           '11':9, '12':3, '13':4, '14':4, '15':3}
-        #mvta_operator_dict = {'1':4, '2':3, '3':3}
+        mode_dict = {0: 8, 2: 9}
+        bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
+        metro_operator_dict = {
+            "0": 3,
+            "1": 3,
+            "2": 3,
+            "3": 4,
+            "4": 2,
+            "5": 5,
+            "6": 8,
+            "7": 1,
+            "8": 1,
+            "9": 10,
+            "10": 3,
+            "11": 9,
+            "12": 3,
+            "13": 4,
+            "14": 4,
+            "15": 3,
+        }
+        # mvta_operator_dict = {'1':4, '2':3, '3':3}
 
-        bus_routetype_gdf = gpd.read_file("Z:/Data/Users/Sijia/Met_Council/GIS/shp_trans_transit_routes/TransitRoutes.shp")
+        bus_routetype_gdf = gpd.read_file(
+            "Z:/Data/Users/Sijia/Met_Council/GIS/shp_trans_transit_routes/TransitRoutes.shp"
+        )
         routetype_df = bus_routetype_gdf.copy()
 
         shape_df = self.gtfs_feed.shapes.copy()
         trip_df = self.gtfs_feed.trips.copy()
 
-        trip_df = pd.merge(trip_df, self.gtfs_feed.routes, how = 'left', on = 'route_id')
-        trip_df = pd.merge(trip_df, self.gtfs_feed.frequencies, how = 'left', on = 'trip_id')
-        trip_df = pd.merge(trip_df, routetype_df[['route', 'routetype']],
-                            how = 'left',
-                            left_on = 'route_short_name',
-                            right_on = 'route')
+        trip_df = pd.merge(trip_df, self.gtfs_feed.routes, how="left", on="route_id")
+        trip_df = pd.merge(
+            trip_df, self.gtfs_feed.frequencies, how="left", on="trip_id"
+        )
+        trip_df = pd.merge(
+            trip_df,
+            routetype_df[["route", "routetype"]],
+            how="left",
+            left_on="route_short_name",
+            right_on="route",
+        )
 
-        trip_df['tod'] = np.where(trip_df.start_time == '06:00:00',
-                                    'pk',
-                                    'op')
+        trip_df["tod"] = np.where(trip_df.start_time == "06:00:00", "pk", "op")
 
-        trip_df['NAME'] = trip_df.apply(lambda x: x.agency_id + '_' + x.route_id + '_' + x.route_short_name + \
-                                    '_' + x.tod + str(x.direction_id),
-                                    axis = 1)
+        trip_df["NAME"] = trip_df.apply(
+            lambda x: x.agency_id
+            + "_"
+            + x.route_id
+            + "_"
+            + x.route_short_name
+            + "_"
+            + x.tod
+            + str(x.direction_id),
+            axis=1,
+        )
 
-        trip_df['LONGNAME'] = trip_df['route_long_name']
-        trip_df['HEADWAY'] = (trip_df['headway_secs']/60).astype(int)
-        trip_df['MODE'] = np.where(trip_df.route_type == 3,
-                               trip_df['routetype'].map(bus_mode_dict),
-                               trip_df['route_type'].map(mode_dict))
-        trip_df['MODE'].fillna(5, inplace = True)
-        trip_df['MODE'] = trip_df['MODE'].astype(int)
+        trip_df["LONGNAME"] = trip_df["route_long_name"]
+        trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
+        trip_df["MODE"] = np.where(
+            trip_df.route_type == 3,
+            trip_df["routetype"].map(bus_mode_dict),
+            trip_df["route_type"].map(mode_dict),
+        )
+        trip_df["MODE"].fillna(5, inplace=True)
+        trip_df["MODE"] = trip_df["MODE"].astype(int)
 
-        trip_df['ONEWAY'] = 'T'
+        trip_df["ONEWAY"] = "T"
 
-        trip_df['OPERATOR'] = trip_df['agency_id'].map(metro_operator_dict)
+        trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
 
         return trip_df
-
 
     def cube_format(self, x):
         """
@@ -183,42 +210,40 @@ class CubeTransit(object):
 
         trip_node_df = trip_node_df[trip_node_df.shape_id == x.shape_id]
 
-        trip_stop_times_df = pd.merge(trip_stop_times_df,
-                                      self.gtfs_feed.stops,
-                                      how = "left",
-                                      on = "stop_id")
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df, self.gtfs_feed.stops, how="left", on="stop_id"
+        )
 
-        #stop_id_list = trip_stop_times_df['stop_id'].tolist()
-        stop_node_id_list =  trip_stop_times_df['model_node_id'].tolist()
+        # stop_id_list = trip_stop_times_df['stop_id'].tolist()
+        stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
 
-        trip_node_list = trip_node_df['shape_model_node_id'].tolist()
+        trip_node_list = trip_node_df["shape_model_node_id"].tolist()
 
-        s = '\nLINE NAME=\"%s\",' % (x.NAME,)
+        s = '\nLINE NAME="%s",' % (x.NAME,)
 
-        #line attribtes
-        s += '\n LONGNAME=\"%s",' % (x.LONGNAME,)
-        if x.tod == 'pk':
-            s += '\n HEADWAY=%s,' % (x.HEADWAY,)
+        # line attribtes
+        s += '\n LONGNAME="%s",' % (x.LONGNAME,)
+        if x.tod == "pk":
+            s += "\n HEADWAY=%s," % (x.HEADWAY,)
         else:
-            s += '\n HEADWAY[2]=%s,' % (x.HEADWAY,)
-        s += '\n MODE=%s,' % (x.MODE,)
-        s += '\n ONEWAY=%s,' % (x.ONEWAY,)
-        s += '\n OPERATOR=%s,' % (x.OPERATOR,)
-        s += '\nNODES='
+            s += "\n HEADWAY[2]=%s," % (x.HEADWAY,)
+        s += "\n MODE=%s," % (x.MODE,)
+        s += "\n ONEWAY=%s," % (x.ONEWAY,)
+        s += "\n OPERATOR=%s," % (x.OPERATOR,)
+        s += "\nNODES="
 
-        #node list
+        # node list
         for nodeIdx in range(len(trip_node_list)):
             if trip_node_list[nodeIdx] in stop_node_id_list:
-                s += '\n %s' % (trip_node_list[nodeIdx])
-                if nodeIdx < (len(trip_node_list)-1):
-                    s += ','
+                s += "\n %s" % (trip_node_list[nodeIdx])
+                if nodeIdx < (len(trip_node_list) - 1):
+                    s += ","
             else:
-                s += '\n -%s' % (trip_node_list[nodeIdx])
-                if nodeIdx < (len(trip_node_list)-1):
-                    s += ','
+                s += "\n -%s" % (trip_node_list[nodeIdx])
+                if nodeIdx < (len(trip_node_list) - 1):
+                    s += ","
 
         self.lines.append(s)
-
 
     def write_cube_transit(self, outpath):
         """
@@ -226,8 +251,7 @@ class CubeTransit(object):
         """
         trip_cube_df = CubeTransit.gtfs_to_cube(self)
 
-        trip_cube_df.apply(lambda x: CubeTransit.cube_format(self, x),
-                           axis = 1)
+        trip_cube_df.apply(lambda x: CubeTransit.cube_format(self, x), axis=1)
 
-        with open(outpath, 'w') as f:
+        with open(outpath, "w") as f:
             f.write("\n".join(map(str, self.lines)))

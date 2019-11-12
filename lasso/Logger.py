@@ -1,6 +1,6 @@
 import logging
 
-__all__ = ['WranglerLogger','setupLogging']
+__all__ = ["WranglerLogger", "setupLogging"]
 
 
 # for all the Wrangler logging needs!
@@ -22,19 +22,25 @@ def setupLogging(infoLogFilename, debugLogFilename, logToConsole=True):
     WranglerLogger.setLevel(logging.DEBUG)
 
     if infoLogFilename:
-        infologhandler = logging.StreamHandler(open(infoLogFilename, 'w'))
+        infologhandler = logging.StreamHandler(open(infoLogFilename, "w"))
         infologhandler.setLevel(logging.INFO)
-        infologhandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        infologhandler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
         WranglerLogger.addHandler(infologhandler)
 
     if debugLogFilename:
-        debugloghandler = logging.StreamHandler(open(debugLogFilename,'w'))
+        debugloghandler = logging.StreamHandler(open(debugLogFilename, "w"))
         debugloghandler.setLevel(logging.DEBUG)
-        debugloghandler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s', '%Y-%m-%d %H:%M'))
+        debugloghandler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%Y-%m-%d %H:%M")
+        )
         WranglerLogger.addHandler(debugloghandler)
 
     if logToConsole:
         consolehandler = logging.StreamHandler()
         consolehandler.setLevel(logging.DEBUG)
-        consolehandler.setFormatter(logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s'))
+        consolehandler.setFormatter(
+            logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
+        )
         WranglerLogger.addHandler(consolehandler)

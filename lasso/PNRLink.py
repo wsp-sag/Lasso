@@ -1,7 +1,8 @@
 import re
 from .Regexes import nodepair_pattern
 
-__all__ = ['PNRLink']
+__all__ = ["PNRLink"]
+
 
 class PNRLink(dict):
     """ PNR Support Link.
@@ -9,21 +10,22 @@ class PNRLink(dict):
        'comment' is any end-of-line comment for this link including the leading semicolon
         All other attributes are stored in a dictionary (e.g. thislink['MODE']='1,2')
     """
+
     UNNUMBERED = "unnumbered"
-    
+
     def __init__(self):
         dict.__init__(self)
-        self.id=''
-        self.comment=''
+        self.id = ""
+        self.comment = ""
 
-        self.pnr=''
-        self.station=''
+        self.pnr = ""
+        self.station = ""
 
     def __repr__(self):
         s = "PNR NODE=%s " % (self.id,)
 
         # Deal w/all link attributes
-        fields = ['%s=%s' % (k,v) for k,v in self.items()]
+        fields = ["%s=%s" % (k, v) for k, v in self.items()]
 
         s += " ".join(fields)
         s += self.comment
@@ -41,9 +43,9 @@ class PNRLink(dict):
         """
         if self.id:
             m = re.match(nodepair_pattern, self.id)
-            
+
             # it's either just the station
-            if m == None: # it's a nodenum
+            if m == None:  # it's a nodenum
                 self.station = self.id
                 self.pnr = self.UNNUMBERED
             # or it's pnr,station
@@ -53,4 +55,3 @@ class PNRLink(dict):
 
         else:
             pass
-        

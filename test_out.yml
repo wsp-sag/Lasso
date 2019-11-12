@@ -1,0 +1,101 @@
+changes:
+- category: Roadway Deletion
+  facility:
+    A:
+    - N: 3261
+    B:
+    - N: 131209
+    link:
+    - LINK_ID: 281
+- category: New Roadway
+  facility:
+    A:
+      N:
+      - 3230
+      - 3262
+    B:
+      N:
+      - 3262
+      - 3230
+    link:
+      LINK_ID:
+      - 999998
+      - 999997
+  properties:
+  - property: COUNTY
+    set: 5
+  - property: T_PRIORITY
+    set: 0
+  - property: AREA
+    set: 4
+  - property: HOV
+    set: 0
+  - property: AADT
+    set: 0
+  - property: AM_CNT
+    set: 0
+  - property: MD_CNT
+    set: 0
+  - property: PM_CNT
+    set: 0
+  - property: NT_CNT
+    set: 0
+  - property: DY_CNT
+    set: 0
+  - property: ASGNGRP
+    set: 5
+  - property: LANES
+    set: 1
+  - property: CENTROID
+    set: 0
+  - property: RC_NUM
+    set: 40
+  - property: BIKE
+    set: 3
+  - property: DISTANCE
+    set: 0.10462
+  - property: T_MANTIME
+    set: 0.0
+- category: Roadway Attribute Change
+  facility:
+    A:
+      N:
+      - 3261
+      - 3261
+    B:
+      N:
+      - 3262
+      - 68075
+    link:
+      LINK_ID:
+      - 280
+      - 282
+  properties:
+  - property: ASGNGRP
+    set: 5
+  - property: RC_NUM
+    set: 40
+  - property: BIKE
+    set: 3
+  - property: DISTANCE
+    set: 10.0
+- category: Roadway Attribute Change
+  facility:
+    A:
+      N:
+      - 3230
+    B:
+      N:
+      - 52771
+    link:
+      LINK_ID:
+      - 224
+  properties:
+  - property: ASGNGRP
+    set: 5
+  - property: RC_NUM
+    set: 40
+  - property: DISTANCE
+    set: 0.10462
+project: TO DO User Define
+valid: false

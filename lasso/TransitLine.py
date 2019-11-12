@@ -4,7 +4,8 @@ from .NetworkException import NetworkException
 from .Node import Node
 from .Logger import WranglerLogger
 
-__all__ = ['TransitLine']
+__all__ = ["TransitLine"]
+
 
 class TransitLine(object):
     """
@@ -17,92 +18,92 @@ class TransitLine(object):
     """
 
     HOURS_PER_TIMEPERIOD = {
-        Network.MODEL_TYPE_CHAMP:{
-            "AM":3.0, #what about 4-6a?
-            "MD":6.5,
-            "PM":3.0,
-            "EV":8.5,
-            "EA":3.0
+        Network.MODEL_TYPE_CHAMP: {
+            "AM": 3.0,  # what about 4-6a?
+            "MD": 6.5,
+            "PM": 3.0,
+            "EV": 8.5,
+            "EA": 3.0,
         },
-        Network.MODEL_TYPE_TM1:{
-        # https://github.com/BayAreaMetro/modeling-website/wiki/TimePeriods
-            "EA":3.0,
-            "AM":4.0,
-            "MD":5.0,
-            "PM":4.0,
-            "EV":8.0
-        }
+        Network.MODEL_TYPE_TM1: {
+            # https://github.com/BayAreaMetro/modeling-website/wiki/TimePeriods
+            "EA": 3.0,
+            "AM": 4.0,
+            "MD": 5.0,
+            "PM": 4.0,
+            "EV": 8.0,
+        },
     }
     MODETYPE_TO_MODES = {
-        Network.MODEL_TYPE_CHAMP:{
-            "Local"  :[5,6],#[11,12,16,17,18,19],
-            #"BRT"    :[13,20],
-            #"LRT"    :[14,15,21],
-            #"Premium":[22,23,24,25,26,27,28,29,30],
-            #"Ferry"  :[31],
-            #"BART"   :[32]
-            "Express" : [7],
-            "LRT" : [8],
-            "CR" : [9]
+        Network.MODEL_TYPE_CHAMP: {
+            "Local": [5, 6],  # [11,12,16,17,18,19],
+            # "BRT"    :[13,20],
+            # "LRT"    :[14,15,21],
+            # "Premium":[22,23,24,25,26,27,28,29,30],
+            # "Ferry"  :[31],
+            # "BART"   :[32]
+            "Express": [7],
+            "LRT": [8],
+            "CR": [9],
         },
-        Network.MODEL_TYPE_TM1:{
-            "Local"        :range( 10, 80),
-            "Express Bus"  :range( 80,100),
-            "Ferry"        :range(100,110),
-            "Light Rail"   :range(110,120),
-            "Heavy Rail"   :range(120,130),
-            "Commuter Rail":range(130,140)
-        }
+        Network.MODEL_TYPE_TM1: {
+            "Local": range(10, 80),
+            "Express Bus": range(80, 100),
+            "Ferry": range(100, 110),
+            "Light Rail": range(110, 120),
+            "Heavy Rail": range(120, 130),
+            "Commuter Rail": range(130, 140),
+        },
     }
 
     # Do these modes have offstreet stops?
     MODENUM_TO_OFFSTREET = {
-        Network.MODEL_TYPE_CHAMP:{
-            11:False, # muni bus
-            12:False, # muni Express bus
-            13:False, # muni BRT
-            14:False, # muni cable car -- These are special because they don't have explicit WNR nodes
-            15:False, # muni LRT       -- and are just implemented by reading the muni.xfer line as muni.access
-            16:False, # Shuttles
-            17:False, # SamTrans bus
-            18:False, # AC bus
-            19:False, # other local bus
-            20:False, # Regional BRT
-            21:True,  # Santa Clara LRT
-            22:False, # AC premium bus
-            23:False, # GG premium bus
-            24:False, # SamTrans premium bus
-            25:False, # Other premium bus
-            26:True,  # Caltrain
-            27:True,  # SMART
-            28:True,  # eBART
-            29:True,  # Regional Rail/ACE/Amtrak
-            30:True,  # HSR
-            31:True,  # Ferry
-            32:True   # BART
+        Network.MODEL_TYPE_CHAMP: {
+            11: False,  # muni bus
+            12: False,  # muni Express bus
+            13: False,  # muni BRT
+            14: False,  # muni cable car -- These are special because they don't have explicit WNR nodes
+            15: False,  # muni LRT       -- and are just implemented by reading the muni.xfer line as muni.access
+            16: False,  # Shuttles
+            17: False,  # SamTrans bus
+            18: False,  # AC bus
+            19: False,  # other local bus
+            20: False,  # Regional BRT
+            21: True,  # Santa Clara LRT
+            22: False,  # AC premium bus
+            23: False,  # GG premium bus
+            24: False,  # SamTrans premium bus
+            25: False,  # Other premium bus
+            26: True,  # Caltrain
+            27: True,  # SMART
+            28: True,  # eBART
+            29: True,  # Regional Rail/ACE/Amtrak
+            30: True,  # HSR
+            31: True,  # Ferry
+            32: True,  # BART
         },
-        Network.MODEL_TYPE_TM1:{
-        # https://github.com/BayAreaMetro/modeling-website/wiki/TransitModes
-            20 :False, # Muni Cable Car
-            100:True, # East Bay Ferry
-            101:True, # Golden Gate Ferry
-            102:True, # Golden Gate Ferry
-            103:True, # Tiburon Ferry
-            104:True, # Vallejo Baylink Ferry
-            105:True, # South City Ferry
-            110:False, # Muni Metro
-            111:True, # Santa Clara VTA LRT
-            120:True, # BART
-            121:True, # Oakland Airport Connector
-            130:True, # Caltrain
-            131:True, # Amtrak Capitol Corridor
-            132:True, # Amtrak San Joaquin
-            133:True, # ACE
-            134:True, # Dumbarton Rail
-            135:True, # SMART
-            136:True, # EBART
-            137:True  # High speed rail
-        }
+        Network.MODEL_TYPE_TM1: {
+            # https://github.com/BayAreaMetro/modeling-website/wiki/TransitModes
+            20: False,  # Muni Cable Car
+            100: True,  # East Bay Ferry
+            101: True,  # Golden Gate Ferry
+            102: True,  # Golden Gate Ferry
+            103: True,  # Tiburon Ferry
+            104: True,  # Vallejo Baylink Ferry
+            105: True,  # South City Ferry
+            110: False,  # Muni Metro
+            111: True,  # Santa Clara VTA LRT
+            120: True,  # BART
+            121: True,  # Oakland Airport Connector
+            130: True,  # Caltrain
+            131: True,  # Amtrak Capitol Corridor
+            132: True,  # Amtrak San Joaquin
+            133: True,  # ACE
+            134: True,  # Dumbarton Rail
+            135: True,  # SMART
+            136: True,  # EBART
+            137: True,  # High speed rail
+        },
     }
 
     def __init__(self, name=None, template=None):
@@ -111,7 +112,7 @@ class TransitLine(object):
         self.comment = None
 
         self.name = name
-        if name and name.find('"')==0:
+        if name and name.find('"') == 0:
             self.name = name[1:-1]  # Strip leading/trailing dbl-quotes
 
         if template:
@@ -136,13 +137,13 @@ class TransitLine(object):
             raise StopIteration
 
         self.currentStopIdx += 1
-        return int(self.n[self.currentStopIdx-1].num)
+        return int(self.n[self.currentStopIdx - 1].num)
 
     # python 2 backwards compat
     next = __next__
 
     def setFreqs(self, freqs, timepers=None, allowDowngrades=True):
-        '''Set some or all five headways (AM,MD,PM,EV,EA)
+        """Set some or all five headways (AM,MD,PM,EV,EA)
            - freqs is a list of numbers (or can be one number if only setting one headway)
              also accepts list of strings of numbers e.g. ["8","0","8","0","0"]
            - If setting fewer than 5 headways, timepers must specify the time period(s)
@@ -150,59 +151,78 @@ class TransitLine(object):
              If setting all headways, True or 'All' may be passed.
            - allowDowngrades (optional, pass either True or False) specifies whether headways
              may be increased (i.e., whether service may be reduced) with the current action.
-        '''
-        all_timepers = ['AM','MD','PM','EV','EA']
-        if timepers in (None, True, 'All', 'all', 'ALL'):
-            if not len(freqs)==5: raise NetworkException('Must specify all 5 frequencies or specify time periods to set')
+        """
+        all_timepers = ["AM", "MD", "PM", "EV", "EA"]
+        if timepers in (None, True, "All", "all", "ALL"):
+            if not len(freqs) == 5:
+                raise NetworkException(
+                    "Must specify all 5 frequencies or specify time periods to set"
+                )
             num_freqs = 5
             num_timepers = 5
             timepers = all_timepers[:]
         else:
             try:
                 num_freqs = len(freqs)
-            except TypeError:   # only single number, not list, passed
+            except TypeError:  # only single number, not list, passed
                 num_freqs = 1
                 freqs = [freqs]
             try:
                 num_timepers = len(timepers)
-            except TypeError:   # only single time period, not list, passed
+            except TypeError:  # only single time period, not list, passed
                 num_timepers = 1
                 timepers = [timepers]
-            if num_freqs != num_timepers: raise NetworkException('Specified ' + num_freqs + ' frequencies for ' + num_timepers + ' time periods')
+            if num_freqs != num_timepers:
+                raise NetworkException(
+                    "Specified "
+                    + num_freqs
+                    + " frequencies for "
+                    + num_timepers
+                    + " time periods"
+                )
         for i in range(num_timepers):
             timeper = timepers[i]
             try:
-                timeper_int = int(timeper)  # time period may be number (1) or string ("1")
+                timeper_int = int(
+                    timeper
+                )  # time period may be number (1) or string ("1")
                 timepers[i] = all_timepers[timeper_int - 1]
                 timeper_idx = timeper_int
             except ValueError:  # time period may be descriptive ("AM")
                 timeper = timeper.upper()
-                if timeper not in all_timepers: raise NetworkException('"' + timeper + '" is not a valid time period')
+                if timeper not in all_timepers:
+                    raise NetworkException(
+                        '"' + timeper + '" is not a valid time period'
+                    )
                 timeper_idx = 1 + all_timepers.index(timeper)
-            attr_set = 'FREQ[' + str(timeper_idx) + ']'
-            if(allowDowngrades):
+            attr_set = "FREQ[" + str(timeper_idx) + "]"
+            if allowDowngrades:
                 self.attr[attr_set] = float(freqs[i])
             else:
-                self.attr[attr_set] = min(float(freqs[i]),self.attr[attr_set])
-
+                self.attr[attr_set] = min(float(freqs[i]), self.attr[attr_set])
 
     def getFreqs(self):
         """
         Return the frequencies for this line as a list of 5 strings
         (representing AM,MD,PM,EV,EA for CHAMP, or EA,AM,MD,PM,EV for TM1)
         """
-        if 'HEADWAY[1]' in self.attr:
-            return [self.attr['HEADWAY[1]'],
-                    self.attr['HEADWAY[2]'],
-                    self.attr['HEADWAY[3]'],
-                    self.attr['HEADWAY[4]'],
-                    self.attr['HEADWAY[5]']]
+        if "HEADWAY[1]" in self.attr:
+            return [
+                self.attr["HEADWAY[1]"],
+                self.attr["HEADWAY[2]"],
+                self.attr["HEADWAY[3]"],
+                self.attr["HEADWAY[4]"],
+                self.attr["HEADWAY[5]"],
+            ]
 
-        return [self.attr['FREQ[1]'],
-                self.attr['FREQ[2]'],
-                self.attr['FREQ[3]'],
-                self.attr['FREQ[4]'],
-                self.attr['FREQ[5]']]
+        return [
+            self.attr["FREQ[1]"],
+            self.attr["FREQ[2]"],
+            self.attr["FREQ[3]"],
+            self.attr["FREQ[4]"],
+            self.attr["FREQ[5]"],
+        ]
+
     '''
     def getFreq(self, timeperiod, modeltype):
         """
@@ -242,23 +262,31 @@ class TransitLine(object):
         of ``AM``, ``MD``, ``PM``, ``EV`` or ``EA``
         """
         timeperiod = self.name.split("_")[-1][:2]
-        if timeperiod=="pk":
+        if timeperiod == "pk":
             return float(self.attr["HEADWAY[1]"])
-        elif timeperiod=="op":
+        elif timeperiod == "op":
             return float(self.attr["HEADWAY[2]"])
 
-        raise NetworkException("getFreq() received invalid timeperiod {} or modeltype {}".format(timeperiod, modeltype))
-
+        raise NetworkException(
+            "getFreq() received invalid timeperiod {} or modeltype {}".format(
+                timeperiod, modeltype
+            )
+        )
 
     def hasService(self):
         """
         Returns true if any frequency is nonzero.
         """
-        if self.getFreq("AM") != 0: return True
-        if self.getFreq("MD") != 0: return True
-        if self.getFreq("PM") != 0: return True
-        if self.getFreq("EV") != 0: return True
-        if self.getFreq("EA") != 0: return True
+        if self.getFreq("AM") != 0:
+            return True
+        if self.getFreq("MD") != 0:
+            return True
+        if self.getFreq("PM") != 0:
+            return True
+        if self.getFreq("EV") != 0:
+            return True
+        if self.getFreq("EA") != 0:
+            return True
         return False
 
     def setOwner(self, newOwner):
@@ -272,8 +300,8 @@ class TransitLine(object):
         Returns on of the keys in MODETYPE_TO_MODES
         (e.g. one of "Local", "BRT", "LRT", "Premium", "Ferry" or "BART")
         """
-        modenum = int(self.attr['MODE'])
-        for modetype,modelist in TransitLine.MODETYPE_TO_MODES[modeltype].items():
+        modenum = int(self.attr["MODE"])
+        for modetype, modelist in TransitLine.MODETYPE_TO_MODES[modeltype].items():
             if modenum in modelist:
                 return modetype
         return None
@@ -283,7 +311,9 @@ class TransitLine(object):
         Returns a bool indicating if the line is oneway
         """
         if "ONEWAY" not in self.attr:
-            WranglerLogger.debug("line [{}] lacks ONEWAY attribute; assuming true".format(self.name))
+            WranglerLogger.debug(
+                "line [{}] lacks ONEWAY attribute; assuming true".format(self.name)
+            )
             return True
 
         oneway = self.attr["ONEWAY"]
@@ -305,7 +335,7 @@ class TransitLine(object):
         """
         Returns True if the line has offstreet nodes
         """
-        modenum = int(self.attr['MODE'])
+        modenum = int(self.attr["MODE"])
         if modenum in TransitLine.MODENUM_TO_OFFSTREET[modeltype]:
             return TransitLine.MODENUM_TO_OFFSTREET[modeltype][modenum]
 
@@ -322,9 +352,9 @@ class TransitLine(object):
             return 0.0
 
         # minutes per time period divided by frequency
-        return 60.0*self.HOURS_PER_TIMEPERIOD[modeltype][timeperiod]/freq
+        return 60.0 * self.HOURS_PER_TIMEPERIOD[modeltype][timeperiod] / freq
 
-    def hasNode(self,nodeNumber):
+    def hasNode(self, nodeNumber):
         """
         Returns True if the given *nodeNumber* is a node in this line (stop or no).
         *nodeNumber* should be an integer.
@@ -334,7 +364,7 @@ class TransitLine(object):
                 return True
         return False
 
-    def hasLink(self,nodeA,nodeB):
+    def hasLink(self, nodeA, nodeB):
         """
         Returns True iff *(nodeA,nodeB)* is a link in this line.
         *nodeA* and *nodeB* should be integers and this method is stop-insensitive.
@@ -348,23 +378,25 @@ class TransitLine(object):
             nodeNumPrev = nodeNum
         return False
 
-    def hasSegment(self,nodeA,nodeB):
+    def hasSegment(self, nodeA, nodeB):
         """
         Returns True iff *nodeA* and *nodeB* appear in this line, and *nodeA* appears before *nodeB*.
         This method is stop-insensitive.  Also it does not do any special checking for two-way
         lines.
         """
-        hasA=False
+        hasA = False
         for node in self.n:
             nodeNum = abs(int(node.num))
             if nodeNum == abs(nodeA):
-                hasA=True
+                hasA = True
             elif nodeNum == abs(nodeB):
-                if hasA: return True
-                else: return False
+                if hasA:
+                    return True
+                else:
+                    return False
         return False
 
-    def hasSequence(self,list_of_node_ids):
+    def hasSequence(self, list_of_node_ids):
         """
         Returns True iff the nodes indicated by list_of_node_ids appear in this line, in the exact specified order.
         This method is stop-insenstive.
@@ -372,11 +404,11 @@ class TransitLine(object):
         """
         node_ids = self.listNodeIds()
         for i in range(len(node_ids)):
-            if node_ids[i:i+len(list_of_node_ids)] == list_of_node_ids:
+            if node_ids[i : i + len(list_of_node_ids)] == list_of_node_ids:
                 return True
         return False
 
-    def listNodeIds(self,ignoreStops=True):
+    def listNodeIds(self, ignoreStops=True):
         """
         Returns a list of integers representing the node ids that appear along this line.
         This method is stop-sensitive if called with ignoreStops=False.
@@ -384,11 +416,10 @@ class TransitLine(object):
         node_ids = []
         for node in self.n:
             nodeNum = int(node.num)
-            if(ignoreStops):
+            if ignoreStops:
                 nodeNum = abs(nodeNum)
             node_ids.append(nodeNum)
         return node_ids
-
 
     def numStops(self):
         """
@@ -396,7 +427,8 @@ class TransitLine(object):
         """
         numStops = 0
         for node in self.n:
-            if node.isStop(): numStops += 1
+            if node.isStop():
+                numStops += 1
         return numStops
 
     def setNodes(self, newnodelist):
@@ -405,10 +437,11 @@ class TransitLine(object):
         converts these to Node types uses this new list, throwing away the previous node list.
         """
         for i in range(len(newnodelist)):
-            if isinstance(newnodelist[i],int): newnodelist[i] = Node(newnodelist[i])
+            if isinstance(newnodelist[i], int):
+                newnodelist[i] = Node(newnodelist[i])
         self.n = newnodelist
 
-    def insertNode(self,refNodeNum,newNodeNum,stop=False,after=True):
+    def insertNode(self, refNodeNum, newNodeNum, stop=False, after=True):
         """
         Inserts the given *newNodeNum* into this line, as a stop if *stop* is True.
         The new node is inserted after *refNodeNum* if *after* is True, otherwise it is inserted
@@ -422,21 +455,28 @@ class TransitLine(object):
         nodeIdx = 0
         while True:
             # out of nodes -- done
-            if nodeIdx >= len(self.n): return
+            if nodeIdx >= len(self.n):
+                return
 
             currentNodeNum = abs(int(self.n[nodeIdx].num))
             if currentNodeNum == abs(refNodeNum):
-                if after==True:
-                    self.n.insert(nodeIdx+1,newNode)
-                    WranglerLogger.debug("In line %s: inserted node %s after node %s" % (self.name,newNode.num,str(refNodeNum)))
+                if after == True:
+                    self.n.insert(nodeIdx + 1, newNode)
+                    WranglerLogger.debug(
+                        "In line %s: inserted node %s after node %s"
+                        % (self.name, newNode.num, str(refNodeNum))
+                    )
                 else:
-                    self.n.insert(nodeIdx,newNode)
-                    WranglerLogger.debug("In line %s: inserted node %s before node %s" % (self.name,newNode.num,str(refNodeNum)))
-                nodeIdx += 1 # skip ahead one since we just added
+                    self.n.insert(nodeIdx, newNode)
+                    WranglerLogger.debug(
+                        "In line %s: inserted node %s before node %s"
+                        % (self.name, newNode.num, str(refNodeNum))
+                    )
+                nodeIdx += 1  # skip ahead one since we just added
 
             nodeIdx += 1
 
-    def splitLink(self,nodeA,nodeB,newNodeNum,stop=False,verboseLog=True):
+    def splitLink(self, nodeA, nodeB, newNodeNum, stop=False, verboseLog=True):
         """
         Checks to see if the link exists in the line (throws an exception if not)
         and then inserts the *newNodeNum* in between *nodeA* and *nodeB* (as a stop, if *stop* is True)
@@ -445,17 +485,24 @@ class TransitLine(object):
 
         This is stop-insensitive to *nodeA* and *nodeB*.
         """
-        if not self.hasLink(nodeA,nodeB):
-            raise NetworkException( "Line %s Doesn't have that link - so can't split it" % (self.name))
+        if not self.hasLink(nodeA, nodeB):
+            raise NetworkException(
+                "Line %s Doesn't have that link - so can't split it" % (self.name)
+            )
         newNode = Node(newNodeNum)
-        if stop==True: newNode.setStop(True)
+        if stop == True:
+            newNode.setStop(True)
 
         nodeNumPrev = -1
         for nodeIdx in range(len(self.n)):
             currentNodeNum = abs(int(self.n[nodeIdx].num))
             if currentNodeNum == abs(nodeB) and nodeNumPrev == abs(nodeA):
-                self.n.insert(nodeIdx,newNode)
-                if verboseLog: WranglerLogger.debug("In line %s: inserted node %s between node %s and node %s" % (self.name,newNode.num,str(nodeA),str(nodeB)))
+                self.n.insert(nodeIdx, newNode)
+                if verboseLog:
+                    WranglerLogger.debug(
+                        "In line %s: inserted node %s between node %s and node %s"
+                        % (self.name, newNode.num, str(nodeA), str(nodeB))
+                    )
             nodeNumPrev = currentNodeNum
 
     def extendLine(self, oldnode, newsection, beginning=True):
@@ -474,11 +521,12 @@ class TransitLine(object):
 
         # make the new nodes
         for i in range(len(newsection)):
-            if isinstance(newsection[i],int): newsection[i] = Node(newsection[i])
+            if isinstance(newsection[i], int):
+                newsection[i] = Node(newsection[i])
 
         if beginning:
             # print self.n[:ind+1]
-            self.n[:ind+1] = newsection
+            self.n[: ind + 1] = newsection
         else:
             self.n[ind:] = newsection
 
@@ -490,9 +538,19 @@ class TransitLine(object):
         # Make a list of ints since newsection might be nodes
         new_section_ints = copy.deepcopy(newsection)
         for i in range(len(new_section_ints)):
-            if isinstance(new_section_ints[i],Node): new_section_ints[i] = new_section_ints[i].num
+            if isinstance(new_section_ints[i], Node):
+                new_section_ints[i] = new_section_ints[i].num
 
-        WranglerLogger.debug("replacing segment " + str(node1) + " "+str(node2)+" with "+str(new_section_ints)+" for "+self.name)
+        WranglerLogger.debug(
+            "replacing segment "
+            + str(node1)
+            + " "
+            + str(node2)
+            + " with "
+            + str(new_section_ints)
+            + " for "
+            + self.name
+        )
         try:
             ind1 = self.n.index(node1)
             stop1 = True
@@ -512,16 +570,17 @@ class TransitLine(object):
 
         # make the new nodes
         for i in range(len(newsection)):
-            if isinstance(newsection[i],int): newsection[i] = Node(newsection[i])
+            if isinstance(newsection[i], int):
+                newsection[i] = Node(newsection[i])
         # xfer the attributes
-        newsection[0].attr=attr1
-        newsection[-1].attr=attr2
+        newsection[0].attr = attr1
+        newsection[-1].attr = attr2
 
         if preserveStopStatus:
             newsection[0].setStop(stop1)
             newsection[-1].setStop(stop2)
 
-        self.n[ind1:ind2+1] = newsection
+        self.n[ind1 : ind2 + 1] = newsection
 
     def replaceSequence(self, node_ids_to_replace, replacement_node_ids):
         """
@@ -531,33 +590,47 @@ class TransitLine(object):
         Returns true iff the sequence is successfully replaced.
         """
         if self.hasSequence(node_ids_to_replace):
-            WranglerLogger.debug("replacing sequence " + str(node_ids_to_replace) + " with " + str(replacement_node_ids) + " for " + self.name)
+            WranglerLogger.debug(
+                "replacing sequence "
+                + str(node_ids_to_replace)
+                + " with "
+                + str(replacement_node_ids)
+                + " for "
+                + self.name
+            )
         else:
             return False
         node_ids = self.listNodeIds()
         replaceNodesStartingAt = -1
         for i in range(len(node_ids)):
-            if node_ids[i:i+len(node_ids_to_replace)] == node_ids_to_replace:
+            if node_ids[i : i + len(node_ids_to_replace)] == node_ids_to_replace:
                 replaceNodesStartingAt = i
                 break
         if replaceNodesStartingAt < 0:
-            WranglerLogger.debug("an unexpected error occurred in replaceSequence for " + self.name)
+            WranglerLogger.debug(
+                "an unexpected error occurred in replaceSequence for " + self.name
+            )
             return False
 
         attr1 = self.n[replaceNodesStartingAt].attr
-        attr2 = self.n[replaceNodesStartingAt+len(node_ids_to_replace)].attr
+        attr2 = self.n[replaceNodesStartingAt + len(node_ids_to_replace)].attr
 
         # make the new nodes
-        replacement_nodes = list(replacement_node_ids) # copy this, we'll make them nodes
+        replacement_nodes = list(
+            replacement_node_ids
+        )  # copy this, we'll make them nodes
         for i in range(len(replacement_nodes)):
-            if isinstance(replacement_nodes[i],int): replacement_nodes[i] = Node(replacement_nodes[i])
+            if isinstance(replacement_nodes[i], int):
+                replacement_nodes[i] = Node(replacement_nodes[i])
             # they aren't stops
             replacement_nodes[i].setStop(False)
         # xfer the attributes
-        replacement_nodes[0].attr=attr1
-        replacement_nodes[-1].attr=attr2
+        replacement_nodes[0].attr = attr1
+        replacement_nodes[-1].attr = attr2
 
-        self.n[replaceNodesStartingAt:replaceNodesStartingAt+len(node_ids_to_replace)] = replacement_nodes
+        self.n[
+            replaceNodesStartingAt : replaceNodesStartingAt + len(node_ids_to_replace)
+        ] = replacement_nodes
         return True
 
     def setStop(self, nodenum, isStop=True):
@@ -570,7 +643,10 @@ class TransitLine(object):
                 node.setStop(isStop)
                 found = True
         if not found:
-            raise NetworkException("TransitLine %s setStop called but stop %d not found" % (self.name, nodenum))
+            raise NetworkException(
+                "TransitLine %s setStop called but stop %d not found"
+                % (self.name, nodenum)
+            )
 
     def addStopsToSet(self, set):
         for nodeIdx in range(len(self.n)):
@@ -582,12 +658,13 @@ class TransitLine(object):
         Reverses the current line -- adds a "-" to the name, and reverses the node order
         """
         # if name is 12 chars, have to drop one -- cube has a MAX of 12
-        if len(self.name)>=11: self.name = self.name[:11]
+        if len(self.name) >= 11:
+            self.name = self.name[:11]
         self.name = self.name + "R"
         self.n.reverse()
 
     def _applyTemplate(self, template):
-        '''Copy all attributes (including nodes) from an existing transit line to this line'''
+        """Copy all attributes (including nodes) from an existing transit line to this line"""
         self.attr = copy.deepcopy(template.attr)
         self.n = copy.deepcopy(template.n)
         self.comment = template.comment
@@ -598,15 +675,17 @@ class TransitLine(object):
         First == last is ok
         """
         _stop_to_idx = {}
-        _stop_list   = []
+        _stop_list = []
 
         for node in self.n:
-            if not node.isStop(): continue
+            if not node.isStop():
+                continue
 
             node_num = node.getNum()
 
             #  { stop num -> [list of stop indices]}, index starts at 0
-            if node_num not in _stop_to_idx: _stop_to_idx[node_num] = []
+            if node_num not in _stop_to_idx:
+                _stop_to_idx[node_num] = []
             _stop_to_idx[node_num].append(len(_stop_list))
 
             # list of stops
@@ -614,11 +693,15 @@ class TransitLine(object):
 
         # check for dupes
         for node_num in _stop_to_idx.keys():
-            if len(_stop_to_idx[node_num]) == 1: continue
+            if len(_stop_to_idx[node_num]) == 1:
+                continue
             # First == last is ok
-            if _stop_to_idx[node_num] == [0,len(_stop_list)-1]: continue
+            if _stop_to_idx[node_num] == [0, len(_stop_list) - 1]:
+                continue
 
-            WranglerLogger.warn("Duplicate stops for line {}: stop {}".format(self.name, node_num))
+            WranglerLogger.warn(
+                "Duplicate stops for line {}: stop {}".format(self.name, node_num)
+            )
             return True
 
         return False
@@ -632,41 +715,49 @@ class TransitLine(object):
         """
         removed_nodes = False
         # iterate backwards so we can freely delete from the list
-        for node_idx in range(len(self.n)-3, -1, -1):
+        for node_idx in range(len(self.n) - 3, -1, -1):
 
-            nodeNum           = int(self.n[node_idx+2].num)
-            prev_nodeNum      = int(self.n[node_idx+1].num)
-            prev_prev_nodeNum = int(self.n[node_idx  ].num)
+            nodeNum = int(self.n[node_idx + 2].num)
+            prev_nodeNum = int(self.n[node_idx + 1].num)
+            prev_prev_nodeNum = int(self.n[node_idx].num)
             if nodeNum == prev_prev_nodeNum and prev_nodeNum in to_remove_dict:
                 # WranglerLogger.debug("removeDummyJag: {} ({},{},{}) => {}".format(self.name, nodeNum, prev_nodeNum, prev_prev_nodeNum, nodeNum))
-                del[self.n[node_idx+2]]
-                del[self.n[node_idx+1]]
+                del [self.n[node_idx + 2]]
+                del [self.n[node_idx + 1]]
                 removed_nodes = True
 
         return removed_nodes
 
     # Dictionary methods
-    def __getitem__(self,key): return self.attr[key.upper()]
-    def __setitem__(self,key,value): self.attr[key.upper()]=value
-    def __cmp__(self,other): return cmp(self.name,other)
+    def __getitem__(self, key):
+        return self.attr[key.upper()]
+
+    def __setitem__(self, key, value):
+        self.attr[key.upper()] = value
+
+    def __cmp__(self, other):
+        return cmp(self.name, other)
 
     # String representation: for outputting to line-file
     def __repr__(self):
-        s = '\nLINE NAME=\"%s\",\n    ' % (self.name,)
-        if self.comment: s+= self.comment
+        s = '\nLINE NAME="%s",\n    ' % (self.name,)
+        if self.comment:
+            s += self.comment
 
         # Line attributes
-        s += ",\n    ".join(["%s=%s" % (k,v) for k,v in sorted(self.attr.items())])
+        s += ",\n    ".join(["%s=%s" % (k, v) for k, v in sorted(self.attr.items())])
 
         # Node list
         s += ",\n"
         prevAttr = True
         for nodeIdx in range(len(self.n)):
-            s += self.n[nodeIdx].lineFileRepr(prependNEquals=prevAttr, lastNode=(nodeIdx==len(self.n)-1))
-            prevAttr = len(self.n[nodeIdx].attr)>0
+            s += self.n[nodeIdx].lineFileRepr(
+                prependNEquals=prevAttr, lastNode=(nodeIdx == len(self.n) - 1)
+            )
+            prevAttr = len(self.n[nodeIdx].attr) > 0
 
         return s
 
     def __str__(self):
-        s = 'Line name \"%s\" freqs=%s' % (self.name, str(self.getFreqs()))
+        s = 'Line name "%s" freqs=%s' % (self.name, str(self.getFreqs()))
         return s

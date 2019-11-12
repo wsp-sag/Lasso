@@ -1,13 +1,15 @@
-__all__ = ['Factor']
+__all__ = ["Factor"]
+
 
 class Factor(dict):
     """
     Transit config (or "factor")
     All attributes are stored in the dictionary
     """
+
     def __init__(self):
         dict.__init__(self)
-        self.comment=''
+        self.comment = ""
 
     def __repr__(self):
         s = "FACTOR "

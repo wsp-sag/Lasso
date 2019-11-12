@@ -1,7 +1,9 @@
-__all__ = ['NetworkException']
+__all__ = ["NetworkException"]
 
-class NetworkException(Exception): 
+
+class NetworkException(Exception):
     """
     This class is used to communicate Wrangler errors.
     """
+
     pass

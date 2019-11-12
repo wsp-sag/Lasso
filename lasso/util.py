@@ -8,6 +8,7 @@ def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
 
     """
     import hashlib
+
     message = "Intersection {0:.5f} {0:.5f}".format(long, lat)
     if osm_node_id:
         message += " {}".format(osm_node_id)

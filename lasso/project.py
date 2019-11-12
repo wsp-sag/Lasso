@@ -12,6 +12,7 @@ import os
 from lasso.TransitNetwork import TransitNetworkLasso
 from .transit import CubeTransit
 
+
 class Project(object):
     def __init__(
         self,
@@ -19,8 +20,8 @@ class Project(object):
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
-        evaluate =  False
-        ):
+        evaluate=False,
+    ):
         """
 
         """
@@ -54,7 +55,8 @@ class Project(object):
         roadway_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
-        base_transit_network: Optional[CubeTransit] = None):
+        base_transit_network: Optional[CubeTransit] = None,
+    ):
         """
 
         Parameters
@@ -68,43 +70,49 @@ class Project(object):
         """
 
         if build_transit_dir and transit_changes:
-            raise("only need one base roadway file")
+            raise ("only need one base roadway file")
         if build_transit_dir:
-            transit_changes = CubeTransit.create_cubetransit(build_transit_dir, build_transit_dir)
+            transit_changes = CubeTransit.create_cubetransit(
+                build_transit_dir, build_transit_dir
+            )
         else:
             transit_changes = None
 
         if roadway_log_file and roadway_changes:
-            raise("only need one roadway changes file")
+            raise ("only need one roadway changes file")
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
         else:
             roadway_changes = pd.DataFrame({})
 
         if base_roadway_network and base_roadway_dir:
-            raise("only need one base roadway file")
+            raise ("only need one base roadway file")
         if base_roadway_dir:
-            base_roadway_network = RoadwayNetwork.read(os.path.join(base_roadway_dir,"link.json"),
-                                                    os.path.join(base_roadway_dir,"node.geojson"),
-                                                    os.path.join(base_roadway_dir,"shape.geojson"),
-                                                    True)
+            base_roadway_network = RoadwayNetwork.read(
+                os.path.join(base_roadway_dir, "link.json"),
+                os.path.join(base_roadway_dir, "node.geojson"),
+                os.path.join(base_roadway_dir, "shape.geojson"),
+                True,
+            )
         else:
             base_roadway_network = None
 
         if base_transit_dir and base_transit_network:
-            raise("only need one base roadway file")
+            raise ("only need one base roadway file")
         if base_transit_dir:
-            base_transit_network = CubeTransit.create_cubetransit(base_transit_dir, base_transit_dir)
+            base_transit_network = CubeTransit.create_cubetransit(
+                base_transit_dir, base_transit_dir
+            )
         else:
             base_transit_network = None
 
         project = Project(
-            roadway_changes = roadway_changes,
-            transit_changes = transit_changes,
-            base_roadway_network = base_roadway_network,
-            base_transit_network = base_transit_network,
-            evaluate = True
-            )
+            roadway_changes=roadway_changes,
+            transit_changes=transit_changes,
+            base_roadway_network=base_roadway_network,
+            base_transit_network=base_transit_network,
+            evaluate=True,
+        )
 
         return project
 
@@ -126,23 +134,31 @@ class Project(object):
 
         # (content[0].startswith("HighwayLayerLogX")):
         try:
-            if(content[0].startswith("HighwayLayerLogX")):
+            if content[0].startswith("HighwayLayerLogX"):
 
                 NodeLines = [x.strip() for x in content if x.startswith("N")]
 
                 LinkLines = [x.strip() for x in content if x.startswith("L")]
 
-                linkcol_names = ["OBJECT", "OPERATION", "GROUP"] + LinkLines[0].split(",")[1:]
+                linkcol_names = ["OBJECT", "OPERATION", "GROUP"] + LinkLines[0].split(
+                    ","
+                )[1:]
 
-                nodecol_names = ["OBJECT", "OPERATION", "GROUP"] + NodeLines[0].split(",")[1:]
+                nodecol_names = ["OBJECT", "OPERATION", "GROUP"] + NodeLines[0].split(
+                    ","
+                )[1:]
 
-                link_df = DataFrame(data = [re.split(",|;", x) for x in LinkLines[1:]],
-                                    columns = linkcol_names)
+                link_df = DataFrame(
+                    data=[re.split(",|;", x) for x in LinkLines[1:]],
+                    columns=linkcol_names,
+                )
 
-                node_df = DataFrame(data = [re.split(",|;", x) for x in NodeLines[1:]],
-                                    columns = nodecol_names)
+                node_df = DataFrame(
+                    data=[re.split(",|;", x) for x in NodeLines[1:]],
+                    columns=nodecol_names,
+                )
 
-                log_df = pd.concat([link_df, node_df], ignore_index = True, sort = False)
+                log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
 
                 return log_df
 
@@ -152,9 +168,8 @@ class Project(object):
 
         except:
 
-            #pass
+            # pass
             return DataFrame()
-
 
     def evaluate_changes(self):
         """
@@ -169,8 +184,10 @@ class Project(object):
         if not self.transit_changes == None:
             transit_change_list = self.add_transit_changes()
 
-        self.card_data = {"project" : "USER TO define",
-                          "changes" : transit_change_list + highway_change_list}
+        self.card_data = {
+            "project": "USER TO define",
+            "changes": transit_change_list + highway_change_list,
+        }
         pass
 
     def add_transit_changes(self):
@@ -228,32 +245,33 @@ class Project(object):
             for x in changeable_col:
                 log_df[x] = log_df[x].astype(base[x].dtype)
 
-            action_history_df = log_df.groupby(key_list)["OPERATION"].agg(lambda x: x.tolist()).rename("OPERATION_history").reset_index()
+            action_history_df = (
+                log_df.groupby(key_list)["OPERATION"]
+                .agg(lambda x: x.tolist())
+                .rename("OPERATION_history")
+                .reset_index()
+            )
 
-            log_df = pd.merge(log_df,
-                                action_history_df,
-                                on = key_list,
-                                how = "left")
-            log_df.drop_duplicates(subset = key_list,
-                                    keep = "last",
-                                    inplace = True)
-            log_df['OPERATION_final'] = log_df.apply(lambda x: final_op(x),
-                                                axis = 1)
-            return log_df[changeable_col + ['OPERATION_final']]
+            log_df = pd.merge(log_df, action_history_df, on=key_list, how="left")
+            log_df.drop_duplicates(subset=key_list, keep="last", inplace=True)
+            log_df["OPERATION_final"] = log_df.apply(lambda x: final_op(x), axis=1)
+            return log_df[changeable_col + ["OPERATION_final"]]
 
         if len(link_changes_df) != 0:
-            link_changes_df = consolidate_actions(link_changes_df,
-                                                base_links_df,
-                                                ['A', 'B'])
-
+            link_changes_df = consolidate_actions(
+                link_changes_df, base_links_df, ["A", "B"]
+            )
 
         if len(node_changes_df) != 0:
-            node_changes_df = consolidate_actions(node_changes_df,
-                                                    base_nodes_df,
-                                                    ['model_node_id'])
+            node_changes_df = consolidate_actions(
+                node_changes_df, base_nodes_df, ["model_node_id"]
+            )
 
             # print error message for node change and node deletion
-            if len(node_changes_df[node_changes_df.OPERATION_final.isin(["C", "D"])]) > 0:
+            if (
+                len(node_changes_df[node_changes_df.OPERATION_final.isin(["C", "D"])])
+                > 0
+            ):
                 print("\n ERROR: NODE changes and deletions are not allowed! \n")
             node_add_df = node_changes_df[node_changes_df.OPERATION_final == "A"]
         else:
@@ -264,10 +282,9 @@ class Project(object):
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
             delete_link_df = cube_delete_df.copy()
 
-            _links_dict = {"model_link_id" : delete_link_df["model_link_id"].tolist()}
+            _links_dict = {"model_link_id": delete_link_df["model_link_id"].tolist()}
 
-            delete_link_dict = {"category" : "Roadway Deletion",
-                                "links" : _links_dict}
+            delete_link_dict = {"category": "Roadway Deletion", "links": _links_dict}
 
             if len(delete_link_df) == 0:
                 delete_link_dict = None
@@ -287,24 +304,29 @@ class Project(object):
                     d[c] = x[c]
                 return d
 
-            add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict,
-                                                                        axis = 1)
+            add_link_dict_df["properties"] = add_link_dict_df.apply(prop_dict, axis=1)
 
-            add_link_dict = {"category" : "New Roadway",
-                            "links" : add_link_dict_df['properties'].tolist()}
+            add_link_dict = {
+                "category": "New Roadway",
+                "links": add_link_dict_df["properties"].tolist(),
+            }
         except:
             add_link_dict = None
 
         try:
             if len(node_add_df):
-                node_dict_list = node_add_df.drop(['OPERATION_final'], axis = 1).to_dict("record")
+                node_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
+                    "record"
+                )
             add_link_dict["nodes"] = node_dict_list
         except:
             node_dict_list = None
 
         # process changes
         try:
-            changeable_col = [x for x in link_changes_df.columns if x in base_links_df.columns]
+            changeable_col = [
+                x for x in link_changes_df.columns if x in base_links_df.columns
+            ]
 
             cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
 
@@ -313,15 +335,26 @@ class Project(object):
             for i in cube_change_df.index:
                 change_df = cube_change_df.loc[i]
 
-                base_df = base_links_df[(base_links_df["A"] == change_df.A) &
-                                        (base_links_df["B"] == change_df.B)].iloc[0]
+                base_df = base_links_df[
+                    (base_links_df["A"] == change_df.A)
+                    & (base_links_df["B"] == change_df.B)
+                ].iloc[0]
 
                 out_col = []
                 for x in changeable_col:
-                    if (change_df[x] == base_df[x]) | (x in ["model_link_id", "area_type", "county", "asgngrp", "centroid_connector"]):
+                    if (change_df[x] == base_df[x]) | (
+                        x
+                        in [
+                            "model_link_id",
+                            "area_type",
+                            "county",
+                            "asgngrp",
+                            "centroid_connector",
+                        ]
+                    ):
                         continue
                     if x == "distance":
-                        if abs((change_df[x] - base_df[x])/base_df[x]) < 0.01:
+                        if abs((change_df[x] - base_df[x]) / base_df[x]) < 0.01:
                             continue
                         else:
                             out_col.append(x)
@@ -336,23 +369,37 @@ class Project(object):
                     property_dict["set"] = change_df[x]
                     property_dict_list.append(property_dict)
 
-                card_df = pd.DataFrame({"properties":pd.Series([property_dict_list]),
-                                    "model_link_id":pd.Series(base_df.model_link_id)})
+                card_df = pd.DataFrame(
+                    {
+                        "properties": pd.Series([property_dict_list]),
+                        "model_link_id": pd.Series(base_df.model_link_id),
+                    }
+                )
 
-                change_link_dict_df = pd.concat([change_link_dict_df,
-                                            card_df],
-                                            ignore_index = True,
-                                            sort = False)
+                change_link_dict_df = pd.concat(
+                    [change_link_dict_df, card_df], ignore_index=True, sort=False
+                )
 
-            change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(str)
-            change_link_dict_df = change_link_dict_df.groupby("properties")[["model_link_id"]].agg(lambda x:list(x)).reset_index()
+            change_link_dict_df["properties"] = change_link_dict_df[
+                "properties"
+            ].astype(str)
+            change_link_dict_df = (
+                change_link_dict_df.groupby("properties")[["model_link_id"]]
+                .agg(lambda x: list(x))
+                .reset_index()
+            )
 
-            change_link_dict_df["facility"] = change_link_dict_df.apply(lambda x: {"link" : {"model_link_id" : x.model_link_id}},
-                                                                    axis = 1)
+            change_link_dict_df["facility"] = change_link_dict_df.apply(
+                lambda x: {"link": {"model_link_id": x.model_link_id}}, axis=1
+            )
 
-            change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(lambda x: json.loads(x.replace("'", "\"")))
+            change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(
+                lambda x: json.loads(x.replace("'", '"'))
+            )
 
-            change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict("record")
+            change_link_dict_list = change_link_dict_df[
+                ["facility", "properties"]
+            ].to_dict("record")
 
             for change in change_link_dict_list:
                 change["category"] = "Roadway Attribute Change"
@@ -360,6 +407,8 @@ class Project(object):
         except:
             change_link_dict_list = []
 
-        highway_change_list = list(filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list))
+        highway_change_list = list(
+            filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list)
+        )
 
         return highway_change_list
