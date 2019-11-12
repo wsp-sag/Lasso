@@ -1,4 +1,34 @@
 changes:
+- category: Transit Service Property Change
+  facility:
+    direction_id: 1
+    route_id: 452-111
+    time:
+    - 06:00:00
+    - 09:00:00
+  properties:
+  - change: -1800.0
+    property: headway_secs
+- category: Transit Service Property Change
+  facility:
+    direction_id: 1
+    route_id: 134-111
+    time:
+    - 06:00:00
+    - 09:00:00
+  properties:
+  - change: 1800.0
+    property: headway_secs
+- category: Transit Service Property Change
+  facility:
+    direction_id: 0
+    route_id: 921-111
+    time:
+    - 09:00:00
+    - '15:00:00'
+  properties:
+  - change: -300.0
+    property: headway_secs
 - category: Roadway Deletion
   links:
     model_link_id:

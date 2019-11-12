@@ -72,7 +72,7 @@ class Project(object):
         if build_transit_dir:
             transit_changes = CubeTransit.create_cubetransit(build_transit_dir, build_transit_dir)
         else:
-            transit_changes = pd.DataFrame({})
+            transit_changes = None
 
         if roadway_log_file and roadway_changes:
             raise("only need one roadway changes file")
@@ -318,8 +318,13 @@ class Project(object):
 
                 out_col = []
                 for x in changeable_col:
-                    if (change_df[x] == base_df[x]) | (x in ["area_type", "county", "asgngrp", "centroid_connector"]):
+                    if (change_df[x] == base_df[x]) | (x in ["model_link_id", "area_type", "county", "asgngrp", "centroid_connector"]):
                         continue
+                    if x == "distance":
+                        if abs((change_df[x] - base_df[x])/base_df[x]) < 0.01:
+                            continue
+                        else:
+                            out_col.append(x)
                     else:
                         out_col.append(x)
 
