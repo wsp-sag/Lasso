@@ -132,7 +132,7 @@ class Parameters:
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         "metcouncil_data",
         "mrcc",
-        "*.mrcc.out.matched.geojson",
+        "mrcc.out.matched.csv",
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE = os.path.join(

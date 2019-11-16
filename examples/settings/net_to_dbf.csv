@@ -2,6 +2,7 @@ net,dbf
 model_link_id,link_id
 shstGeometryId,geoId
 roadway_class,rdclass
+bike_facility, bike_fac
 bike_access,bike
 transit_access,transit
 walk_access,walk
