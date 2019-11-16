@@ -83,8 +83,19 @@ class Parameters:
     )
     DEFAULT_AREA_TYPE_VARIABLE_SHP = "COMDES2040"
     # area type map from raw data to model category
+
+    # source https://metrocouncil.org/Planning/Publications-And-Resources/Thrive-MSP-2040-Plan-(1)/7_ThriveMSP2040_LandUsePoliciesbyCD.aspx
+    # urban center
+    # urban
+    # suburban
+    # suburban edge
+    # emerging suburban edge
+    # rural center
+    # diversified rural
+    # rural residential
+    # agricultural
     DEFAULT_AREA_TYPE_CODE_DICT = {
-        23: 4,
+        23: 4,  # urban center
         24: 3,
         25: 2,
         35: 2,
@@ -189,10 +200,9 @@ class Parameters:
         'self.calculate_county(network_variable = "county")',
         'self.calculate_centroid_connector(network_variable = "centroid_connector")',
         'self.calculate_mpo(network_variable = "mpo")',
-        #'self.calculate_roadway_class_index(network_variable="roadway_class_index")', # cube takes care of this, using roadway class
         'self.calculate_assignment_group(network_variable="assignment_group")',
         'self.calculate_roadway_class(network_variable="roadway_class")',
-        'self.calculate_count(network_variable="AADT")',
+        "self.add_counts()",
     ]
 
     DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(

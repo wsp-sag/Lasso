@@ -128,6 +128,7 @@ def test_calculate_assignment_group_rdclass(request):
 
 
 @pytest.mark.roadway
+@pytest.mark.menow
 def test_calculate_count(request):
     """
     Tests that parameters are read
@@ -141,7 +142,7 @@ def test_calculate_count(request):
         fast=True,
     )
 
-    net.calculate_count()
+    net.add_counts()
     assert "AADT" in net.links_df.columns
     print(net.links_df[net.links_df.drive_access == 1].AADT.value_counts())
 
@@ -166,7 +167,6 @@ def test_roadway_stanrard_to_dbf_for_cube(request):
 
 
 @pytest.mark.roadway
-@pytest.mark.menow
 def test_write_cube_roadway(request):
     """
     Tests that parameters are read
