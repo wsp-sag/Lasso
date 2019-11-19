@@ -125,7 +125,8 @@ class Parameters:
     DEFAULT_MRCC_ASSGNGRP_DICT = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         "metcouncil_data",
-        "mrcc_route_sys_asgngrp_crosswalk.xlsx",
+        "lookups",
+        "mrcc_route_sys_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_SHST_DATA = os.path.join(
@@ -147,6 +148,7 @@ class Parameters:
     DEFAULT_WIDOT_ASSGNGRP_DICT = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         "metcouncil_data",
+        "lookups",
         "widot_ctgy_asgngrp_crosswalk.csv",
     )
 
@@ -160,6 +162,7 @@ class Parameters:
     DEFAULT_ROADWAY_CLASS_DICT = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         "metcouncil_data",
+        "lookups",
         "asgngrp_rc_num_crosswalk.csv",
     )
 
@@ -195,16 +198,6 @@ class Parameters:
 
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
-    ##todo just move to roadway.py
-    DEFAULT_CALCULATED_VARIABLES_ROADWAY = [
-        'self.calculate_area_type(network_variable = "area_type")',
-        'self.calculate_county(network_variable = "county")',
-        'self.calculate_centroid_connector(network_variable = "centroid_connector")',
-        'self.calculate_mpo(network_variable = "mpo")',
-        #'self.calculate_assignment_group(network_variable="assignment_group")',
-        #'self.calculate_roadway_class(network_variable="roadway_class")',
-        "self.add_counts()",
-    ]
 
     DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
@@ -330,10 +323,6 @@ class Parameters:
             self.taz_data = Parameters.DEFAULT_TAZ_DATA
         if "highest_taz_number" not in kwargs:
             self.highest_taz_number = Parameters.DEFAULT_HIGHEST_TAZ_NUMBER
-        if "calculated_variables_roadway" not in kwargs:
-            self.calculated_variables_roadway = (
-                Parameters.DEFAULT_CALCULATED_VARIABLES_ROADWAY
-            )
         if "output_variables" not in kwargs:
             self.output_variables = Parameters.DEFAULT_OUTPUT_VARIABLES
         if "area_type_shape" not in kwargs:

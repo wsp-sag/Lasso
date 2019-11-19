@@ -117,8 +117,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         -------
         """
 
-        for method in self.parameters.calculated_variables_roadway:
-            eval(method)
+        self.calculate_area_type()
+        self.calculate_county()
+        self.calculate_centroid_connector()
+        self.calculate_mpo()
+        #self.calculate_assignment_group()
+        #'self.calculate_roadway_class()
+        self.add_counts()
 
     def calculate_county(self, network_variable="county"):
         """
@@ -368,8 +373,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         There is a crosswalk between the MRCC Route System and Wisconsin DOT --> Met Council Assignment group
 
-        This method
-        join network with mrcc and widot roadway data by shst js matcher returns
+        This method joins the  network with mrcc and widot roadway data by shst js matcher returns
         """
 
         WranglerLogger.info("Calculating Assignment Group")
@@ -377,36 +381,75 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Verify inputs
         """
+        mrcc_roadway_class_shape = mrcc_roadway_class_shape if mrcc_roadway_class_shape else self.parameters.mrcc_roadway_class_shape
+        if not mrcc_roadway_class_shape:
+            msg = "'mrcc_roadway_class_shape' not found in method or lasso parameters.".format(mrcc_roadway_class_shape)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if not os.path.exists(mrcc_roadway_class_shape):
+            msg = "'mrcc_roadway_class_shape' not found at following location: {}.".format(mrcc_roadway_class_shape)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
-        for varname, var in {
-            "mrcc_roadway_class_shape": mrcc_roadway_class_shape,
-            "widot_roadway_class_shape": widot_roadway_class_shape,
-            "mrcc_shst_data": mrcc_shst_data,
-            "widot_shst_data": widot_shst_data,
-        }.items():
-            var = var if var else self.parameters.__dict__[varname]
-            if not var:
-                msg = "'{}' not found in method or lasso parameters.".format(varname)
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
-            if not os.path.exists(var):
-                msg = "{}' not found at following location: {}.".format(varname, var)
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
+        widot_roadway_class_shape = widot_roadway_class_shape if widot_roadway_class_shape else self.parameters.widot_roadway_class_shape
+        if not widot_roadway_class_shape:
+            msg = "'widot_roadway_class_shape' not found in method or lasso parameters.".format(widot_roadway_class_shape)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if not os.path.exists(widot_roadway_class_shape):
+            msg = "'widot_roadway_class_shape' not found at following location: {}.".format(widot_roadway_class_shape)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
-        for varname, var in {
-            "mrcc_roadway_class_variable_shp": mrcc_roadway_class_variable_shp,
-            "widot_roadway_class_variable_shp": widot_roadway_class_variable_shp,
-            "mrcc_assgngrp_dict": mrcc_assgngrp_dict,
-            "widot_assgngrp_dict": widot_assgngrp_dict,
-            "osm_assgngrp_dict": osm_assgngrp_dict,
-            "network_variable": network_variable,
-        }.items():
-            var = var if var else self.parameters.__dict__[varname]
-            if not var:
-                msg = "'{}' not found in method or lasso parameters.".format(varname)
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
+        mrcc_shst_data = mrcc_shst_data if mrcc_shst_data else self.parameters.mrcc_shst_data
+        if not mrcc_shst_data:
+            msg = "'mrcc_shst_data' not found in method or lasso parameters.".format(mrcc_shst_data)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if not os.path.exists(mrcc_shst_data):
+            msg = "'mrcc_shst_data' not found at following location: {}.".format(mrcc_shst_data)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        widot_shst_data = widot_shst_data if widot_shst_data else self.parameters.widot_shst_data
+        if not widot_shst_data:
+            msg = "'widot_shst_data' not found in method or lasso parameters.".format(widot_shst_data)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if not os.path.exists(widot_shst_data):
+            msg = "'widot_shst_data' not found at following location: {}.".format(widot_shst_data)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        mrcc_roadway_class_variable_shp = mrcc_roadway_class_variable_shp if mrcc_roadway_class_variable_shp else self.parameters.mrcc_roadway_class_variable_shp
+        if not mrcc_roadway_class_variable_shp:
+            msg = "'mrcc_roadway_class_variable_shp' not found in method or lasso parameters."
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        widot_roadway_class_variable_shp = widot_roadway_class_variable_shp if widot_roadway_class_variable_shp else self.parameters.widot_roadway_class_variable_shp
+        if not widot_roadway_class_variable_shp:
+            msg = "'widot_roadway_class_variable_shp' not found in method or lasso parameters."
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        mrcc_assgngrp_dict = mrcc_assgngrp_dict if mrcc_assgngrp_dict else self.parameters.mrcc_assgngrp_dict
+        if not mrcc_assgngrp_dict:
+            msg = "'mrcc_assgngrp_dict' not found in method or lasso parameters."
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        widot_assgngrp_dict = widot_assgngrp_dict if widot_assgngrp_dict else self.parameters.widot_assgngrp_dict
+        if not widot_assgngrp_dict:
+            msg = "'widot_assgngrp_dict' not found in method or lasso parameters."
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        osm_assgngrp_dict = osm_assgngrp_dict if osm_assgngrp_dict else self.parameters.osm_assgngrp_dict
+        if not osm_assgngrp_dict:
+            msg = "'osm_assgngrp_dict' not found in method or lasso parameters.".format(osm_assgngrp_dict)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
         """
         Start actual process
@@ -417,15 +460,22 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Reading MRCC / Shared Streets Match CSV")
         # mrcc_shst_match_df = pd.read_csv()
+        WranglerLogger.debug("Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape))
         mrcc_gdf = gpd.read_file(mrcc_roadway_class_shape)
+        print("MRCC GDF Columns",mrcc_gdf.columns)
+        #'LINK_ID', 'ROUTE_SYS', 'ST_CONCAT', 'geometry'
         mrcc_gdf["LINK_ID"] = range(1, 1 + len(mrcc_gdf))
         # returns shstreets dataframe with geometry ID, pp_link_id (which is the LINK_ID)
-        mrcc_shst_ref_df = ModelRoadwayNetwork.read_match_result(mrcc_shst_data)
+
+        #shstReferenceId,shstGeometryId,pp_link_id
+        mrcc_shst_ref_df = pd.read_csv(mrcc_shst_data)
+        print("mrcc shst ref df",mrcc_shst_ref_df.columns)
 
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
-        widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
-
+        print("WiDOT GDF Columns",widot_gdf.columns)
+        widot_shst_ref_df = pd.read_csv(widot_shst_data)
+        print("widot shst ref df",widot_shst_ref_df.columns)
         #join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
         #
         # get route_sys from MRCC
@@ -447,11 +497,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_excel(
-            mrcc_assgngrp_dict,
-            sheet_name="mrcc_ctgy_asgngrp_crosswalk",
-            dtype={"ROUTE_SYS": str, "ROUTE_SYS_ref": str, "assignment_group": int},
-        )
+        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict)
         widot_asgngrp_crosswak_df = pd.read_csv(widot_assgngrp_dict)
 
         join_gdf = pd.merge(
@@ -687,6 +733,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         read the shst geojson match returns
 
         return shst dataframe
+
+        reading lots of same type of file and concatenating them into a single DataFrame
+
+        ##todo
+        not sure why we need, but should be in utilities not this class
         """
         refId_gdf = DataFrame()
         refid_file = glob.glob(path)
@@ -706,6 +757,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # join based on shared streets geometry ID
         # pp_link_id is shared streets match return
         # source_ink_id is mrcc
+        print('source ShSt rename_variables_for_dbf columns', source_shst_ref_df.columns)
+        print('source gdf columns', source_gdf.columns)
         # end up with OSM network with the MRCC Link ID
         # could also do with route_sys...would that be quicker?
         join_refId_df = pd.merge(
