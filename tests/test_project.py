@@ -42,7 +42,6 @@ def test_logfile_read(request, logfilename):
 
 
 @pytest.mark.parametrize("logfilename", logfile_list)
-@pytest.mark.menow
 def test_highway_project_card(request, logfilename):
     """
     Tests that the logfile can be read in and

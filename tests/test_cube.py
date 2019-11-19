@@ -60,7 +60,6 @@ def test_read_transit_linefile(request, logfilename):
 
 
 @pytest.mark.parametrize("logfilename", logfile_list)
-@pytest.mark.menow
 def test_write_transit_standard(request, logfilename):
     print("\n--Starting:", request.node.name)
 

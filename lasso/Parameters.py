@@ -195,13 +195,14 @@ class Parameters:
 
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
+    ##todo just move to roadway.py
     DEFAULT_CALCULATED_VARIABLES_ROADWAY = [
         'self.calculate_area_type(network_variable = "area_type")',
         'self.calculate_county(network_variable = "county")',
         'self.calculate_centroid_connector(network_variable = "centroid_connector")',
         'self.calculate_mpo(network_variable = "mpo")',
-        'self.calculate_assignment_group(network_variable="assignment_group")',
-        'self.calculate_roadway_class(network_variable="roadway_class")',
+        #'self.calculate_assignment_group(network_variable="assignment_group")',
+        #'self.calculate_roadway_class(network_variable="roadway_class")',
         "self.add_counts()",
     ]
 
@@ -305,6 +306,8 @@ class Parameters:
         "nodes.csv",
     )
 
+    DEFAULT_OUTPUT_EPSG = 26915
+
     def __init__(self, **kwargs):
 
         self.__dict__.update(kwargs)
@@ -387,3 +390,5 @@ class Parameters:
             self.output_link_csv = Parameters.DEFAULT_OUTPUT_LINK_CSV
         if "output_node_csv" not in kwargs:
             self.output_node_csv = Parameters.DEFAULT_OUTPUT_NODE_CSV
+        if "output_epsg" not in kwargs:
+            self.output_epsg = Parameters.DEFAULT_OUTPUT_EPSG

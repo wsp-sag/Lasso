@@ -106,7 +106,6 @@ def test_calculate_area_type(request):
 
 
 @pytest.mark.roadway
-@pytest.mark.menow
 def test_calculate_assignment_group_rdclass(request):
     """
     Tests that parameters are read
@@ -148,7 +147,7 @@ def test_calculate_count(request):
 
 
 @pytest.mark.roadway
-def test_roadway_stanrard_to_dbf_for_cube(request):
+def test_roadway_standard_to_dbf_for_cube(request):
     """
     Tests that parameters are read
     """
@@ -167,6 +166,7 @@ def test_roadway_stanrard_to_dbf_for_cube(request):
 
 
 @pytest.mark.roadway
+@pytest.mark.menow
 def test_write_cube_roadway(request):
     """
     Tests that parameters are read
@@ -180,4 +180,4 @@ def test_write_cube_roadway(request):
         fast=True,
     )
 
-    net.write_cube_roadway()
+    net.write_roadway_as_shp()

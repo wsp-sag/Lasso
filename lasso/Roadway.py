@@ -21,6 +21,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # will have to change if want to alter them
         self.parameters = Parameters(**parameters)
 
+        self.links_metcouncil_df = None
+        self.nodes_metcouncil_df = None
+        self.shape_metcounciL_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
@@ -359,6 +362,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         osm_assgngrp_dict=None,
     ):
         """
+        Assignment Group is used in MetCouncil's traffic assignment to segment the volume/delay curves.
+        Original source is from the MRCC data for the Minnesota: "route system" which is a roadway class
+        For Wisconsin, it is from the Wisconsin DOT database, which has a variable called "roadway category"
+
+        There is a crosswalk between the MRCC Route System and Wisconsin DOT --> Met Council Assignment group
+
+        This method
         join network with mrcc and widot roadway data by shst js matcher returns
         """
 
@@ -405,14 +415,21 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.debug("Calculating Centroid Connectors")
         self.calculate_centroid_connector()
 
+        WranglerLogger.debug("Reading MRCC / Shared Streets Match CSV")
+        # mrcc_shst_match_df = pd.read_csv()
         mrcc_gdf = gpd.read_file(mrcc_roadway_class_shape)
         mrcc_gdf["LINK_ID"] = range(1, 1 + len(mrcc_gdf))
+        # returns shstreets dataframe with geometry ID, pp_link_id (which is the LINK_ID)
         mrcc_shst_ref_df = ModelRoadwayNetwork.read_match_result(mrcc_shst_data)
 
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
         widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
 
+        #join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
+        #
+        # get route_sys from MRCC
+        # end up with OSM data with MRCC attributes
         join_gdf = ModelRoadwayNetwork.get_attribute(
             self.links_df,
             "shstGeometryId",
@@ -445,9 +462,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             how="left",
             on="roadway",
         )
-
-        print(join_gdf.columns)
-        print(mrcc_asgngrp_crosswalk_df.columns)
 
         join_gdf = pd.merge(
             join_gdf,
@@ -538,12 +552,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         shst_csv_variable=None,
         network_variable=None,
         network_var_type=int,
-        overwrite_existing = False,
+        overwrite_existing=False,
     ):
         """
         join the network with data, via SHST API node match result
         """
-        WranglerLogger.info("Adding Variable {} using Shared Streets Reference from {}".format(network_variable, var_shst_csvdata))
+        WranglerLogger.info(
+            "Adding Variable {} using Shared Streets Reference from {}".format(
+                network_variable, var_shst_csvdata
+            )
+        )
 
         var_shst_df = pd.read_csv(var_shst_csvdata)
 
@@ -553,13 +571,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             raise ValueError(msg)
 
         join_gdf = pd.merge(
-            self.links_df, var_shst_df[["shstReferenceId",shst_csv_variable]], how="left", on="shstReferenceId"
+            self.links_df,
+            var_shst_df[["shstReferenceId", shst_csv_variable]],
+            how="left",
+            on="shstReferenceId",
         )
 
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
         if network_variable in self.links_df.columns and not overwrite_existing:
-            join_gdf.loc[join_gdf[network_variable]>0][network_variable] = join_gdf.loc[self.links_df[network_variable]>0][shst_csv_variable]
+            join_gdf.loc[join_gdf[network_variable] > 0][
+                network_variable
+            ] = join_gdf.loc[self.links_df[network_variable] > 0][shst_csv_variable]
         else:
             join_gdf[network_variable] = join_gdf[shst_csv_variable].astype(
                 network_var_type
@@ -567,7 +590,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
-        WranglerLogger.info("Added variable: {} using Shared Streets Reference".format(network_variable))
+        WranglerLogger.info(
+            "Added variable: {} using Shared Streets Reference".format(network_variable)
+        )
 
     def add_counts(
         self,
@@ -575,7 +600,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         widot_count_shst_data=None,
         mndot_count_variable_shp=None,
         widot_count_variable_shp=None,
-        network_variable='AADT',
+        network_variable="AADT",
     ):
 
         """
@@ -587,10 +612,26 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        mndot_count_shst_data = mndot_count_shst_data if mndot_count_shst_data else self.parameters.mndot_count_shst_data
-        widot_count_shst_data = widot_count_shst_data if widot_count_shst_data else self.parameters.widot_count_shst_data
-        mndot_count_variable_shp = mndot_count_variable_shp if mndot_count_variable_shp else self.parameters.mndot_count_variable_shp
-        widot_count_variable_shp = widot_count_variable_shp if widot_count_variable_shp else self.parameters.widot_count_variable_shp
+        mndot_count_shst_data = (
+            mndot_count_shst_data
+            if mndot_count_shst_data
+            else self.parameters.mndot_count_shst_data
+        )
+        widot_count_shst_data = (
+            widot_count_shst_data
+            if widot_count_shst_data
+            else self.parameters.widot_count_shst_data
+        )
+        mndot_count_variable_shp = (
+            mndot_count_variable_shp
+            if mndot_count_variable_shp
+            else self.parameters.mndot_count_variable_shp
+        )
+        widot_count_variable_shp = (
+            widot_count_variable_shp
+            if widot_count_variable_shp
+            else self.parameters.widot_count_variable_shp
+        )
 
         for varname, var in {
             "mndot_count_shst_data": mndot_count_shst_data,
@@ -617,23 +658,23 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-        print('MNDOT3',mndot_count_shst_data )
-        #Add Minnesota Counts
+
+        # Add Minnesota Counts
         self.add_variable_using_shst_reference(
             var_shst_csvdata=mndot_count_shst_data,
             shst_csv_variable=mndot_count_variable_shp,
             network_variable=network_variable,
             network_var_type=int,
-            overwrite_existing = True,
+            overwrite_existing=True,
         )
 
-        #Add Wisconsin Counts, but don't overwrite Minnesota
+        # Add Wisconsin Counts, but don't overwrite Minnesota
         self.add_variable_using_shst_reference(
             var_shst_csvdata=widot_count_shst_data,
             shst_csv_variable=widot_count_variable_shp,
             network_variable=network_variable,
             network_var_type=int,
-            overwrite_existing = False,
+            overwrite_existing=False,
         )
 
         WranglerLogger.info(
@@ -662,7 +703,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         source_gdf,  # source dataframe
         field_name,  # , # targetted attribute from source
     ):
-
+        # join based on shared streets geometry ID
+        # pp_link_id is shared streets match return
+        # source_ink_id is mrcc
+        # end up with OSM network with the MRCC Link ID
+        # could also do with route_sys...would that be quicker?
         join_refId_df = pd.merge(
             links_df,
             source_shst_ref_df[[join_key, "pp_link_id", "score"]].rename(
@@ -672,6 +717,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             on=join_key,
         )
 
+        # joined with MRCC dataframe to get route_sys
+
         join_refId_df = pd.merge(
             join_refId_df,
             source_gdf[["LINK_ID", field_name]].rename(
@@ -680,6 +727,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             how="left",
             on="source_link_id",
         )
+
+        # more than one match, take the best score
 
         join_refId_df.sort_values(
             by=["model_link_id", "source_score"],
@@ -696,12 +745,28 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return join_refId_df[links_df.columns.tolist() + [field_name]]
 
-    def roadway_standard_to_dbf_for_cube(self):
+    def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
-        rename attributes for dbf
+        rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
         """
 
+        WranglerLogger.info(
+            "Renaming roadway attributes to be consistent with what metcouncil's model is expecting"
+        )
+
+        """
+        Verify inputs
+        """
+
+        output_epsg = output_epsg if output_epsg else self.parameters.output_epsg
+
+        """
+        Start actual process
+        """
+
+        WranglerLogger.info("Calculating additional variables")
         self.create_calculated_variables()
+        WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category(
             {
                 "transit_priority": {
@@ -720,64 +785,170 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             }
         )
 
-        links_dbf_df = self.links_df.copy()
-        links_dbf_df = links_dbf_df.to_crs(epsg=26915)
+        self.links_metcouncil_df = self.links_df.copy()
+        self.nodes_metcouncil_df = self.nodes_df.copy()
+        self.shape_metcouncil_df = self.shapes_df.copy()
 
-        nodes_dbf_df = self.nodes_df.copy()
-        nodes_dbf_df = nodes_dbf_df.to_crs(epsg=26915)
+        WranglerLogger.info("Setting Coordinate Reference System")
+        self.links_metcouncil_df.crs = RoadwayNetwork.CRS
+        self.nodes_metcouncil_df.crs = RoadwayNetwork.CRS
+        self.shape_metcouncil_df.crs = RoadwayNetwork.CRS
+        self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
+        self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
+        self.shape_metcouncil_df = self.shape_metcouncil_df.to_crs(epsg=26915)
 
-        nodes_dbf_df = nodes_dbf_df.reset_index()
-        nodes_dbf_df.rename(columns={"index": "osm_node_id"}, inplace=True)
+        self.nodes_metcouncil_df = self.nodes_metcouncil_df.reset_index()
+        self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
-        crosswalk_df = pd.read_csv(self.parameters.net_to_dbf)
-        print(crosswalk_df.info())
+    def rename_variables_for_dbf(
+        self, input_df, variable_crosswalk: str =None, output_variables: list =None
+    ):
+        """
+        Rename attributes
+        """
+        WranglerLogger.info("Renaming variables so that they are DBF-safe")
+
+        """
+        Verify inputs
+        """
+
+        variable_crosswalk = (
+            variable_crosswalk if variable_crosswalk else self.parameters.net_to_dbf
+        )
+
+        output_variables = (
+            output_variables if output_variables else self.parameters.output_variables
+        )
+
+        """
+        Start actual process
+        """
+
+        crosswalk_df = pd.read_csv(variable_crosswalk)
+        WranglerLogger.debug(
+            "Variable crosswalk: {} \n {}".format(
+                self.parameters.net_to_dbf, crosswalk_df.info()
+            )
+        )
         net_to_dbf_dict = dict(zip(crosswalk_df["net"], crosswalk_df["dbf"]))
 
-        links_dbf_name_list = []
-        nodes_dbf_name_list = []
+        dbf_name_list = []
 
-        for c in links_dbf_df.columns:
-            if c in self.parameters.output_variables:
+        dbf_df = input_df.copy()
+
+        # only write out variables that we specify
+        # if variable is specified in the crosswalk, rename it to that variable
+        for c in dbf_df.columns:
+            if c in output_variables:
                 try:
-                    links_dbf_df.rename(columns={c: net_to_dbf_dict[c]}, inplace=True)
-                    links_dbf_name_list += [net_to_dbf_dict[c]]
+                    dbf_df.rename(columns={c: net_to_dbf_dict[c]}, inplace=True)
+                    dbf_name_list += [net_to_dbf_dict[c]]
                 except:
-                    links_dbf_name_list += [c]
+                    dbf_name_list += [c]
 
-        for c in nodes_dbf_df.columns:
-            if c in self.parameters.output_variables:
-                try:
-                    nodes_dbf_df.rename(columns={c: net_to_dbf_dict[c]}, inplace=True)
-                    nodes_dbf_name_list += [net_to_dbf_dict[c]]
-                except:
-                    nodes_dbf_name_list += [c]
-            if c == "geometry":
-                nodes_dbf_df["X"] = nodes_dbf_df.geometry.apply(lambda g: g.x)
-                nodes_dbf_df["Y"] = nodes_dbf_df.geometry.apply(lambda g: g.y)
-                nodes_dbf_name_list += ["X", "Y"]
+            if c == "geometry" and dbf_df["geometry"].geom_type[0] == "Point":
+                dbf_df["X"] = dbf_df.geometry.apply(lambda g: g.x)
+                dbf_df["Y"] = dbf_df.geometry.apply(lambda g: g.y)
+                dbf_name_list += ["X", "Y"]
 
-        return links_dbf_df[links_dbf_name_list], nodes_dbf_df[nodes_dbf_name_list]
+        WranglerLogger.debug("DBF Variables: {}".format(",".join(dbf_name_list)))
 
-    def write_cube_roadway(self):
+        return dbf_df[dbf_name_list]
+
+    def write_roadway_as_shp(
+        self,
+        node_output_variables=None,
+        link_output_variables=None,
+        data_to_csv=True,
+        data_to_dbf=False,
+        output_link_shp=None,
+        output_node_shp=None,
+        output_link_csv=None,
+        output_node_csv=None,
+    ):
         """
         write out dbf/shp for cube
         write out csv in addition to shp with full length variable names
         """
-        links_dbf_df, nodes_dbf_df = self.roadway_standard_to_dbf_for_cube()
 
-        link_output_variables = [
-            c for c in self.links_df if c in self.parameters.output_variables
-        ]
-        node_output_variables = [
-            c for c in self.nodes_df if c in self.parameters.output_variables
-        ]
+        WranglerLogger.info("Writing Network as Shapefile")
 
-        self.links_df[link_output_variables].to_csv(
-            self.parameters.output_link_csv, index=False
+        """
+        Verify inputs
+        """
+
+        if not self.nodes_metcouncil_df:
+            self.roadway_standard_to_met_council_network()
+
+        link_output_variables = (
+            link_output_variables
+            if link_output_variables
+            else [
+                c
+                for c in self.links_metcouncil_df.columns
+                if c in self.parameters.output_variables
+            ]
         )
-        self.nodes_df[node_output_variables].to_csv(
-            self.parameters.output_node_csv, index=False
+
+        node_output_variables = (
+            node_output_variables
+            if node_output_variables
+            else [
+                c
+                for c in self.nodes_metcouncil_df.columns
+                if c in self.parameters.output_variables
+            ]
         )
 
-        links_dbf_df.to_file(self.parameters.output_link_shp)
-        nodes_dbf_df.to_file(self.parameters.output_node_shp)
+        #unless specified that all the data goes to the DBF, only output A and B
+        dbf_link_output_variables = (
+            dbf_link_output_variables if data_to_dbf else ["A", "B", "geometry"]
+        )
+
+        output_link_shp = (
+            output_link_shp if output_link_shp else self.parameters.output_link_shp
+        )
+
+        output_node_shp = (
+            output_node_shp if output_node_shp else self.parameters.output_node_shp
+        )
+
+        output_link_csv = (
+            output_link_csv if output_link_csv else self.parameters.output_link_csv
+        )
+
+        output_node_csv = (
+            output_node_csv if output_node_csv else self.parameters.output_node_csv
+        )
+
+        """
+        Start Process
+        """
+
+        WranglerLogger.info("Renaming DBF Node Variables")
+        nodes_dbf_df = self.rename_variables_for_dbf(
+            self.nodes_metcouncil_df, output_variables=node_output_variables
+        )
+        WranglerLogger.info("Renaming DBF Link Variables")
+        links_dbf_df = self.rename_variables_for_dbf(
+            self.links_metcouncil_df, output_variables=dbf_link_output_variables
+        )
+
+        WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
+        nodes_dbf_df.to_file(output_node_shp)
+        WranglerLogger.info("Writing Link Shapes:\n - {}".format(output_link_shp))
+        links_dbf_df.to_file(output_link_shp)
+
+
+        if data_to_csv:
+            WranglerLogger.info(
+                "Writing Network Data to CSVs:\n - {}\n - {}".format(
+                    output_link_csv, output_node_csv
+                )
+            )
+            self.links_metcouncil_df[link_output_variables].to_csv(
+                output_link_csv, index=False
+            )
+            self.nodes_metcouncil_df[node_output_variables].to_csv(
+                output_node_csv, index=False
+            )
