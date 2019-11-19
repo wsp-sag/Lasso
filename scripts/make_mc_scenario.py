@@ -74,18 +74,5 @@ if __name__ == "__main__":
     model_road_net = ModelRoadwayNetwork.from_RoadwayNetwork(
         my_scenario.road_net, parameters=my_config.get("my_parameters", {})
     )
-    WranglerLogger.info("\nCalculating additional variables")
-    model_road_net.create_calculated_variables()
-    WranglerLogger.info("\nSplitting variables by time period  and category")
-    model_road_net.split_properties_by_time_period_and_category()
-    WranglerLogger.info(
-        "\nWriting output network to {}".format(
-            model_road_net.parameters.output["directory"]
-        )
-    )
-    selected_net = model_road_net[model_road_net.parameters.output_variables]
-    selected_net.write(
-        model_road_net.parameters.output["directory"],
-        model_road_net.parameters.output["prefix"],
-        format=model_road_net.parameters.output["format"],
-    )
+    WranglerLogger.info("\nCalculating additional variables and writing as shapefile")
+    model_road_net.write_roadway_as_shp()
