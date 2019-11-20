@@ -8,7 +8,7 @@ base_scenario:
 
 scenario:
     project_cards_filenames: []
-    card_directory: "../../network_wrangler/examples/stpaul/project_cards"
+    card_directory: "examples/stpaul/project_cards"
     glob_search: "*attribute*.yml"
     tags: []
 
