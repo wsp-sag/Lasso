@@ -224,7 +224,7 @@ class CubeTransit(object):
         # line attribtes
         s += '\n LONGNAME="%s",' % (x.LONGNAME,)
         if x.tod == "pk":
-            s += "\n HEADWAY=%s," % (x.HEADWAY,)
+            s += "\n HEADWAY[1]=%s," % (x.HEADWAY,)
         else:
             s += "\n HEADWAY[2]=%s," % (x.HEADWAY,)
         s += "\n MODE=%s," % (x.MODE,)
