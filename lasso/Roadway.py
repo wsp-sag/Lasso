@@ -1,3 +1,4 @@
+import copy
 import glob
 import os
 
@@ -23,7 +24,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None
-        self.shape_metcounciL_df = None
+        self.shapes_metcounciL_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
@@ -116,7 +117,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Params
         -------
         """
-
+        WranglerLogger.info("Creating calculated roadway variables.")
         self.calculate_area_type()
         self.calculate_county()
         self.calculate_centroid_connector()
@@ -125,7 +126,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         #'self.calculate_roadway_class()
         self.add_counts()
 
-    def calculate_county(self, network_variable="county"):
+    def calculate_county(self, network_variable="county", overwrite=False):
         """
         This uses the centroid of the geometry field to determine which county it should be labeled.
         This isn't perfect, but it much quicker than other methods.
@@ -134,6 +135,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         -------
 
         """
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info("Overwriting existing County Variable '{}' already in network".format(network_variable))
+            else:
+                WranglerLogger.info("County Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                return
+
+        WranglerLogger.info("Adding roadway network variable for county: {}".format(network_variable))
+
 
         centroids_gdf = self.links_df.copy()
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
@@ -152,6 +162,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         area_type_shape=None,
         area_type_shape_variable=None,
         area_type_codes_dict=None,
+        overwrite=False,
     ):
         """
         This uses the centroid of the geometry field to determine which area type it should be labeled.
@@ -161,11 +172,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         -------
 
         """
-        WranglerLogger.info("Calculating Area Type from Spatial Data")
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info("Overwriting existing Area Type Variable '{}' already in network".format(network_variable))
+            else:
+                WranglerLogger.info("Area Type Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                return
+
+        WranglerLogger.info("Calculating Area Type from Spatial Data and adding as roadway network variable: {}".format(network_variable))
 
         """
         Verify inputs
         """
+
 
         area_type_shape = (
             area_type_shape if area_type_shape else self.parameters.area_type_shape
@@ -200,6 +220,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             msg = "No area type codes dictionary specified"
             WranglerLogger.error(msg)
             raise ValueError(msg)
+
 
         """
         Start actual process
@@ -237,6 +258,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         network_variable="centroid_connector",
         as_integer=True,
         highest_taz_number=None,
+        overwrite=False,
     ):
         """
         Params
@@ -246,7 +268,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         as_integer: bool
           if true, will convert true/false to 1/0s
         """
-        WranglerLogger.info("Calculating Centroid Connectors")
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info("Overwriting existing Centroid Connector Variable '{}' already in network".format(network_variable))
+            else:
+                WranglerLogger.info("Centroid Connector Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                return
+
+        WranglerLogger.info("Calculating Centroid Connector and adding as roadway network variable: {}".format(network_variable))
         """
         Verify inputs
         """
@@ -299,6 +329,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         network_variable="mpo",
         as_integer=True,
         mpo_counties=None,
+        overwrite=False,
     ):
         """
         Params
@@ -310,7 +341,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         as_integer: bool
           if true, will convert true/false to 1/0s
         """
-        WranglerLogger.info("Calculating MPO")
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info("Overwriting existing MPO Variable '{}' already in network".format(network_variable))
+            else:
+                WranglerLogger.info("MPO Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                return
+
+
+        WranglerLogger.info("Calculating MPO as roadway network variable: {}".format(network_variable))
         """
         Verify inputs
         """
@@ -376,7 +416,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         This method joins the  network with mrcc and widot roadway data by shst js matcher returns
         """
 
-        WranglerLogger.info("Calculating Assignment Group")
+        WranglerLogger.info("Calculating Assignment Group as network variable: {}".format(network_variable))
 
         """
         Verify inputs
@@ -598,7 +638,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         shst_csv_variable=None,
         network_variable=None,
         network_var_type=int,
-        overwrite_existing=False,
+        overwrite =False,
     ):
         """
         join the network with data, via SHST API node match result
@@ -616,6 +656,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
+        if shst_csv_variable not in var_shst_df.columns:
+            msg = "{} required but not found in {}".format(shst_csv_variable,var_shst_data)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
         join_gdf = pd.merge(
             self.links_df,
             var_shst_df[["shstReferenceId", shst_csv_variable]],
@@ -625,10 +670,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
-        if network_variable in self.links_df.columns and not overwrite_existing:
+        if network_variable in self.links_df.columns and not overwrite:
             join_gdf.loc[join_gdf[network_variable] > 0][
                 network_variable
-            ] = join_gdf.loc[self.links_df[network_variable] > 0][shst_csv_variable]
+            ] = join_gdf[shst_csv_variable].astype(network_var_type)
         else:
             join_gdf[network_variable] = join_gdf[shst_csv_variable].astype(
                 network_var_type
@@ -704,23 +749,23 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-
+        WranglerLogger.debug("Adding MNDOT Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(mndot_count_shst_data,mndot_count_variable_shp,network_variable))
         # Add Minnesota Counts
         self.add_variable_using_shst_reference(
             var_shst_csvdata=mndot_count_shst_data,
             shst_csv_variable=mndot_count_variable_shp,
             network_variable=network_variable,
             network_var_type=int,
-            overwrite_existing=True,
+            overwrite=True,
         )
-
+        WranglerLogger.debug("Adding WiDot Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(widot_count_shst_data,widot_count_variable_shp,network_variable))
         # Add Wisconsin Counts, but don't overwrite Minnesota
         self.add_variable_using_shst_reference(
             var_shst_csvdata=widot_count_shst_data,
             shst_csv_variable=widot_count_variable_shp,
             network_variable=network_variable,
             network_var_type=int,
-            overwrite_existing=False,
+            overwrite=False,
         )
 
         WranglerLogger.info(
@@ -816,45 +861,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-
+        self.create_managed_lane_network(in_place=True)
         WranglerLogger.info("Calculating additional variables")
         self.create_calculated_variables()
         WranglerLogger.info("Splitting variables by time period and category")
-        self.split_properties_by_time_period_and_category(
-            {
-                "transit_priority": {
-                    "v": "transit_priority",
-                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-                    #'categories': Parameters.DEFAULT_CATEGORIES
-                },
-                "traveltime_assert": {
-                    "v": "traveltime_assert",
-                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-                },
-                "lanes": {
-                    "v": "lanes",
-                    "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-                },
-            }
-        )
+        self.split_properties_by_time_period_and_category()
 
         self.links_metcouncil_df = self.links_df.copy()
         self.nodes_metcouncil_df = self.nodes_df.copy()
-        self.shape_metcouncil_df = self.shapes_df.copy()
+        self.shapes_metcouncil_df = self.shapes_df.dropna().copy()
 
-        WranglerLogger.info("Setting Coordinate Reference System")
         self.links_metcouncil_df.crs = RoadwayNetwork.CRS
         self.nodes_metcouncil_df.crs = RoadwayNetwork.CRS
-        self.shape_metcouncil_df.crs = RoadwayNetwork.CRS
+        self.shapes_metcouncil_df.crs = RoadwayNetwork.CRS
+        WranglerLogger.info("Setting Coordinate Reference System to EPSG 26915")
         self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
-        self.shape_metcouncil_df = self.shape_metcouncil_df.to_crs(epsg=26915)
+        self.shapes_metcouncil_df = self.shapes_metcouncil_df.to_crs(epsg=26915)
 
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.reset_index()
         self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
     def rename_variables_for_dbf(
-        self, input_df, variable_crosswalk: str =None, output_variables: list =None
+        self, input_df, variable_crosswalk: str =None, output_variables: list =None, convert_geometry_to_xy = False,
     ):
         """
         Rename attributes
@@ -880,14 +909,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         crosswalk_df = pd.read_csv(variable_crosswalk)
         WranglerLogger.debug(
             "Variable crosswalk: {} \n {}".format(
-                self.parameters.net_to_dbf, crosswalk_df.info()
+                variable_crosswalk, crosswalk_df
             )
         )
         net_to_dbf_dict = dict(zip(crosswalk_df["net"], crosswalk_df["dbf"]))
 
         dbf_name_list = []
 
-        dbf_df = input_df.copy()
+        dbf_df = copy.deepcopy(input_df)
 
         # only write out variables that we specify
         # if variable is specified in the crosswalk, rename it to that variable
@@ -899,7 +928,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 except:
                     dbf_name_list += [c]
 
-            if c == "geometry" and dbf_df["geometry"].geom_type[0] == "Point":
+        if "geometry" in dbf_df.columns:
+            if str(dbf_df["geometry"].geom_type[0]) == "Point":
                 dbf_df["X"] = dbf_df.geometry.apply(lambda g: g.x)
                 dbf_df["Y"] = dbf_df.geometry.apply(lambda g: g.y)
                 dbf_name_list += ["X", "Y"]
@@ -910,14 +940,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_shp(
         self,
-        node_output_variables=None,
-        link_output_variables=None,
-        data_to_csv=True,
-        data_to_dbf=False,
-        output_link_shp=None,
-        output_node_shp=None,
-        output_link_csv=None,
-        output_node_csv=None,
+        node_output_variables: list=None,
+        link_output_variables: list=None,
+        data_to_csv: bool=True,
+        data_to_dbf: bool=False,
+        output_link_shp: str=None,
+        output_node_shp: str=None,
+        output_link_csv: str=None,
+        output_node_csv: str=None,
     ):
         """
         write out dbf/shp for cube
@@ -930,7 +960,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        if not self.nodes_metcouncil_df:
+        if self.nodes_metcouncil_df is not None:
             self.roadway_standard_to_met_council_network()
 
         link_output_variables = (
