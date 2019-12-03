@@ -7,7 +7,11 @@ def test_all():
 
     try:
         subprocess.run(
-            ["python", "scripts/make_mc_scenario.py", "examples/settings/my_config.yaml"]
+            [
+                "python",
+                "scripts/make_mc_scenario.py",
+                "examples/settings/my_config.yaml",
+            ]
         ).check_returncode()
     except subprocess.CalledProcessError as e:
         print(e.output)
