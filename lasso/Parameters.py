@@ -198,7 +198,6 @@ class Parameters:
 
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
-
     DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         "examples",

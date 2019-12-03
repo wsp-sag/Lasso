@@ -122,7 +122,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_county()
         self.calculate_centroid_connector()
         self.calculate_mpo()
-        #self.calculate_assignment_group()
+        # self.calculate_assignment_group()
         #'self.calculate_roadway_class()
         self.add_counts()
 
@@ -137,13 +137,22 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         if network_variable in self.links_df:
             if overwrite:
-                WranglerLogger.info("Overwriting existing County Variable '{}' already in network".format(network_variable))
+                WranglerLogger.info(
+                    "Overwriting existing County Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
             else:
-                WranglerLogger.info("County Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                WranglerLogger.info(
+                    "County Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
                 return
 
-        WranglerLogger.info("Adding roadway network variable for county: {}".format(network_variable))
-
+        WranglerLogger.info(
+            "Adding roadway network variable for county: {}".format(network_variable)
+        )
 
         centroids_gdf = self.links_df.copy()
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
@@ -175,17 +184,28 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if network_variable in self.links_df:
             if overwrite:
-                WranglerLogger.info("Overwriting existing Area Type Variable '{}' already in network".format(network_variable))
+                WranglerLogger.info(
+                    "Overwriting existing Area Type Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
             else:
-                WranglerLogger.info("Area Type Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                WranglerLogger.info(
+                    "Area Type Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
                 return
 
-        WranglerLogger.info("Calculating Area Type from Spatial Data and adding as roadway network variable: {}".format(network_variable))
+        WranglerLogger.info(
+            "Calculating Area Type from Spatial Data and adding as roadway network variable: {}".format(
+                network_variable
+            )
+        )
 
         """
         Verify inputs
         """
-
 
         area_type_shape = (
             area_type_shape if area_type_shape else self.parameters.area_type_shape
@@ -220,7 +240,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             msg = "No area type codes dictionary specified"
             WranglerLogger.error(msg)
             raise ValueError(msg)
-
 
         """
         Start actual process
@@ -271,12 +290,24 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if network_variable in self.links_df:
             if overwrite:
-                WranglerLogger.info("Overwriting existing Centroid Connector Variable '{}' already in network".format(network_variable))
+                WranglerLogger.info(
+                    "Overwriting existing Centroid Connector Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
             else:
-                WranglerLogger.info("Centroid Connector Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                WranglerLogger.info(
+                    "Centroid Connector Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
                 return
 
-        WranglerLogger.info("Calculating Centroid Connector and adding as roadway network variable: {}".format(network_variable))
+        WranglerLogger.info(
+            "Calculating Centroid Connector and adding as roadway network variable: {}".format(
+                network_variable
+            )
+        )
         """
         Verify inputs
         """
@@ -344,13 +375,22 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if network_variable in self.links_df:
             if overwrite:
-                WranglerLogger.info("Overwriting existing MPO Variable '{}' already in network".format(network_variable))
+                WranglerLogger.info(
+                    "Overwriting existing MPO Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
             else:
-                WranglerLogger.info("MPO Variable '{}' already in network. Returning without overwriting.".format(network_variable))
+                WranglerLogger.info(
+                    "MPO Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
                 return
 
-
-        WranglerLogger.info("Calculating MPO as roadway network variable: {}".format(network_variable))
+        WranglerLogger.info(
+            "Calculating MPO as roadway network variable: {}".format(network_variable)
+        )
         """
         Verify inputs
         """
@@ -416,78 +456,132 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         This method joins the  network with mrcc and widot roadway data by shst js matcher returns
         """
 
-        WranglerLogger.info("Calculating Assignment Group as network variable: {}".format(network_variable))
+        WranglerLogger.info(
+            "Calculating Assignment Group as network variable: {}".format(
+                network_variable
+            )
+        )
 
         """
         Verify inputs
         """
-        mrcc_roadway_class_shape = mrcc_roadway_class_shape if mrcc_roadway_class_shape else self.parameters.mrcc_roadway_class_shape
+        mrcc_roadway_class_shape = (
+            mrcc_roadway_class_shape
+            if mrcc_roadway_class_shape
+            else self.parameters.mrcc_roadway_class_shape
+        )
         if not mrcc_roadway_class_shape:
-            msg = "'mrcc_roadway_class_shape' not found in method or lasso parameters.".format(mrcc_roadway_class_shape)
+            msg = "'mrcc_roadway_class_shape' not found in method or lasso parameters.".format(
+                mrcc_roadway_class_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(mrcc_roadway_class_shape):
-            msg = "'mrcc_roadway_class_shape' not found at following location: {}.".format(mrcc_roadway_class_shape)
+            msg = "'mrcc_roadway_class_shape' not found at following location: {}.".format(
+                mrcc_roadway_class_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        widot_roadway_class_shape = widot_roadway_class_shape if widot_roadway_class_shape else self.parameters.widot_roadway_class_shape
+        widot_roadway_class_shape = (
+            widot_roadway_class_shape
+            if widot_roadway_class_shape
+            else self.parameters.widot_roadway_class_shape
+        )
         if not widot_roadway_class_shape:
-            msg = "'widot_roadway_class_shape' not found in method or lasso parameters.".format(widot_roadway_class_shape)
+            msg = "'widot_roadway_class_shape' not found in method or lasso parameters.".format(
+                widot_roadway_class_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(widot_roadway_class_shape):
-            msg = "'widot_roadway_class_shape' not found at following location: {}.".format(widot_roadway_class_shape)
+            msg = "'widot_roadway_class_shape' not found at following location: {}.".format(
+                widot_roadway_class_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        mrcc_shst_data = mrcc_shst_data if mrcc_shst_data else self.parameters.mrcc_shst_data
+        mrcc_shst_data = (
+            mrcc_shst_data if mrcc_shst_data else self.parameters.mrcc_shst_data
+        )
         if not mrcc_shst_data:
-            msg = "'mrcc_shst_data' not found in method or lasso parameters.".format(mrcc_shst_data)
+            msg = "'mrcc_shst_data' not found in method or lasso parameters.".format(
+                mrcc_shst_data
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(mrcc_shst_data):
-            msg = "'mrcc_shst_data' not found at following location: {}.".format(mrcc_shst_data)
+            msg = "'mrcc_shst_data' not found at following location: {}.".format(
+                mrcc_shst_data
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        widot_shst_data = widot_shst_data if widot_shst_data else self.parameters.widot_shst_data
+        widot_shst_data = (
+            widot_shst_data if widot_shst_data else self.parameters.widot_shst_data
+        )
         if not widot_shst_data:
-            msg = "'widot_shst_data' not found in method or lasso parameters.".format(widot_shst_data)
+            msg = "'widot_shst_data' not found in method or lasso parameters.".format(
+                widot_shst_data
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(widot_shst_data):
-            msg = "'widot_shst_data' not found at following location: {}.".format(widot_shst_data)
+            msg = "'widot_shst_data' not found at following location: {}.".format(
+                widot_shst_data
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        mrcc_roadway_class_variable_shp = mrcc_roadway_class_variable_shp if mrcc_roadway_class_variable_shp else self.parameters.mrcc_roadway_class_variable_shp
+        mrcc_roadway_class_variable_shp = (
+            mrcc_roadway_class_variable_shp
+            if mrcc_roadway_class_variable_shp
+            else self.parameters.mrcc_roadway_class_variable_shp
+        )
         if not mrcc_roadway_class_variable_shp:
             msg = "'mrcc_roadway_class_variable_shp' not found in method or lasso parameters."
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        widot_roadway_class_variable_shp = widot_roadway_class_variable_shp if widot_roadway_class_variable_shp else self.parameters.widot_roadway_class_variable_shp
+        widot_roadway_class_variable_shp = (
+            widot_roadway_class_variable_shp
+            if widot_roadway_class_variable_shp
+            else self.parameters.widot_roadway_class_variable_shp
+        )
         if not widot_roadway_class_variable_shp:
             msg = "'widot_roadway_class_variable_shp' not found in method or lasso parameters."
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        mrcc_assgngrp_dict = mrcc_assgngrp_dict if mrcc_assgngrp_dict else self.parameters.mrcc_assgngrp_dict
+        mrcc_assgngrp_dict = (
+            mrcc_assgngrp_dict
+            if mrcc_assgngrp_dict
+            else self.parameters.mrcc_assgngrp_dict
+        )
         if not mrcc_assgngrp_dict:
             msg = "'mrcc_assgngrp_dict' not found in method or lasso parameters."
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        widot_assgngrp_dict = widot_assgngrp_dict if widot_assgngrp_dict else self.parameters.widot_assgngrp_dict
+        widot_assgngrp_dict = (
+            widot_assgngrp_dict
+            if widot_assgngrp_dict
+            else self.parameters.widot_assgngrp_dict
+        )
         if not widot_assgngrp_dict:
             msg = "'widot_assgngrp_dict' not found in method or lasso parameters."
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        osm_assgngrp_dict = osm_assgngrp_dict if osm_assgngrp_dict else self.parameters.osm_assgngrp_dict
+        osm_assgngrp_dict = (
+            osm_assgngrp_dict
+            if osm_assgngrp_dict
+            else self.parameters.osm_assgngrp_dict
+        )
         if not osm_assgngrp_dict:
-            msg = "'osm_assgngrp_dict' not found in method or lasso parameters.".format(osm_assgngrp_dict)
+            msg = "'osm_assgngrp_dict' not found in method or lasso parameters.".format(
+                osm_assgngrp_dict
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -500,23 +594,25 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Reading MRCC / Shared Streets Match CSV")
         # mrcc_shst_match_df = pd.read_csv()
-        WranglerLogger.debug("Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape))
+        WranglerLogger.debug(
+            "Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape)
+        )
         mrcc_gdf = gpd.read_file(mrcc_roadway_class_shape)
-        print("MRCC GDF Columns",mrcc_gdf.columns)
+        print("MRCC GDF Columns", mrcc_gdf.columns)
         #'LINK_ID', 'ROUTE_SYS', 'ST_CONCAT', 'geometry'
         mrcc_gdf["LINK_ID"] = range(1, 1 + len(mrcc_gdf))
         # returns shstreets dataframe with geometry ID, pp_link_id (which is the LINK_ID)
 
-        #shstReferenceId,shstGeometryId,pp_link_id
+        # shstReferenceId,shstGeometryId,pp_link_id
         mrcc_shst_ref_df = pd.read_csv(mrcc_shst_data)
-        print("mrcc shst ref df",mrcc_shst_ref_df.columns)
+        print("mrcc shst ref df", mrcc_shst_ref_df.columns)
 
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
-        print("WiDOT GDF Columns",widot_gdf.columns)
+        print("WiDOT GDF Columns", widot_gdf.columns)
         widot_shst_ref_df = pd.read_csv(widot_shst_data)
-        print("widot shst ref df",widot_shst_ref_df.columns)
-        #join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
+        print("widot shst ref df", widot_shst_ref_df.columns)
+        # join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
         #
         # get route_sys from MRCC
         # end up with OSM data with MRCC attributes
@@ -638,7 +734,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         shst_csv_variable=None,
         network_variable=None,
         network_var_type=int,
-        overwrite =False,
+        overwrite=False,
     ):
         """
         join the network with data, via SHST API node match result
@@ -657,7 +753,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             raise ValueError(msg)
 
         if shst_csv_variable not in var_shst_df.columns:
-            msg = "{} required but not found in {}".format(shst_csv_variable,var_shst_data)
+            msg = "{} required but not found in {}".format(
+                shst_csv_variable, var_shst_data
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -671,9 +769,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
         if network_variable in self.links_df.columns and not overwrite:
-            join_gdf.loc[join_gdf[network_variable] > 0][
-                network_variable
-            ] = join_gdf[shst_csv_variable].astype(network_var_type)
+            join_gdf.loc[join_gdf[network_variable] > 0][network_variable] = join_gdf[
+                shst_csv_variable
+            ].astype(network_var_type)
         else:
             join_gdf[network_variable] = join_gdf[shst_csv_variable].astype(
                 network_var_type
@@ -749,7 +847,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-        WranglerLogger.debug("Adding MNDOT Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(mndot_count_shst_data,mndot_count_variable_shp,network_variable))
+        WranglerLogger.debug(
+            "Adding MNDOT Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(
+                mndot_count_shst_data, mndot_count_variable_shp, network_variable
+            )
+        )
         # Add Minnesota Counts
         self.add_variable_using_shst_reference(
             var_shst_csvdata=mndot_count_shst_data,
@@ -758,7 +860,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             network_var_type=int,
             overwrite=True,
         )
-        WranglerLogger.debug("Adding WiDot Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(widot_count_shst_data,widot_count_variable_shp,network_variable))
+        WranglerLogger.debug(
+            "Adding WiDot Counts using \n- shst file: {}\n- shp file: {}\n- as network variable: {}".format(
+                widot_count_shst_data, widot_count_variable_shp, network_variable
+            )
+        )
         # Add Wisconsin Counts, but don't overwrite Minnesota
         self.add_variable_using_shst_reference(
             var_shst_csvdata=widot_count_shst_data,
@@ -802,8 +908,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # join based on shared streets geometry ID
         # pp_link_id is shared streets match return
         # source_ink_id is mrcc
-        print('source ShSt rename_variables_for_dbf columns', source_shst_ref_df.columns)
-        print('source gdf columns', source_gdf.columns)
+        print(
+            "source ShSt rename_variables_for_dbf columns", source_shst_ref_df.columns
+        )
+        print("source gdf columns", source_gdf.columns)
         # end up with OSM network with the MRCC Link ID
         # could also do with route_sys...would that be quicker?
         join_refId_df = pd.merge(
@@ -883,7 +991,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
     def rename_variables_for_dbf(
-        self, input_df, variable_crosswalk: str =None, output_variables: list =None, convert_geometry_to_xy = False,
+        self,
+        input_df,
+        variable_crosswalk: str = None,
+        output_variables: list = None,
+        convert_geometry_to_xy=False,
     ):
         """
         Rename attributes
@@ -908,9 +1020,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         crosswalk_df = pd.read_csv(variable_crosswalk)
         WranglerLogger.debug(
-            "Variable crosswalk: {} \n {}".format(
-                variable_crosswalk, crosswalk_df
-            )
+            "Variable crosswalk: {} \n {}".format(variable_crosswalk, crosswalk_df)
         )
         net_to_dbf_dict = dict(zip(crosswalk_df["net"], crosswalk_df["dbf"]))
 
@@ -940,14 +1050,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_shp(
         self,
-        node_output_variables: list=None,
-        link_output_variables: list=None,
-        data_to_csv: bool=True,
-        data_to_dbf: bool=False,
-        output_link_shp: str=None,
-        output_node_shp: str=None,
-        output_link_csv: str=None,
-        output_node_csv: str=None,
+        node_output_variables: list = None,
+        link_output_variables: list = None,
+        data_to_csv: bool = True,
+        data_to_dbf: bool = False,
+        output_link_shp: str = None,
+        output_node_shp: str = None,
+        output_link_csv: str = None,
+        output_node_csv: str = None,
     ):
         """
         write out dbf/shp for cube
@@ -983,7 +1093,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             ]
         )
 
-        #unless specified that all the data goes to the DBF, only output A and B
+        # unless specified that all the data goes to the DBF, only output A and B
         dbf_link_output_variables = (
             dbf_link_output_variables if data_to_dbf else ["A", "B", "geometry"]
         )
@@ -1021,7 +1131,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         nodes_dbf_df.to_file(output_node_shp)
         WranglerLogger.info("Writing Link Shapes:\n - {}".format(output_link_shp))
         links_dbf_df.to_file(output_link_shp)
-
 
         if data_to_csv:
             WranglerLogger.info(
