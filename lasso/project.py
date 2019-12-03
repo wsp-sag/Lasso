@@ -361,39 +361,37 @@ class Project(object):
 
         # process additions
         WranglerLogger.debug("Processing link additions")
-        try:
-            cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
-
+        cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
+        if cube_add_df.shape[1] > 0:
+            # check if property is in existing roadway network
+            ## Sijia - don't we want to add the attribute even if it isn't in the existing roadway network?
             add_col = [
-                x
-                for x in cube_add_df.columns
-                if x in self.base_roadway_network.links_df.columns
+                c
+                for c in cube_add_df.columns
+                if c in self.base_roadway_network.links_df.columns
             ]
-            add_link_dict_df = cube_add_df.copy()
 
-            def _prop_dict(x):
-                d = {}
-                for c in add_col:
-                    d[c] = x[c]
-                return d
+            add_link_properties = cube_add_df[add_col].to_dict('records')
 
-            add_link_dict_df["properties"] = add_link_dict_df.apply(_prop_dict, axis=1)
+            #WranglerLogger.debug("Add Link Properties: {}".format(add_link_properties))
+            WranglerLogger.debug("{} Links Added".format(len(add_link_properties)))
 
             add_link_dict = {
                 "category": "New Roadway",
-                "links": add_link_dict_df["properties"].tolist(),
+                "links": add_link_properties,
             }
-        except:
+        else:
             WranglerLogger.debug("No link additions processed")
-            add_link_dict = None
+            add_link_dict = {}
 
-        try:
-            if len(node_add_df):
-                node_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
-                    "record"
-                )
-            add_link_dict["nodes"] = node_dict_list
-        except:
+        if len(node_add_df):
+            add_nodes_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
+                "records"
+            )
+            WranglerLogger.debug("{} Nodes Added".format(len(add_nodes_dict_list)))
+            add_link_dict["nodes"] = add_nodes_dict_list
+        else:
+            WranglerLogger.debug("No Nodes Added")
             node_dict_list = None
 
         # process changes
@@ -499,10 +497,11 @@ class Project(object):
         for change in change_link_dict_list:
             change["category"] = "Roadway Attribute Change"
 
+        WranglerLogger.debug("{} Changes Processed".format(len(change_link_dict_list)))
+
         highway_change_list = list(
             filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list)
         )
 
-        # WranglerLogger.info("Processed: \n - {} deletions\n - {} additions\n - {} changes.".format(len(change_link_dict_list)))
 
         return highway_change_list
