@@ -1,15 +1,15 @@
+import json
+import os
 import re
 from typing import Any, Dict, Optional
 
 import pandas as pd
 from pandas import DataFrame
-import json
 
-from network_wrangler import RoadwayNetwork
 from network_wrangler import ProjectCard
-import os
+from network_wrangler import RoadwayNetwork
 
-from lasso.TransitNetwork import TransitNetworkLasso
+from .TransitNetwork import TransitNetworkLasso
 from .transit import CubeTransit
 from .Logger import WranglerLogger
 
@@ -32,6 +32,7 @@ class Project(object):
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
+        build_transit_network: Optional[CubeTransit] = None,
         project_name: Optional[str] = "",
         evaluate: bool = False,
     ):
@@ -43,12 +44,14 @@ class Project(object):
         self.roadway_changes = roadway_changes
         self.base_roadway_network = base_roadway_network
         self.base_transit_network = base_transit_network
+        self.build_transit_network = build_transit_network
         self.transit_changes = transit_changes
         self.project_name = (
             project_name if project_name else Project.DEFAULT_PROJECT_NAME
         )
 
-        self.determine_roadway_network_changes_compatability()
+        if base_roadway_network != None:
+            self.determine_roadway_network_changes_compatability()
 
         if evaluate:
             self.evaluate_changes()
@@ -63,6 +66,7 @@ class Project(object):
         -------
         """
         ProjectCard(self.card_data).write(filename)
+        WranglerLogger.info("Wrote project card to: {}".format(filename))
 
     @staticmethod
     def create_project(
@@ -92,8 +96,8 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if build_transit_dir:
-            transit_changes = CubeTransit.create_cubetransit(
-                build_transit_dir, build_transit_dir
+            build_transit_network = CubeTransit.create_cubetransit(
+                cube_transit_dir=build_transit_dir
             )
         else:
             msg = "No transit changes given or processed."
@@ -133,7 +137,7 @@ class Project(object):
             raise ValueError(msg)
         if base_transit_dir:
             base_transit_network = CubeTransit.create_cubetransit(
-                base_transit_dir, base_transit_dir
+                cube_transit_dir=base_transit_dir
             )
         else:
             msg = "No base transit network."
@@ -145,6 +149,7 @@ class Project(object):
             transit_changes=transit_changes,
             base_roadway_network=base_roadway_network,
             base_transit_network=base_transit_network,
+            build_transit_network=build_transit_network,
             evaluate=True,
         )
 
@@ -248,7 +253,10 @@ class Project(object):
         if not self.roadway_changes.empty:
             highway_change_list = self.add_highway_changes()
 
-        if not self.transit_changes == None:
+        if (self.transit_changes is not None) or (
+            self.base_transit_network is not None
+            and self.build_transit_network is not None
+        ):
             transit_change_list = self.add_transit_changes()
 
         self.card_data = {
@@ -261,11 +269,10 @@ class Project(object):
         Evaluates changes between base and build transit objects and
         adds entries into the self.card_data dictionary.
         """
-        ## TODO Sijia
-        ## should do comparisons in transit.py
-        transit_changes = self.transit_changes
-        base_transit_network = self.base_transit_network
-        transit_change_list = transit_changes.evaluate_differences(base_transit_network)
+
+        transit_change_list = self.build_transit_network.evaluate_differences(
+            self.base_transit_network
+        )
 
         return transit_change_list
 
@@ -371,15 +378,12 @@ class Project(object):
                 if c in self.base_roadway_network.links_df.columns
             ]
 
-            add_link_properties = cube_add_df[add_col].to_dict('records')
+            add_link_properties = cube_add_df[add_col].to_dict("records")
 
-            #WranglerLogger.debug("Add Link Properties: {}".format(add_link_properties))
+            # WranglerLogger.debug("Add Link Properties: {}".format(add_link_properties))
             WranglerLogger.debug("{} Links Added".format(len(add_link_properties)))
 
-            add_link_dict = {
-                "category": "New Roadway",
-                "links": add_link_properties,
-            }
+            add_link_dict = {"category": "New Roadway", "links": add_link_properties}
         else:
             WranglerLogger.debug("No link additions processed")
             add_link_dict = {}
@@ -502,6 +506,5 @@ class Project(object):
         highway_change_list = list(
             filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list)
         )
-
 
         return highway_change_list

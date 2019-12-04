@@ -1,10 +1,14 @@
-from lasso.TransitNetwork import TransitNetworkLasso
 from typing import Any, Dict, Optional
-from network_wrangler import TransitNetwork
+
 import geopandas as gpd
-import pandas as pd
 import numpy as np
+import pandas as pd
 import partridge as ptg
+
+from network_wrangler import TransitNetwork
+
+from .TransitNetwork import TransitNetworkLasso
+from .Logger import WranglerLogger
 
 
 class CubeTransit(object):
@@ -19,7 +23,7 @@ class CubeTransit(object):
         self.cube_transit_network = cube_transit_network
         self.diff_dict = Dict[str, Any]
 
-        self.gtfs_feed = ptg.load_feed(gtfs_feed)
+        self.gtfs_feed = ptg.load_feed(gtfs_feed) if gtfs_feed else None
 
         self.lines = [";;<<PT>><<LINE>>;;"]
 
@@ -42,7 +46,7 @@ class CubeTransit(object):
         return cubetransit
 
     @staticmethod
-    def read_cube_line_file(dirname: str):
+    def read_cube_line_file(filename: str):
         """
         reads a .lin file and stores as TransitNetwork object
 
@@ -56,7 +60,7 @@ class CubeTransit(object):
         """
         ## TODO Sijia
         tn = TransitNetworkLasso("CHAMP", 1.0)
-        tn.mergeDir(dirname)
+        tn.mergeFile(filename)
 
         return tn
 
@@ -70,7 +74,7 @@ class CubeTransit(object):
         -------
 
         """
-        ## TODO Sijia
+
         # loop thru every record in new .lin
         transit_change_list = []
         """
@@ -80,16 +84,20 @@ class CubeTransit(object):
                      "op" : {"start_time" : "09:00:00",
                             "end_time" : "15:00:00"}}
         """
+
+        WranglerLogger.info("Evaluating differences between base and build transit")
+
         time_enum = {
             "pk": list(["06:00:00", "09:00:00"]),
             "op": list(["09:00:00", "15:00:00"]),
         }
-
+        ##todo make this a pandas merge to make it all vector operations
         for line in self.cube_transit_network.lines[1:]:
             _name = line.name
             for line_base in base_transit.cube_transit_network.lines[1:]:
                 if line_base.name == _name:
                     properties_list = CubeTransit.evaluate_route_level(line, line_base)
+                    WranglerLogger.debug("Properties List: {}".format(properties_list))
                     if len(properties_list) > 0:
                         if _name[-3:-1] == "pk":
                             time = ["06:00:00", "09:00:00"]
@@ -106,6 +114,7 @@ class CubeTransit(object):
                             },
                             "properties": properties_list,
                         }
+                        WranglerLogger.debug("Card_Dict: {}".format(card_dict))
                         transit_change_list.append(card_dict)
                 else:
                     continue

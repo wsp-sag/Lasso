@@ -1247,6 +1247,41 @@ class TransitNetworkLasso(Network):
         logstr += "...done."
         return logstr
 
+    def mergeFile(self, filename, insert_replace=False):
+        WranglerLogger.debug("Adding Transit File: %s" % filename)
+
+        suffix = filename.rsplit(".")[-1].lower()
+
+        if suffix not in ["lin", "link", "pnr", "zac", "access", "xfer", "pts"]:
+            msg = 'File doesn\'t have a typical transit suffix: "lin", "link", "pnr", "zac", "access", "xfer", "pts" '
+            WranglerLogger.warning(msg)
+
+        self.parser = TransitParser(transit_file_def, verbosity=0)
+        self.parser.tfp.liType = suffix
+
+        logstr = "   Reading %s" % filename
+        f = open(filename, "r")
+        prog, lines, links, pnr, zac, accessli, xferli, nodes, supps, faresys, pts = self.parseAndPrintTransitFile(
+            f.read(), verbosity=0
+        )
+        f.close()
+        logstr += self.doMerge(
+            filename,
+            prog,
+            lines,
+            links,
+            pnr,
+            zac,
+            accessli,
+            xferli,
+            nodes,
+            supps,
+            faresys,
+            pts,
+            insert_replace,
+        )
+        WranglerLogger.debug(logstr)
+
     def mergeDir(self, path, insert_replace=False):
         """
         Append all the transit-related files in the given directory.
