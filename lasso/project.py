@@ -78,6 +78,7 @@ class Project(object):
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
+        build_transit_network: Optional[CubeTransit] = None,
     ):
         """
 
