@@ -96,7 +96,10 @@ class CubeTransit(object):
             _name = line.name
             for line_base in base_transit.cube_transit_network.lines[1:]:
                 if line_base.name == _name:
-                    properties_list = CubeTransit.evaluate_route_level(line, line_base)
+                    ## TODO also evaluate differences in stops and route shapes
+                    shape_change_list = CubeTransit.evaluate_route_shape_changes(line, line_base)
+                    ## Might be useful to review: https://github.com/wsp-sag/network_wrangler/blob/master/network_wrangler/TransitNetwork.py#L411
+                    properties_list = CubeTransit.evaluate_route_property_changes(line, line_base)
                     WranglerLogger.debug("Properties List: {}".format(properties_list))
                     if len(properties_list) > 0:
                         if _name[-3:-1] == "pk":
@@ -121,7 +124,11 @@ class CubeTransit(object):
         print(transit_change_list)
         return transit_change_list
 
-    def evaluate_route_level(line_build, line_base):
+    def evaluate_route_shape_changes(line_build, line_base):
+        ##TODO Sijia
+        pass
+
+    def evaluate_route_property_changes(line_build, line_base):
         properties_list = []
         if line_build.getFreq() != line_base.getFreq():
             _headway_diff = line_build.getFreq() - line_base.getFreq()
