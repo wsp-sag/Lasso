@@ -277,7 +277,7 @@ class Project(object):
 
         return transit_change_list
 
-    def add_highway_changes(self):
+    def add_highway_changes(self, limit_variables_to_existing_network = False):
         """
         Evaluates changes from the log file based on the base highway object and
         adds entries into the self.card_data dictionary.
@@ -371,13 +371,14 @@ class Project(object):
         WranglerLogger.debug("Processing link additions")
         cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
         if cube_add_df.shape[1] > 0:
-            # check if property is in existing roadway network
-            ## Sijia - don't we want to add the attribute even if it isn't in the existing roadway network?
-            add_col = [
-                c
-                for c in cube_add_df.columns
-                if c in self.base_roadway_network.links_df.columns
-            ]
+            if limit_variables_to_existing_network:
+                add_col = [
+                    c
+                    for c in cube_add_df.columns
+                    if c in self.base_roadway_network.links_df.columns
+                ]
+            else:
+                add_col = cube_add_df.columns
 
             add_link_properties = cube_add_df[add_col].to_dict("records")
 
