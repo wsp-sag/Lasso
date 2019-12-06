@@ -91,6 +91,11 @@ class CubeTransit(object):
             "pk": list(["06:00:00", "09:00:00"]),
             "op": list(["09:00:00", "15:00:00"]),
         }
+
+        ##TODO compare name lists to find new lines and deleted lines
+
+        ## calls method to create new line when applicable as a line object and then append
+
         ##todo make this a pandas merge to make it all vector operations
         for line in self.cube_transit_network.lines[1:]:
             _name = line.name

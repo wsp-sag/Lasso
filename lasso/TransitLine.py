@@ -143,15 +143,18 @@ class TransitLine(object):
     next = __next__
 
     def setFreqs(self, freqs, timepers=None, allowDowngrades=True):
-        """Set some or all five headways (AM,MD,PM,EV,EA)
-           - freqs is a list of numbers (or can be one number if only setting one headway)
-             also accepts list of strings of numbers e.g. ["8","0","8","0","0"]
-           - If setting fewer than 5 headways, timepers must specify the time period(s)
-             for which headways are being set. Can be numbers like [1,3] or strings like ['AM','PM'].
-             If setting all headways, True or 'All' may be passed.
-           - allowDowngrades (optional, pass either True or False) specifies whether headways
-             may be increased (i.e., whether service may be reduced) with the current action.
         """
+        Set some or all five headways (AM,MD,PM,EV,EA)
+        - freqs is a list of numbers (or can be one number if only setting one headway)
+          also accepts list of strings of numbers e.g. ["8","0","8","0","0"]
+        - If setting fewer than 5 headways, timepers must specify the time period(s)
+          for which headways are being set. Can be numbers like [1,3] or strings like ['AM','PM'].
+          If setting all headways, True or 'All' may be passed.
+        - allowDowngrades (optional, pass either True or False) specifies whether headways
+          may be increased (i.e., whether service may be reduced) with the current action.
+
+        """
+
         all_timepers = ["AM", "MD", "PM", "EV", "EA"]
         if timepers in (None, True, "All", "all", "ALL"):
             if not len(freqs) == 5:
