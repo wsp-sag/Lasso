@@ -8,6 +8,7 @@ before_install:
 install:
   - pip install -r requirements.txt
   - pip install -r dev-requirements.txt
+  - pip install pip install git+git://github.com/wsp-sag/network_wrangler.git#egg=network_wrangler
   - pip install .
 script:
   - pytest -m travis
