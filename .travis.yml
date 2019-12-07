@@ -8,8 +8,10 @@ before_install:
 install:
   - pip install -r requirements.txt
   - pip install -r dev-requirements.txt
-  - pip install pip install git+https://github.com/wsp-sag/network_wrangler.git@master
   - pip install .
+  - wget https://github.com/wsp-sag/network_wrangler/archive/master.tar.gz
+  - tar -xzvf master.tar.gz
+  - pip install network_wrangler-master/.
 script:
   - pytest -m travis
 
