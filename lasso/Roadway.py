@@ -82,12 +82,25 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         for out_var, params in properties_to_split.items():
             if params["v"] not in self.links_df.columns:
-                raise ValueError(
-                    "Specified variable to split: {} not in network variables: {}".format(
+                WranglerLogger.warning(
+                    "Specified variable to split: {} not in network variables: {}. Returning 0.".format(
                         params["v"], str(self.links_df.columns)
                     )
                 )
-            if params.get("time_periods") and params.get("categories"):
+                if params.get("time_periods") and params.get("categories"):
+
+                    for time_suffix, category_suffix in itertools.product(
+                        params["time_periods"], params["categories"]
+                    ):
+                        self.links_df[
+                            out_var + "_" + time_suffix + "_" + category_suffix
+                        ] = 0
+                elif params.get("time_periods"):
+                    for time_suffix in params["time_periods"]:
+                        self.links_df[
+                            out_var + "_" + time_suffix
+                        ] = 0
+            elif params.get("time_periods") and params.get("categories"):
                 for time_suffix, category_suffix in itertools.product(
                     params["time_periods"], params["categories"]
                 ):
@@ -969,8 +982,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-        self.create_managed_lane_network(in_place=True)
-        WranglerLogger.info("Calculating additional variables")
+        if "ML" in self.links_df.columns:
+            WranglerLogger.info("Creating managed lane network.")
+            self.create_managed_lane_network(in_place=True)
+        else:
+            WranglerLogger.info("Didn't detect managed lanes in network.")
         self.create_calculated_variables()
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
@@ -1065,13 +1081,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         WranglerLogger.info("Writing Network as Shapefile")
+        WranglerLogger.debug("Output Variables: \n - {}".format("\n - ".join(self.parameters.output_variables)))
 
         """
         Verify inputs
         """
 
-        if self.nodes_metcouncil_df is not None:
+        if self.nodes_metcouncil_df is None:
             self.roadway_standard_to_met_council_network()
+
+        WranglerLogger.debug("Network Link Variables: \n - {}".format("\n - ".join(self.links_metcouncil_df.columns)))
+        WranglerLogger.debug("Network Node Variables: \n - {}".format("\n - ".join(self.nodes_metcouncil_df.columns)))
 
         link_output_variables = (
             link_output_variables

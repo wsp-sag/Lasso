@@ -1,4 +1,6 @@
 from typing import Any, Dict, Optional
+import glob
+import os
 
 import geopandas as gpd
 import numpy as np
@@ -31,38 +33,33 @@ class CubeTransit(object):
 
     @staticmethod
     def create_cubetransit(
-        cube_transit_dir: Optional[str] = None, gtfs_feed_dir: Optional[str] = None
+        cube_transit_dir: Optional[str] = None, cube_transit_file: Optional[str] = None, gtfs_feed_dir: Optional[str] = None
     ):
+        if sum(x is not None for x in [cube_transit_dir, cube_transit_file, gtfs_feed_dir]) > 1:
+            msg = "cube_transit_dir takes only one of cube_transit_dir, cube_transit_file, and gtfs_feed_dir but more than one input."
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
-        cube_transit_network = CubeTransit.read_cube_line_file(cube_transit_dir)
-        # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
+        transit_net = TransitNetworkLasso("CHAMP", 1.0)
 
-        cubetransit = CubeTransit(
-            cube_transit_network=cube_transit_network,
-            # gtfs_feed = feed
+        if cube_transit_file:
+            transit_net.mergeFile(cube_transit_file)
+        elif cube_transit_dir:
+            for cube_transit_file in glob.glob(os.path.join(cube_transit_dir, "*.lin")):
+                transit_net.mergeFile(cube_transit_file)
+        else:
+            msg = "Creating cube network with GTFS files not yet supported"
+            WranglerLogger.error(msg)
+            raise NotImplemented(msg)
+            # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
+
+        cube_transit_net = CubeTransit(
+            cube_transit_network=transit_net,
             gtfs_feed=gtfs_feed_dir,
         )
 
-        return cubetransit
+        return cube_transit_net
 
-    @staticmethod
-    def read_cube_line_file(filename: str):
-        """
-        reads a .lin file and stores as TransitNetwork object
-
-        Parameters
-        -----------
-        dirname:  str, the directory where .lin file is
-
-        Returns
-        -------
-
-        """
-        ## TODO Sijia
-        tn = TransitNetworkLasso("CHAMP", 1.0)
-        tn.mergeFile(filename)
-
-        return tn
 
     def evaluate_differences(self, base_transit):
         """

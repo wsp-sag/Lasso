@@ -34,5 +34,6 @@ setup(
     license="Apache 2",
     platforms="any",
     packages=["lasso"],
+    include_package_data=True,
     install_requires=install_requires,
 )
