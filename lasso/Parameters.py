@@ -1,4 +1,6 @@
 import os
+from .Logger import WranglerLogger
+
 
 
 class Parameters:
@@ -47,10 +49,18 @@ class Parameters:
     Details for calculating the county based on the centroid of the link.
     The COUNTY_VARIABLE should be the name of a field in shapefile.
     """
+    DATA_FILE_LOCATION =  os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        "metcouncil_data")
+    if not os.path.isdir(DATA_FILE_LOCATION):
+        DATA_FILE_LOCATION =  os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "metcouncil_data")
+
+    WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "county",
         "cb_2017_us_county_5m.shp",
     )
@@ -67,8 +77,7 @@ class Parameters:
     ]
 
     DEFAULT_TAZ_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "TAZ",
         "TAZOfficialWCurrentForecasts.shp",
     )
@@ -76,8 +85,7 @@ class Parameters:
     DEFAULT_HIGHEST_TAZ_NUMBER = 3100
 
     DEFAULT_AREA_TYPE_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "area_type",
         "ThriveMSP2040CommunityDesignation.shp",
     )
@@ -108,14 +116,12 @@ class Parameters:
     }
 
     DEFAULT_OSM_ASSGNGRP_DICT = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "osm_highway_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "mrcc",
         "trans_mrcc_centerlines.shp",
     )
@@ -123,22 +129,19 @@ class Parameters:
     DEFAULT_MRCC_ROADWAY_CLASS_VARIABLE_SHP = "ROUTE_SYS"
 
     DEFAULT_MRCC_ASSGNGRP_DICT = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "lookups",
         "mrcc_route_sys_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_SHST_DATA = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "mrcc",
         "mrcc.out.matched.csv",
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "Wisconsin_Lanes_Counts_Median",
         "WISLR.shp",
     )
@@ -146,36 +149,31 @@ class Parameters:
     DEFAULT_WIDOT_ROADWAY_CLASS_VARIABLE_SHP = "RDWY_CTGY_"
 
     DEFAULT_WIDOT_ASSGNGRP_DICT = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION ,
         "lookups",
         "widot_ctgy_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_WIDOT_SHST_DATA = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "Wisconsin_Lanes_Counts_Median",
         "widot.out.matched.geojson",
     )
 
     DEFAULT_ROADWAY_CLASS_DICT = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "lookups",
         "asgngrp_rc_num_crosswalk.csv",
     )
 
     DEFAULT_MNDOT_COUNT_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "count_mn",
         "AADT_2017_Count_Locations.shp",
     )
 
     DEFAULT_MNDOT_COUNT_SHST_DATA = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "count_mn",
         "mn_count_ShSt_API_match.csv",
     )
@@ -183,15 +181,13 @@ class Parameters:
     DEFAULT_MNDOT_COUNT_VARIABLE_SHP = "AADT_mn"
 
     DEFAULT_WIDOT_COUNT_SHAPE = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "Wisconsin_Lanes_Counts_Median",
         "TRADAS_(counts).shp",
     )
 
     DEFAULT_WIDOT_COUNT_SHST_DATA = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "metcouncil_data",
+        DATA_FILE_LOCATION,
         "Wisconsin_Lanes_Counts_Median",
         "wi_count_ShSt_API_match.csv",
     )

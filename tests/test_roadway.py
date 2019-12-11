@@ -34,6 +34,7 @@ def test_parameter_read(request):
 
 @pytest.mark.roadway
 @pytest.mark.travis
+@pytest.mark.menow
 def test_network_calculate_variables(request):
     """
     Tests that parameters are read

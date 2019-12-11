@@ -139,7 +139,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         #'self.calculate_roadway_class()
         self.add_counts()
 
-    def calculate_county(self, network_variable="county", overwrite=False):
+    def calculate_county(
+        self,
+        county_shape = None,
+        county_shape_variable = None,
+        network_variable="county",
+        overwrite=False
+    ):
         """
         This uses the centroid of the geometry field to determine which county it should be labeled.
         This isn't perfect, but it much quicker than other methods.
@@ -163,20 +169,40 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 )
                 return
 
-        WranglerLogger.info(
-            "Adding roadway network variable for county: {}".format(network_variable)
+        """
+        Verify inputs
+        """
+
+        county_shape = (
+            county_shape if county_shape else self.parameters.county_shape
         )
+
+        county_shape_variable = (
+            county_shape_variable if county_shape_variable else self.parameters.county_variable_shp
+        )
+
+        WranglerLogger.info(
+            "Adding roadway network variable for county using a spatial join with: {}".format(county_shape)
+        )
+
+        """
+        Start actual process
+        """
 
         centroids_gdf = self.links_df.copy()
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
-        county_gdf = gpd.read_file(self.parameters.county_shape)
+        county_gdf = gpd.read_file(county_shape)
         county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
         joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
 
-        self.links_df[network_variable] = joined_gdf[
-            self.parameters.county_variable_shp
-        ]
+        self.links_df[network_variable] = joined_gdf[county_shape_variable]
+
+        WranglerLogger.info(
+            "Finished Calculating county variable: {}".format(
+                network_variable
+            )
+        )
 
     def calculate_area_type(
         self,
