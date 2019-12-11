@@ -81,7 +81,7 @@ def test_write_transit_project_card(request):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-        base_transit_file=os.path.join(CUBE_DIR,"transit.lin"),
+        base_transit_file=os.path.join(CUBE_DIR,"transit.LIN"),
         build_transit_dir=os.path.join(CUBE_DIR,"single_transit_route_attribute_change")
     )
     test_project.write_project_card(
