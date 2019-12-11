@@ -3,7 +3,7 @@ include README.md
 include requirements.txt
 include dev-requirements.txt
 
-recursive-include example *
+recursive-include examples *
 recursive-include tests *
 recursive-include metcouncil_data *
 

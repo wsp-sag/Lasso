@@ -50,12 +50,8 @@ class Parameters:
     The COUNTY_VARIABLE should be the name of a field in shapefile.
     """
     DATA_FILE_LOCATION =  os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        os.getcwd(),
         "metcouncil_data")
-    if not os.path.isdir(DATA_FILE_LOCATION):
-        DATA_FILE_LOCATION =  os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "metcouncil_data")
 
     WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
