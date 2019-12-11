@@ -14,13 +14,13 @@ Run just the tests labeled project using `pytest -m project`
 To run with print statments, use `pytest -s -m project`
 """
 CUBE_DIR = os.path.join(os.getcwd(), "examples", "cube")
-
 ROADWAY_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
-
-BUILD_TRANSIT_DIR = os.path.join(
-    CUBE_DIR, "single_transit_route_attribute_change"
-)
-
+BUILD_TRANSIT_DIR = os.path.join(CUBE_DIR, "single_transit_route_attribute_change")
+SCRATCH_DIR =
+ os.path.join(
+    os.getcwd(),
+    "tests",
+    "scratch")
 ## create list of example logfiles to use as input
 logfile_list = [os.path.join(CUBE_DIR , "st_paul_test.log")]
 
@@ -62,8 +62,7 @@ def test_highway_project_card(request, logfilename):
 
     test_project.write_project_card(
         os.path.join(
-            os.getcwd(),
-            "tests",
+            SCRATCH_DIR,
             "t_"+os.path.splitext(os.path.basename(logfilename))[0] + ".yml",
         )
     )
@@ -83,8 +82,7 @@ def test_highway_change_project_card_valid(request, logfilename):
 
     test_project.write_project_card(
         os.path.join(
-            os.getcwd(),
-            "tests",
+            SCRATCH_DIR,
             "t_"+os.path.splitext(os.path.basename(logfilename))[0] + ".yml",
         )
     )
@@ -93,8 +91,7 @@ def test_highway_change_project_card_valid(request, logfilename):
 
     valid = ProjectCard.validate_project_card_schema(
         os.path.join(
-            os.getcwd(),
-            "tests",
+            SCRATCH_DIR,
             "t_"+os.path.splitext(os.path.basename(logfilename))[0] + ".yml",
         )
     )

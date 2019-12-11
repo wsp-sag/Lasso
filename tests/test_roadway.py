@@ -19,6 +19,7 @@ STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
+
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_parameter_read(request):

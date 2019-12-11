@@ -15,11 +15,13 @@ To run with print statments, use `pytest -s -m project`
 
 
 CUBE_DIR = os.path.join(os.getcwd(), "examples", "cube")
-
 BASE_TRANSIT_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
-
-
 BASE_ROADWAY_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
+SCRATCH_DIR =
+ os.path.join(
+    os.getcwd(),
+    "tests",
+    "scratch")
 
 logfile_list = glob.glob(os.path.join(CUBE_DIR, "st_paul_test.log"))
 
@@ -71,7 +73,7 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
         base_roadway_dir=BASE_ROADWAY_DIR,
     )
     test_project.write_project_card(
-        "t_roadway_pc_test.yml"
+        os.path.join(SCRATCH_DIR,"t_roadway_pc_test.yml")
     )
     ## todo write an assert that actually tests something
 
@@ -85,7 +87,7 @@ def test_write_transit_project_card(request):
         build_transit_dir=os.path.join(CUBE_DIR,"single_transit_route_attribute_change")
     )
     test_project.write_project_card(
-        "t_transit_test.yml"
+        os.path.join(SCRATCH_DIR,"t_transit_test.yml")
     )
     ## todo write an assert that actually tests something
 
@@ -100,5 +102,5 @@ def test_write_cube_transit_standard(request):
     )
 
     cube_transit_net.write_cube_transit(
-        "t_transit_test.lin"
+        os.path.join(SCRATCH_DIR,"t_transit_test.lin")
     )

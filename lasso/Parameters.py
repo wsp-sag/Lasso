@@ -58,6 +58,12 @@ class Parameters:
         "examples",
         "settings")
 
+    SCRATCH_LOCATION =
+     os.path.join(
+        os.getcwd(),
+        "tests",
+        "scratch")
+
     WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
@@ -270,26 +276,22 @@ class Parameters:
     ]
 
     DEFAULT_OUTPUT_LINK_SHP = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "tests",
+        SCRATCH_LOCATION,
         "links.shp",
     )
 
     DEFAULT_OUTPUT_NODE_SHP = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "tests",
+        SCRATCH_LOCATION,
         "nodes.shp",
     )
 
     DEFAULT_OUTPUT_LINK_CSV = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "tests",
+        SCRATCH_LOCATION,
         "links.csv",
     )
 
     DEFAULT_OUTPUT_NODE_CSV = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "tests",
+        SCRATCH_LOCATION,
         "nodes.csv",
     )
 
