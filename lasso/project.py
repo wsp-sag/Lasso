@@ -94,15 +94,13 @@ class Project(object):
         Project object
         """
 
-
         if build_transit_dir and transit_changes:
             msg = "Method takes only one of 'build_transit_dir' and 'transit_changes' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if build_transit_dir or build_transit_file:
             build_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=build_transit_dir,
-                cube_transit_file=build_transit_file
+                cube_transit_dir=build_transit_dir, cube_transit_file=build_transit_file
             )
         else:
             msg = "No transit changes given or processed."
@@ -142,8 +140,7 @@ class Project(object):
             raise ValueError(msg)
         if base_transit_dir or base_transit_file:
             base_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=base_transit_dir,
-                cube_transit_file=base_transit_file,
+                cube_transit_dir=base_transit_dir, cube_transit_file=base_transit_file,
             )
         else:
             msg = "No base transit network."
@@ -282,7 +279,7 @@ class Project(object):
 
         return transit_change_list
 
-    def add_highway_changes(self, limit_variables_to_existing_network = False):
+    def add_highway_changes(self, limit_variables_to_existing_network=False):
         """
         Evaluates changes from the log file based on the base highway object and
         adds entries into the self.card_data dictionary.

@@ -1117,9 +1117,19 @@ class TransitNetworkLasso(Network):
         self.parser.tfp.liType = suffix
         logstr = "   Reading %s as %s" % (fullfile, suffix)
         f = open(fullfile, "r")
-        prog, lines, links, pnr, zac, accessli, xferli, nodes, supps, faresys, pts = self.parseAndPrintTransitFile(
-            f.read(), verbosity=0
-        )
+        (
+            prog,
+            lines,
+            links,
+            pnr,
+            zac,
+            accessli,
+            xferli,
+            nodes,
+            supps,
+            faresys,
+            pts,
+        ) = self.parseAndPrintTransitFile(f.read(), verbosity=0)
         f.close()
         logstr += self.doMerge(
             fullfile,
@@ -1261,9 +1271,19 @@ class TransitNetworkLasso(Network):
 
         logstr = "   Reading %s" % filename
         f = open(filename, "r")
-        prog, lines, links, pnr, zac, accessli, xferli, nodes, supps, faresys, pts = self.parseAndPrintTransitFile(
-            f.read(), verbosity=0
-        )
+        (
+            prog,
+            lines,
+            links,
+            pnr,
+            zac,
+            accessli,
+            xferli,
+            nodes,
+            supps,
+            faresys,
+            pts,
+        ) = self.parseAndPrintTransitFile(f.read(), verbosity=0)
         f.close()
         logstr += self.doMerge(
             filename,
@@ -1299,9 +1319,19 @@ class TransitNetworkLasso(Network):
                 fullfile = os.path.join(path, filename)
                 logstr = "   Reading %s" % filename
                 f = open(fullfile, "r")
-                prog, lines, links, pnr, zac, accessli, xferli, nodes, supps, faresys, pts = self.parseAndPrintTransitFile(
-                    f.read(), verbosity=0
-                )
+                (
+                    prog,
+                    lines,
+                    links,
+                    pnr,
+                    zac,
+                    accessli,
+                    xferli,
+                    nodes,
+                    supps,
+                    faresys,
+                    pts,
+                ) = self.parseAndPrintTransitFile(f.read(), verbosity=0)
                 f.close()
                 logstr += self.doMerge(
                     fullfile,
@@ -1404,9 +1434,19 @@ class TransitNetworkLasso(Network):
             linknet = TransitNetworkLasso(self.modelType, self.modelVersion)
             linknet.parser = TransitParser(transit_file_def, verbosity=0)
             f = open(additionalLinkFile, "r")
-            junk, junk, additionallinks, junk, junk, junk, junk, junk, junk, junk, junk = linknet.parseAndPrintTransitFile(
-                f.read(), verbosity=0
-            )
+            (
+                junk,
+                junk,
+                additionallinks,
+                junk,
+                junk,
+                junk,
+                junk,
+                junk,
+                junk,
+                junk,
+                junk,
+            ) = linknet.parseAndPrintTransitFile(f.read(), verbosity=0)
             f.close()
             for link in additionallinks:
                 if isinstance(link, TransitLink):
@@ -1597,8 +1637,8 @@ class TransitNetworkLasso(Network):
                             % (line.name, previousNet.line(line.name).n[nodeIdx].num)
                         )
                         existingDelay = (
-                            0.0
-                        )  # this can happen if no boards/alights and const=0
+                            0.0  # this can happen if no boards/alights and const=0
+                        )
                 else:
                     MSAdelay = -99999999
                     existingDelay = 0.0

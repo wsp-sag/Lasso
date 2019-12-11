@@ -97,9 +97,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                         ] = 0
                 elif params.get("time_periods"):
                     for time_suffix in params["time_periods"]:
-                        self.links_df[
-                            out_var + "_" + time_suffix
-                        ] = 0
+                        self.links_df[out_var + "_" + time_suffix] = 0
             elif params.get("time_periods") and params.get("categories"):
                 for time_suffix, category_suffix in itertools.product(
                     params["time_periods"], params["categories"]
@@ -141,10 +139,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def calculate_county(
         self,
-        county_shape = None,
-        county_shape_variable = None,
+        county_shape=None,
+        county_shape_variable=None,
         network_variable="county",
-        overwrite=False
+        overwrite=False,
     ):
         """
         This uses the centroid of the geometry field to determine which county it should be labeled.
@@ -173,16 +171,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        county_shape = (
-            county_shape if county_shape else self.parameters.county_shape
-        )
+        county_shape = county_shape if county_shape else self.parameters.county_shape
 
         county_shape_variable = (
-            county_shape_variable if county_shape_variable else self.parameters.county_variable_shp
+            county_shape_variable
+            if county_shape_variable
+            else self.parameters.county_variable_shp
         )
 
         WranglerLogger.info(
-            "Adding roadway network variable for county using a spatial join with: {}".format(county_shape)
+            "Adding roadway network variable for county using a spatial join with: {}".format(
+                county_shape
+            )
         )
 
         """
@@ -199,9 +199,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df[network_variable] = joined_gdf[county_shape_variable]
 
         WranglerLogger.info(
-            "Finished Calculating county variable: {}".format(
-                network_variable
-            )
+            "Finished Calculating county variable: {}".format(network_variable)
         )
 
     def calculate_area_type(
@@ -1107,7 +1105,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         WranglerLogger.info("Writing Network as Shapefile")
-        WranglerLogger.debug("Output Variables: \n - {}".format("\n - ".join(self.parameters.output_variables)))
+        WranglerLogger.debug(
+            "Output Variables: \n - {}".format(
+                "\n - ".join(self.parameters.output_variables)
+            )
+        )
 
         """
         Verify inputs
@@ -1116,8 +1118,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         if self.nodes_metcouncil_df is None:
             self.roadway_standard_to_met_council_network()
 
-        WranglerLogger.debug("Network Link Variables: \n - {}".format("\n - ".join(self.links_metcouncil_df.columns)))
-        WranglerLogger.debug("Network Node Variables: \n - {}".format("\n - ".join(self.nodes_metcouncil_df.columns)))
+        WranglerLogger.debug(
+            "Network Link Variables: \n - {}".format(
+                "\n - ".join(self.links_metcouncil_df.columns)
+            )
+        )
+        WranglerLogger.debug(
+            "Network Node Variables: \n - {}".format(
+                "\n - ".join(self.nodes_metcouncil_df.columns)
+            )
+        )
 
         link_output_variables = (
             link_output_variables

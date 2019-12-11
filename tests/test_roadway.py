@@ -19,7 +19,6 @@ STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
-
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_parameter_read(request):
@@ -137,6 +136,7 @@ def test_calculate_assignment_group_rdclass(request):
     print(net.links_df[net.links_df.drive_access == 1].assignment_group.value_counts())
     print(net.links_df[net.links_df.drive_access == 1].roadway_class.value_counts())
     ## todo write an assert that actually tests something
+
 
 @pytest.mark.roadway
 @pytest.mark.travis

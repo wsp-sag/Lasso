@@ -33,9 +33,17 @@ class CubeTransit(object):
 
     @staticmethod
     def create_cubetransit(
-        cube_transit_dir: Optional[str] = None, cube_transit_file: Optional[str] = None, gtfs_feed_dir: Optional[str] = None
+        cube_transit_dir: Optional[str] = None,
+        cube_transit_file: Optional[str] = None,
+        gtfs_feed_dir: Optional[str] = None,
     ):
-        if sum(x is not None for x in [cube_transit_dir, cube_transit_file, gtfs_feed_dir]) > 1:
+        if (
+            sum(
+                x is not None
+                for x in [cube_transit_dir, cube_transit_file, gtfs_feed_dir]
+            )
+            > 1
+        ):
             msg = "cube_transit_dir takes only one of cube_transit_dir, cube_transit_file, and gtfs_feed_dir but more than one input."
             WranglerLogger.error(msg)
             raise ValueError(msg)
@@ -54,12 +62,10 @@ class CubeTransit(object):
             # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
 
         cube_transit_net = CubeTransit(
-            cube_transit_network=transit_net,
-            gtfs_feed=gtfs_feed_dir,
+            cube_transit_network=transit_net, gtfs_feed=gtfs_feed_dir,
         )
 
         return cube_transit_net
-
 
     def evaluate_differences(self, base_transit):
         """
@@ -99,9 +105,13 @@ class CubeTransit(object):
             for line_base in base_transit.cube_transit_network.lines[1:]:
                 if line_base.name == _name:
                     ## TODO also evaluate differences in stops and route shapes
-                    shape_change_list = CubeTransit.evaluate_route_shape_changes(line, line_base)
+                    shape_change_list = CubeTransit.evaluate_route_shape_changes(
+                        line, line_base
+                    )
                     ## Might be useful to review: https://github.com/wsp-sag/network_wrangler/blob/master/network_wrangler/TransitNetwork.py#L411
-                    properties_list = CubeTransit.evaluate_route_property_changes(line, line_base)
+                    properties_list = CubeTransit.evaluate_route_property_changes(
+                        line, line_base
+                    )
                     WranglerLogger.debug("Properties List: {}".format(properties_list))
                     if len(properties_list) > 0:
                         if _name[-3:-1] == "pk":

@@ -2,7 +2,6 @@ import os
 from .Logger import WranglerLogger
 
 
-
 class Parameters:
     """
     # TODO: this whole flow needs work.
@@ -49,27 +48,16 @@ class Parameters:
     Details for calculating the county based on the centroid of the link.
     The COUNTY_VARIABLE should be the name of a field in shapefile.
     """
-    DATA_FILE_LOCATION =  os.path.join(
-        os.getcwd(),
-        "metcouncil_data")
+    DATA_FILE_LOCATION = os.path.join(os.getcwd(), "metcouncil_data")
 
-    SETTINGS_LOCATION = os.path.join(
-        os.getcwd(),
-        "examples",
-        "settings")
+    SETTINGS_LOCATION = os.path.join(os.getcwd(), "examples", "settings")
 
-    SCRATCH_LOCATION =
-     os.path.join(
-        os.getcwd(),
-        "tests",
-        "scratch")
+    SCRATCH_LOCATION = os.path.join(os.getcwd(), "tests", "scratch")
 
     WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "county",
-        "cb_2017_us_county_5m.shp",
+        DATA_FILE_LOCATION, "county", "cb_2017_us_county_5m.shp",
     )
     DEFAULT_COUNTY_VARIABLE_SHP = "NAME"
 
@@ -84,17 +72,13 @@ class Parameters:
     ]
 
     DEFAULT_TAZ_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "TAZ",
-        "TAZOfficialWCurrentForecasts.shp",
+        DATA_FILE_LOCATION, "TAZ", "TAZOfficialWCurrentForecasts.shp",
     )
     DEFAULT_TAZ_DATA = None
     DEFAULT_HIGHEST_TAZ_NUMBER = 3100
 
     DEFAULT_AREA_TYPE_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "area_type",
-        "ThriveMSP2040CommunityDesignation.shp",
+        DATA_FILE_LOCATION, "area_type", "ThriveMSP2040CommunityDesignation.shp",
     )
     DEFAULT_AREA_TYPE_VARIABLE_SHP = "COMDES2040"
     # area type map from raw data to model category
@@ -123,42 +107,31 @@ class Parameters:
     }
 
     DEFAULT_OSM_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION,
-        "osm_highway_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "osm_highway_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "mrcc",
-        "trans_mrcc_centerlines.shp",
+        DATA_FILE_LOCATION, "mrcc", "trans_mrcc_centerlines.shp",
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_VARIABLE_SHP = "ROUTE_SYS"
 
     DEFAULT_MRCC_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION,
-        "lookups",
-        "mrcc_route_sys_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "mrcc_route_sys_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_SHST_DATA = os.path.join(
-        DATA_FILE_LOCATION,
-        "mrcc",
-        "mrcc.out.matched.csv",
+        DATA_FILE_LOCATION, "mrcc", "mrcc.out.matched.csv",
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "Wisconsin_Lanes_Counts_Median",
-        "WISLR.shp",
+        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "WISLR.shp",
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_VARIABLE_SHP = "RDWY_CTGY_"
 
     DEFAULT_WIDOT_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION ,
-        "lookups",
-        "widot_ctgy_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "widot_ctgy_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_WIDOT_SHST_DATA = os.path.join(
@@ -168,29 +141,21 @@ class Parameters:
     )
 
     DEFAULT_ROADWAY_CLASS_DICT = os.path.join(
-        DATA_FILE_LOCATION,
-        "lookups",
-        "asgngrp_rc_num_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "asgngrp_rc_num_crosswalk.csv",
     )
 
     DEFAULT_MNDOT_COUNT_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "count_mn",
-        "AADT_2017_Count_Locations.shp",
+        DATA_FILE_LOCATION, "count_mn", "AADT_2017_Count_Locations.shp",
     )
 
     DEFAULT_MNDOT_COUNT_SHST_DATA = os.path.join(
-        DATA_FILE_LOCATION,
-        "count_mn",
-        "mn_count_ShSt_API_match.csv",
+        DATA_FILE_LOCATION, "count_mn", "mn_count_ShSt_API_match.csv",
     )
 
     DEFAULT_MNDOT_COUNT_VARIABLE_SHP = "AADT_mn"
 
     DEFAULT_WIDOT_COUNT_SHAPE = os.path.join(
-        DATA_FILE_LOCATION,
-        "Wisconsin_Lanes_Counts_Median",
-        "TRADAS_(counts).shp",
+        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "TRADAS_(counts).shp",
     )
 
     DEFAULT_WIDOT_COUNT_SHST_DATA = os.path.join(
@@ -201,10 +166,7 @@ class Parameters:
 
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
-    DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(
-        SETTINGS_LOCATION,
-        "net_to_dbf.csv",
-    )
+    DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(SETTINGS_LOCATION, "net_to_dbf.csv",)
 
     DEFAULT_OUTPUT_VARIABLES = [
         "model_link_id",
@@ -275,25 +237,13 @@ class Parameters:
         "geometry",
     ]
 
-    DEFAULT_OUTPUT_LINK_SHP = os.path.join(
-        SCRATCH_LOCATION,
-        "links.shp",
-    )
+    DEFAULT_OUTPUT_LINK_SHP = os.path.join(SCRATCH_LOCATION, "links.shp",)
 
-    DEFAULT_OUTPUT_NODE_SHP = os.path.join(
-        SCRATCH_LOCATION,
-        "nodes.shp",
-    )
+    DEFAULT_OUTPUT_NODE_SHP = os.path.join(SCRATCH_LOCATION, "nodes.shp",)
 
-    DEFAULT_OUTPUT_LINK_CSV = os.path.join(
-        SCRATCH_LOCATION,
-        "links.csv",
-    )
+    DEFAULT_OUTPUT_LINK_CSV = os.path.join(SCRATCH_LOCATION, "links.csv",)
 
-    DEFAULT_OUTPUT_NODE_CSV = os.path.join(
-        SCRATCH_LOCATION,
-        "nodes.csv",
-    )
+    DEFAULT_OUTPUT_NODE_CSV = os.path.join(SCRATCH_LOCATION, "nodes.csv",)
 
     DEFAULT_OUTPUT_EPSG = 26915
 

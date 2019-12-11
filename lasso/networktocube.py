@@ -14,7 +14,7 @@ class CubeTransit(object):
 
     @staticmethod
     def create_cubetransit(
-        transit_dir: Optional[str] = None
+        transit_dir: Optional[str] = None,
         # transit_network: Optional[TransitNetwork] = None
     ):
 
