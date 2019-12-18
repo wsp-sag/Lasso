@@ -647,7 +647,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
         print("WiDOT GDF Columns", widot_gdf.columns)
-        widot_shst_ref_df = pd.read_csv(widot_shst_data)
+        widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
         print("widot shst ref df", widot_shst_ref_df.columns)
         # join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
         #
@@ -670,7 +670,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict)
+        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict, dtype = {mrcc_roadway_class_variable_shp : str})
         widot_asgngrp_crosswak_df = pd.read_csv(widot_assgngrp_dict)
 
         join_gdf = pd.merge(

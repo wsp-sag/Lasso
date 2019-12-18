@@ -107,7 +107,7 @@ class Parameters:
     }
 
     DEFAULT_OSM_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION, "osm_highway_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "osm_highway_asgngrp_crosswalk.csv",
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_SHAPE = os.path.join(
