@@ -23,7 +23,7 @@ class Project(object):
         "area_type",
         "county",
         "asgngrp",
-        "centroid_connector",
+        "centroidconnect",
     ]
 
     def __init__(

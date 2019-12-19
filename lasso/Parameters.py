@@ -27,12 +27,12 @@ class Parameters:
 
     # prefix, source variable, categories
     DEFAULT_PROPERTIES_TO_SPLIT = {
-        "transit_priority": {
-            "v": "transit_priority",
+        "trn_priority": {
+            "v": "trn_priority",
             "time_periods": DEFAULT_TIME_PERIOD_TO_TIME,
         },
-        "traveltime_assert": {
-            "v": "traveltime_assert",
+        "ttime_assert": {
+            "v": "ttime_assert",
             "time_periods": DEFAULT_TIME_PERIOD_TO_TIME,
         },
         "lanes": {"v": "lanes", "time_periods": DEFAULT_TIME_PERIOD_TO_TIME},
@@ -182,14 +182,14 @@ class Parameters:
         "walk_access",
         "drive_access",
         "truck_access",
-        "transit_priority_AM",
-        "transit_priority_MD",
-        "transit_priority_PM",
-        "transit_priority_NT",
-        "traveltime_assert_AM",
-        "traveltime_assert_MD",
-        "traveltime_assert_PM",
-        "traveltime_assert_NT",
+        "trn_priority_AM",
+        "trn_priority_MD",
+        "trn_priority_PM",
+        "trn_priority_NT",
+        "ttime_assert_AM",
+        "ttime_assert_MD",
+        "ttime_assert_PM",
+        "ttime_assert_NT",
         "lanes_AM",
         "lanes_MD",
         "lanes_PM",
@@ -210,7 +210,7 @@ class Parameters:
         "price_hov2_NT",
         "price_hov3_NT",
         "price_truck_NT",
-        #'roadway_class_index',
+        "roadway_class_idx",
         "assignment_group",
         "access_AM",
         "access_MD",
@@ -219,7 +219,7 @@ class Parameters:
         "mpo",
         "area_type",
         "county",
-        "centroid_connector",
+        "centroidconnect",
         #'mrcc_id',
         "AADT",
         "count_year",

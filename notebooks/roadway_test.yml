@@ -15,8 +15,8 @@ changes:
     lanes: 1
     model_link_id: 999998
     transit_access: 0
-    transit_priority: 0
-    traveltime_assert: 0.0
+    trn_priority: 0
+    ttime_assert: 0.0
     walk_access: 1
   - A: 3262
     B: 3230
@@ -27,8 +27,8 @@ changes:
     lanes: 1
     model_link_id: 999997
     transit_access: 0
-    transit_priority: 0
-    traveltime_assert: 0.0
+    trn_priority: 0
+    ttime_assert: 0.0
     walk_access: 1
   nodes:
   - bike_node: 0

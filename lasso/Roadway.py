@@ -67,8 +67,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
              dictionary of output variable prefix mapped to the source variable and what to stratify it by
              e.g.
              {
-                 'transit_priority' : {'v':'transit_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                 'traveltime_assert' : {'v':'traveltime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                 'trn_priority' : {'v':'trn_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                 'ttime_assert' : {'v':'ttime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
                  'lanes' : {'v':'lanes', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
                  'price' : {'v':'price', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
                  'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
@@ -131,10 +131,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info("Creating calculated roadway variables.")
         self.calculate_area_type()
         self.calculate_county()
-        self.calculate_centroid_connector()
+        self.calculate_centroidconnect()
         self.calculate_mpo()
-        # self.calculate_assignment_group()
-        #'self.calculate_roadway_class()
+        self.calculate_assign_group()
+        self.calculate_roadway_class()
         self.add_counts()
 
     def calculate_county(
@@ -309,9 +309,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             )
         )
 
-    def calculate_centroid_connector(
+    def calculate_centroidconnect(
         self,
-        network_variable="centroid_connector",
+        network_variable="centroidconnect",
         as_integer=True,
         highest_taz_number=None,
         overwrite=False,
@@ -470,9 +470,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Finished calculating MPO variable: {}".format(network_variable)
         )
 
-    def calculate_assignment_group(
+    def calculate_assign_group(
         self,
-        network_variable="assignment_group",
+        network_variable="assign_group",
         mrcc_roadway_class_shape=None,
         mrcc_shst_data=None,
         mrcc_roadway_class_variable_shp=None,
@@ -627,7 +627,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         WranglerLogger.debug("Calculating Centroid Connectors")
-        self.calculate_centroid_connector()
+        self.calculate_centroidconnect()
 
         WranglerLogger.debug("Reading MRCC / Shared Streets Match CSV")
         # mrcc_shst_match_df = pd.read_csv()
@@ -676,7 +676,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf = pd.merge(
             join_gdf,
             osm_asgngrp_crosswalk_df.rename(
-                columns={"assignment_group": "assignment_group_osm"}
+                columns={"assign_group": "assignment_group_osm"}
             ),
             how="left",
             on="roadway",
@@ -685,7 +685,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf = pd.merge(
             join_gdf,
             mrcc_asgngrp_crosswalk_df.rename(
-                columns={"assignment_group": "assignment_group_mrcc"}
+                columns={"assign_group": "assignment_group_mrcc"}
             ),
             how="left",
             on=mrcc_roadway_class_variable_shp,
@@ -694,7 +694,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf = pd.merge(
             join_gdf,
             widot_asgngrp_crosswak_df.rename(
-                columns={"assignment_group": "assignment_group_widot"}
+                columns={"assign_group": "assignment_group_widot"}
             ),
             how="left",
             on=widot_roadway_class_variable_shp,
@@ -702,7 +702,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         def _set_asgngrp(x):
             try:
-                if x.centroid_connector == 1:
+                if x.centroidconnect == 1:
                     return 9
                 elif x.assignment_group_mrcc > 0:
                     return int(x.assignment_group_mrcc)
@@ -756,7 +756,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.links_df,
             asgngrp_rc_num_crosswalk_df,
             how="left",
-            on="assignment_group",
+            on="assign_group",
         )
 
         self.links_df[network_variable] = join_gdf[network_variable]

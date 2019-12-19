@@ -1,4 +1,4 @@
-assignment_group,asgngrp_def,roadway_class,rc_num_def
+assign_group,asgngrp_def,roadway_class,rc_num_def
 1,Metered Freeway,10,interstate
 2,Unmetered Freeway,10,interstate
 3,metered local ramp,60,ramp
