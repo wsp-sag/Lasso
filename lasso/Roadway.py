@@ -1030,6 +1030,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.reset_index()
         self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
+        self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(lambda g: g.x)
+        self.nodes_metcouncil_df["Y"] = self.nodes_metcouncil_df.geometry.apply(lambda g: g.y)
+
     def rename_variables_for_dbf(
         self,
         input_df,
@@ -1200,3 +1203,174 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.nodes_metcouncil_df[node_output_variables].to_csv(
                 output_node_csv, index=False
             )
+
+    # this should be moved to util
+    @staticmethod
+    def dataframe_to_fixed_with(df):
+        """
+        convert dataframe to fixed width format, geometry column will not be transformed
+
+        Parameters
+        ----------
+        pandas DataFrame
+
+        Returns
+        ----------
+        pandas dataframe with fixed width for each column
+        """
+        WranglerLogger.info("Starting fixed width convertion")
+
+        # get the max length for each variable column
+        max_width_dict = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max()) for v in df.columns.values if v != "geometry"])
+
+        fw_df = df.drop("geometry", axis = 1).copy()
+        for c in fw_df.columns:
+            fw_df[c] = fw_df[c].apply(lambda x: str(x))
+            fw_df["pad"] = fw_df[c].apply(lambda x: " "*(max_width_dict[c] - len(x)))
+            fw_df[c] = fw_df.apply(lambda x: x.pad + x[c], axis = 1)
+
+        return fw_df, max_width_dict
+
+    def write_roadway_as_fixedwidth(
+        self,
+        node_output_variables: list = None,
+        link_output_variables: list = None,
+        output_link_txt: str = None,
+        output_node_txt: str = None,
+        output_link_header_width_csv: str = None,
+        output_node_header_width_csv: str = None,
+        output_cube_network_script: str = None
+        ):
+        """
+        this function does:
+        1. write out link and node fixed width data files for cube
+        2. write out header and width correspondence
+        3. write out cube network building script with header and width specification
+
+        parameters
+        -----------
+        link GeoDataFrame
+        node GeoDataFrame
+
+        Returns
+        -----------
+
+        """
+
+        """
+        Verify inputs
+        """
+
+        if self.nodes_metcouncil_df is None:
+            self.roadway_standard_to_met_council_network()
+
+        WranglerLogger.debug(
+            "Network Link Variables: \n - {}".format(
+                "\n - ".join(self.links_metcouncil_df.columns)
+            )
+        )
+        WranglerLogger.debug(
+            "Network Node Variables: \n - {}".format(
+                "\n - ".join(self.nodes_metcouncil_df.columns)
+            )
+        )
+
+        link_output_variables = (
+            link_output_variables
+            if link_output_variables
+            else [
+                c
+                for c in self.links_metcouncil_df.columns
+                if c in self.parameters.output_variables
+            ]
+        )
+
+        node_output_variables = (
+            node_output_variables
+            if node_output_variables
+            else [
+                c
+                for c in self.nodes_metcouncil_df.columns
+                if c in self.parameters.output_variables
+            ]
+        )
+
+        # unless specified that all the data goes to the DBF, only output A and B
+
+        output_link_txt = (
+            output_link_txt if output_link_txt else self.parameters.output_link_txt
+        )
+
+        output_node_txt = (
+            output_node_txt if output_node_txt else self.parameters.output_node_txt
+        )
+
+        output_link_header_width_csv = (
+            output_link_header_width_csv if output_link_header_width_csv else self.parameters.output_link_header_width_csv
+        )
+
+        output_node_header_width_csv = (
+            output_node_header_width_csv if output_node_header_width_csv else self.parameters.output_node_header_width_csv
+        )
+
+        output_cube_network_script = (
+            output_cube_network_script if output_cube_network_script else self.parameters.output_cube_network_script
+        )
+
+        """
+        Start Process
+        """
+        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(self.links_metcouncil_df[link_output_variables])
+        WranglerLogger.info("Writing out link database")
+
+        link_ff_df.to_csv(output_link_txt,
+                      sep = ";",
+                     index = False,
+                     header = False)
+
+        # write out header and width correspondence
+        WranglerLogger.info("Writing out link header and width ----")
+        link_max_width_df = DataFrame(list(link_max_width_dict.items()),
+                                        columns=["header", "width"])
+        link_max_width_df.to_csv(output_link_header_width_csv,
+                         index = False)
+
+        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(self.nodes_metcouncil_df[node_output_variables])
+        WranglerLogger.info("Writing out node database")
+
+        node_ff_df.to_csv(output_node_txt,
+                      sep = ";",
+                     index = False,
+                     header = False)
+
+        # write out header and width correspondence
+        WranglerLogger.info("Writing out node header and width")
+        node_max_width_df = DataFrame(list(node_max_width_dict.items()),
+                                columns=["header", "width"])
+        node_max_width_df.to_csv(output_node_header_width_csv,
+                         index = False)
+
+        # write out cube script
+        s = "RUN PGM = NETWORK MSG = \"Read in network from fixed width file\" \n"
+        s += "FILEI LINKI[1] = %LINK_DATA_PATH%, VAR ="
+        start_pos = 1
+        for i in range(len(link_max_width_df)):
+            s += (" " + link_max_width_df.header.iloc[i] +
+                    "," + str(start_pos) + "-" +
+                    str(start_pos + link_max_width_df.width.iloc[i] - 1) + ",")
+            start_pos += (link_max_width_df.width.iloc[i] + 1)
+        s = s[:-1]
+        s += "\n"
+        s += "FILEI NODEI[1] = %NODE_DATA_PATH%, VAR ="
+        start_pos = 1
+        for i in range(len(node_max_width_df)):
+            s += (" " + node_max_width_df.header.iloc[i] +
+                    "," + str(start_pos) + "-" +
+                    str(start_pos + node_max_width_df.width.iloc[i] - 1) + ",")
+            start_pos += (node_max_width_df.width.iloc[i] + 1)
+        s = s[:-1]
+        s += "\n"
+        s += "FILEO NETO = \"%SCENARIO_DIR%/complete_network.net\" \n    ZONES = %zones% \n \nENDRUN"
+
+        with open(output_cube_network_script, 'w') as f:
+            f.write(s)

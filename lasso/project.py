@@ -286,7 +286,6 @@ class Project(object):
         """
 
         ## if worth it, could also add some functionality  to network wrangler itself.
-
         node_changes_df = self.roadway_changes[
             self.roadway_changes.OBJECT == "N"
         ].copy()
@@ -314,7 +313,7 @@ class Project(object):
 
         def _consolidate_actions(log, base, key_list):
             log_df = log.copy()
-
+            # will be changed if to allow new variables being added/changed that are not in base network
             changeable_col = [x for x in log_df.columns if x in base.columns]
 
             for x in changeable_col:
@@ -381,6 +380,7 @@ class Project(object):
                 ]
             else:
                 add_col = cube_add_df.columns
+                # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
             add_link_properties = cube_add_df[add_col].to_dict("records")
 

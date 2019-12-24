@@ -211,7 +211,7 @@ class Parameters:
         "price_hov3_NT",
         "price_truck_NT",
         "roadway_class_idx",
-        "assignment_group",
+        "assign_group",
         "access_AM",
         "access_MD",
         "access_PM",
@@ -235,6 +235,8 @@ class Parameters:
         "walk_node",
         "drive_node",
         "geometry",
+        "X",
+        "Y"
     ]
 
     DEFAULT_OUTPUT_LINK_SHP = os.path.join(SCRATCH_LOCATION, "links.shp",)
@@ -244,6 +246,16 @@ class Parameters:
     DEFAULT_OUTPUT_LINK_CSV = os.path.join(SCRATCH_LOCATION, "links.csv",)
 
     DEFAULT_OUTPUT_NODE_CSV = os.path.join(SCRATCH_LOCATION, "nodes.csv",)
+
+    DEFAULT_OUTPUT_LINK_TXT = os.path.join(SCRATCH_LOCATION, "links.txt",)
+
+    DEFAULT_OUTPUT_NODE_TXT = os.path.join(SCRATCH_LOCATION, "nodes.txt",)
+
+    DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV = os.path.join(SCRATCH_LOCATION, "links_header_width.csv",)
+
+    DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV = os.path.join(SCRATCH_LOCATION, "nodes_header_width.csv",)
+
+    DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT = os.path.join(SCRATCH_LOCATION, "make_complete_network_from_fixed_width_file.s",)
 
     DEFAULT_OUTPUT_EPSG = 26915
 
@@ -327,3 +339,13 @@ class Parameters:
             self.output_node_csv = Parameters.DEFAULT_OUTPUT_NODE_CSV
         if "output_epsg" not in kwargs:
             self.output_epsg = Parameters.DEFAULT_OUTPUT_EPSG
+        if "output_link_txt" not in kwargs:
+            self.output_link_txt = Parameters.DEFAULT_OUTPUT_LINK_TXT
+        if "output_node_txt" not in kwargs:
+            self.output_node_txt = Parameters.DEFAULT_OUTPUT_NODE_TXT
+        if "output_link_header_width_csv" not in kwargs:
+            self.output_link_header_width_csv = Parameters.DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV
+        if "output_node_header_width_csv" not in kwargs:
+            self.output_node_header_width_csv = Parameters.DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV
+        if "output_cube_network_script" not in kwargs:
+            self.output_cube_network_script = Parameters.DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT

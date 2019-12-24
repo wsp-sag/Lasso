@@ -174,5 +174,5 @@ def test_write_cube_roadway(request):
         fast=True,
     )
 
-    net.write_roadway_as_shp()
+    net.write_roadway_as_fixedwidth()
     ## todo write an assert that actually tests something
