@@ -81,6 +81,7 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
 
 
 @pytest.mark.travis
+@pytest.mark.sijia
 def test_write_transit_project_card(request):
     print("\n--Starting:", request.node.name)
 

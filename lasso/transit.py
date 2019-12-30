@@ -96,12 +96,18 @@ class CubeTransit(object):
         }
 
         ##TODO compare name lists to find new lines and deleted lines
+        build_name_list = [line.name for line in self.cube_transit_network.lines[1:]]
+        base_name_list = [line.name for line in base_transit.cube_transit_network.lines[1:]]
 
+        new_name_list = [name for name in build_name_list if name not in base_name_list]
+        delete_name_list = [name for name in base_name_list if name not in build_name_list]
         ## calls method to create new line when applicable as a line object and then append
 
         ##todo make this a pandas merge to make it all vector operations
         for line in self.cube_transit_network.lines[1:]:
             _name = line.name
+            #flag to check if the route is new
+            if_existing_route = 0
             for line_base in base_transit.cube_transit_network.lines[1:]:
                 if line_base.name == _name:
                     ## TODO also evaluate differences in stops and route shapes
@@ -131,8 +137,50 @@ class CubeTransit(object):
                         }
                         WranglerLogger.debug("Card_Dict: {}".format(card_dict))
                         transit_change_list.append(card_dict)
+
+                    if_existing_route += 1
                 else:
                     continue
+
+            if if_existing_route == 0:
+                # new transit line
+                if _name[-3:-1] == "pk":
+                    time = ["06:00:00", "09:00:00"]
+                else:
+                    time = ["09:00:00", "15:00:00"]
+
+                card_dict = {
+                    "category" : "New Transit Service",
+                    "facility" : {
+                        "route_id" : _name.split("_")[1],
+                        "direction_id" : int(_name[-1]),
+                        "time" : time,
+                        "agency_id" : int(_name[0])
+                        },
+                    "properties" :
+                        [
+                        {
+                        "property" : "routing",
+                        "set" : [int(node.num) for node in line.n]
+                        },
+                        {
+                        "property" : "headway_secs",
+                        "set" : line.getFreq() * 60
+                        }]
+                    }
+                transit_change_list.append(card_dict)
+
+        for _name in delete_name_list:
+            card_dict = {
+                "category" : "Delete Transit Service",
+                "facility" : {
+                    "route_id" : _name.split("_")[1],
+                    "direction_id" : int(_name[-1]),
+                    "time" : ["06:00:00", "09:00:00"] if _name[-3:-1] == "pk" else ["09:00:00", "15:00:00"]
+                            }
+                        }
+            transit_change_list.append(card_dict)
+
         print(transit_change_list)
         return transit_change_list
 
