@@ -1,4 +1,4 @@
-# Lasso (or whatever we decide to call it)
+# Lasso
 This package of utilities is a wrapper around the [network_wrangler](http://github.com/wsp-sag/network_wrangler) package for MetCouncil.  It aims to have the following functionality:
 
  1. parse Cube log files and base highway networks and create ProjectCards for Network Wrangler  
