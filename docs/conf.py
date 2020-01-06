@@ -13,14 +13,21 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.getcwd()))
+# Get the project root dir, which is the parent dir of this
+cwd = os.getcwd()
+project_root = os.path.dirname(cwd)
+
+# Insert the project root dir as the first element in the PYTHONPATH.
+# This lets us ensure that the source package is imported, and that its
+# version is used.
+sys.path.insert(0, project_root)
 
 import lasso
 
 # -- Project information -----------------------------------------------------
 
 project = "lasso"
-copyright = "2019, Sijia Wang and Elizabeth Sall"
+copyright = "2019 Metropolitan Council"
 author = "Sijia Wang and Elizabeth Sall"
 
 
@@ -31,10 +38,17 @@ author = "Sijia Wang and Elizabeth Sall"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    'sphinx.ext.doctest',
     "sphinx_autodoc_typehints",
+    'sphinx.ext.ifconfig',
     "sphinx.ext.inheritance_diagram",
+    'sphinx.ext.intersphinx',
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,9 +65,28 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "alabaster"
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+intersphinx_mapping = {
+    'pandas':('http://pandas.pydata.org/pandas-docs/stable/',None),
+    'network_wrangler':('https://wsp-sag.github.io/network_wrangler/',None),
+}
+
+
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'inherited-members':True,
+    'imported-members': True,
+    'show-inheritance':True,
+    'member-order': 'groupwise',
+}
+
+autoclass_content = "class" # classes should include both the class' and the __init__ method's docstring
+
+autosummary_generate = True

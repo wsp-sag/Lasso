@@ -34,7 +34,6 @@ def test_parameter_read(request):
 
 @pytest.mark.roadway
 @pytest.mark.travis
-@pytest.mark.menow
 def test_network_calculate_variables(request):
     """
     Tests that parameters are read
@@ -48,9 +47,11 @@ def test_network_calculate_variables(request):
         fast=True,
     )
     net.calculate_county()
+    print("County  Frequency")
     print(net.links_df["county"].value_counts())
 
     net.calculate_mpo()
+    print("MPO   Frequency")
     print(net.links_df["mpo"].value_counts())
     ## todo write an assert that actually tests something
 
@@ -111,11 +112,14 @@ def test_calculate_area_type(request):
 
     model_road_net.calculate_area_type()
     assert "area_type" in net.links_df.columns
+    print("Area Type  Frequency")
     print(net.links_df.area_type.value_counts())
     ## todo write an assert that actually tests something
 
 
 @pytest.mark.roadway
+@pytest.mark.travis
+@pytest.mark.menow
 def test_calculate_assign_group_rdclass(request):
     """
     Tests that parameters are read
@@ -133,7 +137,9 @@ def test_calculate_assign_group_rdclass(request):
     net.calculate_roadway_class()
     assert "assign_group" in net.links_df.columns
     assert "roadway_class" in net.links_df.columns
+    print("Assign Group  Frequency")
     print(net.links_df[net.links_df.drive_access == 1].assign_group.value_counts())
+    print("Roadway Class  Frequency")
     print(net.links_df[net.links_df.drive_access == 1].roadway_class.value_counts())
     ## todo write an assert that actually tests something
 

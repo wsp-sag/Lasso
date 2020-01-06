@@ -2,6 +2,29 @@ Lasso Classes and Functions
 ====================================
 
 .. automodule:: lasso
-   :members:
+   :no-members:
+   :no-undoc-members:
+   :no-inherited-members:
+   :no-show-inheritance:
 
-.. autoclass:: lasso.CubeTransit
+
+Base Classes
+--------------
+.. autosummary::
+  :toctree: _generated
+  :nosignatures:
+
+  CubeTransit
+  ModelRoadwayNetwork
+  Project
+  Parameters
+  TransitLine
+  TransitParser
+
+Utils and Functions
+--------------------
+.. autosummary::
+  :toctree: _generated
+
+  util
+  WranglerLogger

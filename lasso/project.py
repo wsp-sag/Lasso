@@ -15,6 +15,9 @@ from .Logger import WranglerLogger
 
 
 class Project(object):
+    """
+    A single or set of changes to the roadway or transit system.
+    """
 
     DEFAULT_PROJECT_NAME = "USER TO define"
 

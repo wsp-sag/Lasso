@@ -14,6 +14,11 @@ from .Logger import WranglerLogger
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):
+    """
+    Subclass of network_wrangler class :ref:`RoadwayNetwork <network_wrangler:RoadwayNetwork>`
+
+    A representation of the physical roadway network and its properties.
+    """
     def __init__(
         self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
     ):
@@ -635,20 +640,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape)
         )
         mrcc_gdf = gpd.read_file(mrcc_roadway_class_shape)
-        print("MRCC GDF Columns", mrcc_gdf.columns)
+        WranglerLogger.debug("MRCC GDF Columns\n{}".format(mrcc_gdf.columns))
         #'LINK_ID', 'ROUTE_SYS', 'ST_CONCAT', 'geometry'
         mrcc_gdf["LINK_ID"] = range(1, 1 + len(mrcc_gdf))
         # returns shstreets dataframe with geometry ID, pp_link_id (which is the LINK_ID)
 
         # shstReferenceId,shstGeometryId,pp_link_id
         mrcc_shst_ref_df = pd.read_csv(mrcc_shst_data)
-        print("mrcc shst ref df", mrcc_shst_ref_df.columns)
+        WranglerLogger.debug("mrcc shst ref df columns\n{}".format(mrcc_shst_ref_df.columns))
 
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
-        print("WiDOT GDF Columns", widot_gdf.columns)
+        WranglerLogger.debug("WiDOT GDF Columns\n{}".format(widot_gdf.columns))
         widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
-        print("widot shst ref df", widot_shst_ref_df.columns)
+        WranglerLogger.debug("widot shst ref df columns".format(widot_shst_ref_df.columns))
         # join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
         #
         # get route_sys from MRCC
@@ -945,10 +950,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # join based on shared streets geometry ID
         # pp_link_id is shared streets match return
         # source_ink_id is mrcc
-        print(
-            "source ShSt rename_variables_for_dbf columns", source_shst_ref_df.columns
+        WranglerLogger.debug(
+            "source ShSt rename_variables_for_dbf columns\n{}".format(source_shst_ref_df.columns)
         )
-        print("source gdf columns", source_gdf.columns)
+        WranglerLogger.debug("source gdf columns\n{}".format(source_gdf.columns))
         # end up with OSM network with the MRCC Link ID
         # could also do with route_sys...would that be quicker?
         join_refId_df = pd.merge(
