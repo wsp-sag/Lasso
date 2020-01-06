@@ -22,7 +22,7 @@ conda install rtree
 conda install shapely
 conda install fiona
 pip install git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
-pip install git+https://github.com/wsp-sag/client_met_council_wrangler_utilities@master#egg=lasso
+pip install git+https://github.com/wsp-sag/lasso@master#egg=lasso
 ```
 
 #### From GitHub
@@ -32,7 +32,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install Lasso f
 conda install rtree
 conda install shapely
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
-pip install -e git+https://github.com/wsp-sag/client_met_council_wrangler_utilities@master#egg=lasso
+pip install -e git+https://github.com/wsp-sag/lasso@master#egg=lasso
 ```
 
 Note: if you wanted to install from a specific tag/version number or branch, replace `@master` with `@<branchname>`  or `@tag`
@@ -43,7 +43,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 **if you plan to do development on both network wrangler and lasso locally, consider installing network wrangler from a clone as well!**
 
 ```bash
-git clone https://github.com/wsp-sag/client_met_council_wrangler_utilities
+git clone https://github.com/wsp-sag/lasso
 cd lasso
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e .
