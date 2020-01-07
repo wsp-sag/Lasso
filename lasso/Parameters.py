@@ -259,6 +259,10 @@ class Parameters:
 
     DEFAULT_OUTPUT_EPSG = 26915
 
+    DEFAULT_BUS_ROUTETYPE_SHAPE = os.path.join(
+        DATA_FILE_LOCATION, "transit", "shp_trans_transit_routes", "TransitRoutes.shp",
+    )
+
     def __init__(self, **kwargs):
 
         self.__dict__.update(kwargs)
@@ -349,3 +353,5 @@ class Parameters:
             self.output_node_header_width_csv = Parameters.DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV
         if "output_cube_network_script" not in kwargs:
             self.output_cube_network_script = Parameters.DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT
+        if "bus_routetype_shape" not in kwargs:
+            self.bus_routetype_shape = Parameters.DEFAULT_BUS_ROUTETYPE_SHAPE

@@ -107,7 +107,6 @@ def test_write_transit_project_card_route_shape(request):
     ## todo write an assert that actually tests something
 
 @pytest.mark.travis
-@pytest.mark.sijia
 #@pytest.mark.skip("Required files are in Z:/Sijia")
 def test_write_cube_transit_standard(request):
     print("\n--Starting:", request.node.name)

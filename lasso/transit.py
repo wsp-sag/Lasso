@@ -11,6 +11,7 @@ from network_wrangler import TransitNetwork
 
 from .TransitNetwork import TransitNetworkLasso
 from .Logger import WranglerLogger
+from .Parameters import Parameters
 
 
 class CubeTransit(object):
@@ -18,6 +19,7 @@ class CubeTransit(object):
         self,
         cube_transit_network: Optional[TransitNetworkLasso] = None,
         gtfs_feed: Optional[str] = None,
+        parameters={}
     ):
         """
         """
@@ -29,6 +31,8 @@ class CubeTransit(object):
 
         self.lines = [";;<<PT>><<LINE>>;;"]
 
+        self.parameters = Parameters(**parameters)
+
         pass
 
     @staticmethod
@@ -36,6 +40,7 @@ class CubeTransit(object):
         cube_transit_dir: Optional[str] = None,
         cube_transit_file: Optional[str] = None,
         gtfs_feed_dir: Optional[str] = None,
+        parameters={},
     ):
         if (
             sum(
@@ -62,7 +67,7 @@ class CubeTransit(object):
             # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
 
         cube_transit_net = CubeTransit(
-            cube_transit_network=transit_net, gtfs_feed=gtfs_feed_dir,
+            cube_transit_network=transit_net, gtfs_feed=gtfs_feed_dir,parameters=parameters
         )
 
         return cube_transit_net
@@ -263,7 +268,7 @@ class CubeTransit(object):
         # mvta_operator_dict = {'1':4, '2':3, '3':3}
 
         bus_routetype_gdf = gpd.read_file(
-            "Z:/Data/Users/Sijia/Met_Council/GIS/shp_trans_transit_routes/TransitRoutes.shp"
+            self.parameters.bus_routetype_shape
         )
         routetype_df = bus_routetype_gdf.copy()
 
