@@ -55,10 +55,10 @@ class CubeTransit(object):
         elif cube_transit_dir:
             for cube_transit_file in glob.glob(os.path.join(cube_transit_dir, "*.lin")):
                 transit_net.mergeFile(cube_transit_file)
-        else:
+        """else:
             msg = "Creating cube network with GTFS files not yet supported"
             WranglerLogger.error(msg)
-            raise NotImplemented(msg)
+            raise NotImplemented(msg)"""
             # feed = TransitNetwork.read(feed_path = gtfs_feed_dir)
 
         cube_transit_net = CubeTransit(
@@ -119,7 +119,7 @@ class CubeTransit(object):
                         line, line_base
                     )
                     WranglerLogger.debug("Properties List: {}".format(properties_list))
-                    if len(properties_list) > 0:
+                    if (len(properties_list) > 0) | (len(shape_change_list) > 0):
                         if _name[-3:-1] == "pk":
                             time = ["06:00:00", "09:00:00"]
                         else:
@@ -133,7 +133,7 @@ class CubeTransit(object):
                                 # "start_time" : time_enum[_name[-3:-1]]["start_time"],
                                 # "end_time" : time_enum[_name[-3:-1]]["end_time"]
                             },
-                            "properties": properties_list,
+                            "properties": properties_list + shape_change_list,
                         }
                         WranglerLogger.debug("Card_Dict: {}".format(card_dict))
                         transit_change_list.append(card_dict)
@@ -181,12 +181,49 @@ class CubeTransit(object):
                         }
             transit_change_list.append(card_dict)
 
-        print(transit_change_list)
         return transit_change_list
 
     def evaluate_route_shape_changes(line_build, line_base):
         ##TODO Sijia
-        pass
+        shape_change_list = []
+
+        base_node_list = [int(node.num) for node in line_base.n]
+        build_node_list = [int(node.num) for node in line_build.n]
+
+        sort_len = max(len(base_node_list), len(build_node_list))
+
+        start_pos = None
+        end_pos = None
+        for i in range(sort_len):
+            if ((i == len(base_node_list)) | (i == len(build_node_list))):
+                start_pos = i-1
+                break
+            if base_node_list[i] != build_node_list[i]:
+                start_pos = i
+                break
+            else:
+                continue
+
+        j = -1
+        for i in range(sort_len):
+            if ((i == len(base_node_list)) | (i == len(build_node_list))):
+                end_pos = j+1
+                break
+            if base_node_list[j] != build_node_list[j]:
+                end_pos = j
+                break
+            else:
+                j -= 1
+
+        if (start_pos or end_pos):
+            existing = base_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
+            set = build_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
+
+            shape_change_list.append(
+                {"property" : "routing", "existing" : existing, "set" : set}
+            )
+
+        return shape_change_list
 
     def evaluate_route_property_changes(line_build, line_base):
         properties_list = []

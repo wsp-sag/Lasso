@@ -81,7 +81,6 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
 
 
 @pytest.mark.travis
-@pytest.mark.sijia
 def test_write_transit_project_card(request):
     print("\n--Starting:", request.node.name)
 
@@ -94,17 +93,30 @@ def test_write_transit_project_card(request):
     test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_transit_test.yml"))
     ## todo write an assert that actually tests something
 
+@pytest.mark.travis
+def test_write_transit_project_card_route_shape(request):
+    print("\n--Starting:", request.node.name)
+
+    test_project = Project.create_project(
+        base_transit_file=os.path.join(CUBE_DIR, "transit.LIN"),
+        build_transit_dir=os.path.join(
+            CUBE_DIR, "transit_route_shape_change"
+        ),
+    )
+    test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_transit_shape_test.yml"))
+    ## todo write an assert that actually tests something
 
 @pytest.mark.travis
-@pytest.mark.skip("Required files are in Z:/Sijia")
+@pytest.mark.sijia
+#@pytest.mark.skip("Required files are in Z:/Sijia")
 def test_write_cube_transit_standard(request):
     print("\n--Starting:", request.node.name)
 
     from lasso import CubeTransit
 
     cube_transit_net = CubeTransit.create_cubetransit(
-        cube_transit_file=os.path.join(
-            CUBE_DIR, "single_transit_route_attribute_change", "transit.LIN"
+        gtfs_feed_dir=os.path.join(
+            BASE_TRANSIT_DIR
         )
     )
 
