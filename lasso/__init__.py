@@ -3,6 +3,7 @@ __version__ = "0.0.0"
 from .project import Project
 from .transit import CubeTransit
 from .cube_transit import process_line_file  # , TransitLine
+from .networktocube import EloCubeTransit
 from .transit_parser import TransitParser, PTSystem, transit_file_def
 from .util import get_shared_streets_intersection_hash
 from .TransitLine import TransitLine
@@ -12,7 +13,8 @@ from .Logger import WranglerLogger, setupLogging
 
 __all__ = [
     "Project",
-    "CubeTransit",
+    #"CubeTransit",
+    "EloCubeTransit",
     "process_line_file",
     "TransitParser",
     "PTSystem",

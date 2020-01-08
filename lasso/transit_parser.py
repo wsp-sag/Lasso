@@ -34,29 +34,7 @@ lin_attr_name     := c"allstops" / c"color" / (c"freq",'[',[1-5],']') / c"mode" 
 lin_nodeattr_name := c"access_c" / c"access" / c"delay" /  c"xyspeed" / c"timefac" / c"nntime" / c"time"
 lin_node          := lin_nodestart?, whitespace?, nodenum, spaces*, comma?, spaces*, semicolon_comment?, whitespace?, lin_nodeattr*
 lin_nodestart     := (whitespace?, "N", whitespace?, "=")
-link              := whitespace?, smcw?, c"LINK", whitespace, link_attr*, whitespace?, semicolon_comment*
-link_attr         := (( (link_attr_name, whitespace?, "=", whitespace?,  attr_value) /
-                        (word_nodes, whitespace?, "=", whitespace?, nodepair) /
-                        (word_modes, whitespace?, "=", whitespace?, numseq) ),
-                      whitespace?, comma?, whitespace?)
-link_attr_name    := c"dist" / c"speed" / c"time" / c"oneway"
-pnr               := whitespace?, smcw?, c"PNR", whitespace, pnr_attr*, whitespace?
-pnr_attr          := (( (pnr_attr_name, whitespace?, "=", whitespace?, attr_value) /
-                        (word_node, whitespace?, "=", whitespace?, ( nodepair / nodenum )) /
-                        (word_zones, whitespace?, "=", whitespace?, numseq )),
-                       whitespace?, comma?, whitespace?, semicolon_comment*)
-pnr_attr_name     := c"time" / c"maxtime" / c"distfac" / c"cost"
-zac               := whitespace?, smcw?, c"ZONEACCESS", whitespace, zac_attr*, whitespace?, semicolon_comment*
-zac_attr          := (( (c"link", whitespace?, "=", whitespace?, nodepair) /
-                        (zac_attr_name, whitespace?, "=", whitespace?, attr_value) ),
-                      whitespace?, comma?, whitespace?)
-zac_attr_name     := c"mode"
-supplink          := whitespace?, smcw?, c"SUPPLINK", whitespace, supplink_attr*, whitespace?, semicolon_comment*
-supplink_attr     := (( (supplink_attr_name, whitespace?, "=", whitespace?, attr_value) /
-                        (npair_attr_name, whitespace?, "=", whitespace?, nodepair )),
-                       whitespace?, comma?, whitespace?)
-npair_attr_name    := c"nodes" / c"n"
-supplink_attr_name:= c"mode" / c"dist" / c"speed" / c"oneway" / c"time"
+
 factor            := whitespace?, smcw?, c"FACTOR", whitespace, factor_attr*, whitespace?, semicolon_comment*
 factor_attr       := ( (factor_attr_name, whitespace?, "=", whitespace?, attr_value),
                         whitespace?, comma?, whitespace? )

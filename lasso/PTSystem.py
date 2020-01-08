@@ -1,7 +1,5 @@
 import collections
 
-from .NetworkException import NetworkException
-
 __all__ = ["PTSystem"]
 
 

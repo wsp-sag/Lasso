@@ -6,6 +6,7 @@ import pytest
 
 from lasso import process_line_file
 from lasso import Project
+from lasso import EloCubeTransit
 
 """
 Run tests from bash/shell
@@ -24,6 +25,61 @@ logfile_list = glob.glob(os.path.join(CUBE_DIR, "st_paul_test.log"))
 
 linefile_list = glob.glob(os.path.join(CUBE_DIR, "*.LIN"))
 
+@pytest.mark.elo
+@pytest.mark.parametrize("linefilename", linefile_list)
+def test_parse_transit_linefile(request, linefilename):
+    print("\n--Starting:", request.node.name)
+    test_lin = """
+    ;;<<PT>><<LINE>>;;
+    LINE NAME="0_452-111_452_pk1",
+    NODES=
+     39249,
+     -39240,
+     54648
+
+     LINE NAME="0_134-111_134_pk1",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=20,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      39249,
+      -39240,
+      54648,
+      43503,
+      -55786,
+      -55785,
+      55782,
+      -55781,
+      -55779
+
+     LINE NAME="0_134-111_134_pk0",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=90,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      83733,
+      -9533,
+      20208,
+      84250,
+      92566,
+      129190
+    """
+    from lasso.TransitNetwork import TransitNetworkLasso
+
+    #print("Reading: {}".format(linefilename))
+    ##todo
+    #my_param =
+    tn = EloCubeTransit.read_cube(test_lin)
+    print(tn.pretty())
+    print("Frequencies: ", tn.lines[5].getFreq())
+    print("Name: ", tn.lines[5].name)
+    print("First node number: ", tn.lines[5].n[0].num)
+    print("Mode Type: ", tn.lines[5].getModeType("CHAMP"))
+    ## todo write an assert that actually tests something
 
 @pytest.mark.travis
 @pytest.mark.parametrize("linefilename", linefile_list)
