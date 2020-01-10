@@ -22,6 +22,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     def __init__(
         self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
     ):
+        """
+        Constructor
+        """
         super().__init__(nodes, links, shapes)
 
         # will have to change if want to alter them
@@ -41,6 +44,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         fast: bool = False,
         parameters={},
     ):
+        """
+        Reads in links and nodes network standard.
+
+        Args:
+            link_file (str): File path to link json.
+            node_file (str): File path to node geojson.
+            shape_file (str): File path to link true shape geojson
+            fast (bool): boolean that will skip validation to speed up read time.
+            parameters : parameters for lasso.
+
+        Returns:
+            ModelRoadwayNetwork
+        """
         # road_net =  super().read(link_file, node_file, shape_file, fast=fast)
         road_net = RoadwayNetwork.read(link_file, node_file, shape_file, fast=fast)
 
@@ -55,6 +71,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     @staticmethod
     def from_RoadwayNetwork(roadway_network_object, parameters={}):
+        """
+        RoadwayNetwork to ModelRoadwayNetwork
+
+        Args:
+            roadway_network_object (RoadwayNetwork).
+            parameters : parameters for lasso.
+
+        Returns:
+            ModelRoadwayNetwork
+        """
         return ModelRoadwayNetwork(
             roadway_network_object.nodes_df,
             roadway_network_object.links_df,
@@ -66,18 +92,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Splits properties by time period, assuming a variable structure of
 
-        Params
-        ------
-        properties_to_split: dict
-             dictionary of output variable prefix mapped to the source variable and what to stratify it by
-             e.g.
-             {
-                 'trn_priority' : {'v':'trn_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                 'ttime_assert' : {'v':'ttime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                 'lanes' : {'v':'lanes', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                 'price' : {'v':'price', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
-                 'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
-             }
+        Args:
+            properties_to_split: dict
+                dictionary of output variable prefix mapped to the source variable and what to stratify it by
+                e.g.
+                {
+                    'trn_priority' : {'v':'trn_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                    'ttime_assert' : {'v':'ttime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                    'lanes' : {'v':'lanes', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
+                    'price' : {'v':'price', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
+                    'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
+                }
 
         """
         import itertools
@@ -130,8 +155,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def create_calculated_variables(self):
         """
-        Params
-        -------
+        Creates calculated roadway variables.
+
+        Args:
+            None
         """
         WranglerLogger.info("Creating calculated roadway variables.")
         self.calculate_area_type()
@@ -150,12 +177,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
+        Calculates county variable.
+
         This uses the centroid of the geometry field to determine which county it should be labeled.
         This isn't perfect, but it much quicker than other methods.
 
-        params
-        -------
+        Args:
+            county_shape (str): The File path to county geodatabase.
+            county_shape_variable (str): The variable name of county in county geodadabase.
+            network_variable (str): The variable name of county in network standard.  Default to "county".
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
 
+        Returns:
+            None
         """
         if network_variable in self.links_df:
             if overwrite:
@@ -209,18 +243,27 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def calculate_area_type(
         self,
-        network_variable="area_type",
         area_type_shape=None,
         area_type_shape_variable=None,
+        network_variable="area_type",
         area_type_codes_dict=None,
         overwrite=False,
     ):
         """
-        This uses the centroid of the geometry field to determine which area type it should be labeled.
-        PER PRD
-        ##TODO docstrings
-        params
-        -------
+        Calculates area type variable.
+
+        This uses the centroid of the geometry field to determine which area it should be labeled.
+        This isn't perfect, but it much quicker than other methods.
+
+        Args:
+            area_type_shape (str): The File path to area geodatabase.
+            area_type_shape_variable (str): The variable name of area type in area geodadabase.
+            network_variable (str): The variable name of area type in network standard.  Default to "area_type".
+            area_type_codes_dict: The dictionary to map input area_type_shape_variable to network_variable
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+
+        Returns:
+            None
 
         """
 
@@ -317,17 +360,21 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     def calculate_centroidconnect(
         self,
         network_variable="centroidconnect",
-        as_integer=True,
         highest_taz_number=None,
+        as_integer=True,
         overwrite=False,
     ):
         """
-        Params
-        ------
-        network_variable: str
-          variable that should be written to in the network
-        as_integer: bool
-          if true, will convert true/false to 1/0s
+        Calculates centroid connector variable.
+
+        Args:
+            network_variable (str): Variable that should be written to in the network. Default to "centroidconnect"
+            highest_taz_number (int): the max TAZ number in the network.
+            as_integer (bool): If True, will convert true/false to 1/0s.  Defauly to True.
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+
+        Returns:
+            None
         """
 
         if network_variable in self.links_df:
@@ -405,14 +452,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
-        Params
-        ------
-        county_variable: string
-          name of the variable where the county names are stored.
-        network_variable: string
-          name of the variable that should be written to
-        as_integer: bool
-          if true, will convert true/false to 1/0s
+        Calculates mpo variable.
+
+        Args:
+            county_variable (str): Name of the variable where the county names are stored.  Default to "county".
+            network_variable (str): Name of the variable that should be written to.  Default to "mpo".
+            as_integer (bool): If true, will convert true/false to 1/0s.
+            mpo_counties (list): List of county names that are within mpo region.
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+
+        Returns:
+            None
         """
 
         if network_variable in self.links_df:
@@ -489,13 +539,30 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         osm_assgngrp_dict=None,
     ):
         """
+        Calculates assignment group variable.
+
         Assignment Group is used in MetCouncil's traffic assignment to segment the volume/delay curves.
         Original source is from the MRCC data for the Minnesota: "route system" which is a roadway class
         For Wisconsin, it is from the Wisconsin DOT database, which has a variable called "roadway category"
 
         There is a crosswalk between the MRCC Route System and Wisconsin DOT --> Met Council Assignment group
 
-        This method joins the  network with mrcc and widot roadway data by shst js matcher returns
+        This method joins the network with mrcc and widot roadway data by shst js matcher returns
+
+        Args:
+            network_variable (str): Name of the variable that should be written to.  Default to "assign_group".
+            mrcc_roadway_class_shape (str): File path to the MRCC route system geodatabase.
+            mrcc_shst_data (str): File path to the MRCC SHST match return.
+            mrcc_roadway_class_variable_shp (str): Name of the variable where MRCC route system are stored.
+            mrcc_assgngrp_dict (dict): Dictionary to map MRCC route system variable to assignment group.
+            widot_roadway_class_shape (str): File path to the WIDOT roadway category geodatabase.
+            widot_shst_data (str): File path to the WIDOT SHST match return.
+            widot_roadway_class_variable_shp (str): Name of the variable where WIDOT roadway category are stored.
+            widot_assgngrp_dict (dict): Dictionary to map WIDOT roadway category variable to assignment group.
+            osm_assgngrp_dict (dict): Dictionary to map OSM roadway class to assignment group.
+
+        Return:
+            None
         """
 
         WranglerLogger.info(
@@ -732,9 +799,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self, network_variable="roadway_class", roadway_class_dict=None
     ):
         """
+        Calculates roadway class variable.
+
         roadway_class is a lookup based on assignment group
 
+        Args:
+            network_variable (str): Name of the variable that should be written to.  Default to "roadway_class".
+            roadway_class_dict (dict): Dictionary to map assignment group to roadway class.
+
+        Returns:
+            None
         """
+
         WranglerLogger.info("Calculating Roadway Class")
 
         """
@@ -779,7 +855,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
-        join the network with data, via SHST API node match result
+        Join network links with source data, via SHST API node match result.
+
+        Args:
+            var_shst_csvdata (str): File path to SHST API return.
+            shst_csv_variable (str): Variable name in the source data.
+            network_variable (str): Name of the variable that should be written to.
+            network_var_type : Variable type in the written network.
+            overwrite (bool): True is overwriting existing variable. Default to False.
+
+        Returns:
+            None
+
         """
         WranglerLogger.info(
             "Adding Variable {} using Shared Streets Reference from {}".format(
@@ -827,16 +914,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def add_counts(
         self,
+        network_variable="AADT",
         mndot_count_shst_data=None,
         widot_count_shst_data=None,
         mndot_count_variable_shp=None,
         widot_count_variable_shp=None,
-        network_variable="AADT",
     ):
 
         """
+        Adds count variable.
+
         join the network with count node data, via SHST API node match result
+
+        Args:
+            network_variable (str): Name of the variable that should be written to.  Default to "AADT".
+            mndot_count_shst_data (str): File path to MNDOT count location SHST API node match result.
+            widot_count_shst_data (str): File path to WIDOT count location SHST API node match result.
+            mndot_count_variable_shp (str): File path to MNDOT count location geodatabase.
+            widot_count_variable_shp (str): File path to WIDOT count location geodatabase.
+
+        Returns:
+            None
         """
+
         WranglerLogger.info("Adding Counts")
 
         """
@@ -923,11 +1023,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     @staticmethod
     def read_match_result(path):
         """
-        read the shst geojson match returns
+        Reads the shst geojson match returns.
 
-        return shst dataframe
+        Returns shst dataframe.
 
-        reading lots of same type of file and concatenating them into a single DataFrame
+        Reading lots of same type of file and concatenating them into a single DataFrame.
+
+        Args:
+            path (str): File path to SHST match results.
+
+        Returns:
+            geodataframe: geopandas geodataframe
 
         ##todo
         not sure why we need, but should be in utilities not this class
@@ -947,6 +1053,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         source_gdf,  # source dataframe
         field_name,  # , # targetted attribute from source
     ):
+        """
+        Gets attribute from source data using SHST match result.
+
+        Args:
+            links_df (dataframe): The network dataframe that new attribute should be written to.
+            join_key (str): SHST ID variable name used to join source data with network dataframe.
+            source_shst_ref_df (str): File path to source data SHST match result.
+            source_gdf (str): File path to source data.
+            field_name (str): Name of the attribute to get from source data.
+
+        Returns:
+            None
+        """
         # join based on shared streets geometry ID
         # pp_link_id is shared streets match return
         # source_ink_id is mrcc
@@ -995,7 +1114,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
-        rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
+        Rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
+
+        Args:
+            output_epsg (int): epsg number of output network.
+
+        Returns:
+            None
         """
 
         WranglerLogger.info(
@@ -1046,7 +1171,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         convert_geometry_to_xy=False,
     ):
         """
-        Rename attributes
+        Rename attributes for DBF/SHP, make sure length within 10 chars.
+
+        Args:
+            input_df (dataframe): Network standard DataFrame.
+            variable_crosswalk (str): File path to variable name crosswalk from network standard to DBF names.
+            output_variables (list): List of strings for DBF variables.
+            convert_geometry_to_xy (bool): True if converting node geometry to X/Y
+
+        Returns:
+            dataframe
+
         """
         WranglerLogger.info("Renaming variables so that they are DBF-safe")
 
@@ -1108,8 +1243,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_node_csv: str = None,
     ):
         """
-        write out dbf/shp for cube
-        write out csv in addition to shp with full length variable names
+        Write out dbf/shp for cube.  Write out csv in addition to shp with full length variable names.
+
+        Args:
+            node_output_variables (list): List of strings for node output variables.
+            link_output_variables (list): List of strings for link output variables.
+            data_to_csv (bool): True if write network in csv format.
+            data_to_dbf (bool): True if write network in dbf/shp format.
+            output_link_shp (str): File path to output link dbf/shp.
+            output_node_shp (str): File path to output node dbf/shp.
+            output_link_csv (str): File path to output link csv.
+            output_node_csv (str): File path to output node csv.
+
+        Returns:
+            None
         """
 
         WranglerLogger.info("Writing Network as Shapefile")
@@ -1213,15 +1360,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     @staticmethod
     def dataframe_to_fixed_with(df):
         """
-        convert dataframe to fixed width format, geometry column will not be transformed
+        Convert dataframe to fixed width format, geometry column will not be transformed.
 
-        Parameters
-        ----------
-        pandas DataFrame
+        Args:
+            df (pandas DataFrame).
 
-        Returns
-        ----------
-        pandas dataframe with fixed width for each column
+        Returns:
+            pandas dataframe:  dataframe with fixed width for each column.
+            dict: dictionary with columns names as keys, column width as values.
         """
         WranglerLogger.info("Starting fixed width convertion")
 
@@ -1247,18 +1393,24 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_cube_network_script: str = None
         ):
         """
-        this function does:
-        1. write out link and node fixed width data files for cube
-        2. write out header and width correspondence
-        3. write out cube network building script with header and width specification
+        Writes out fixed width file.
 
-        parameters
-        -----------
-        link GeoDataFrame
-        node GeoDataFrame
+        This function does:
+        1. write out link and node fixed width data files for cube.
+        2. write out header and width correspondence.
+        3. write out cube network building script with header and width specification.
 
-        Returns
-        -----------
+        Args:
+            node_output_variables (list): list of link variable names.
+            link_output_variables (list): list of node variable names.
+            output_link_txt (str): File path to output link database.
+            output_node_txt (str): File path to output node database.
+            output_link_header_width_csv (str): File path to link column width records.
+            output_link_header_width_csv (str): File path to node column width records.
+            output_cube_network_script (str): File path to CUBE network building script.
+
+        Returns:
+            None
 
         """
 
