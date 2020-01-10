@@ -15,6 +15,9 @@ from .Parameters import Parameters
 
 
 class CubeTransit(object):
+    """
+    Class of transit network
+    """
     def __init__(
         self,
         cube_transit_network: Optional[TransitNetworkLasso] = None,
@@ -22,6 +25,7 @@ class CubeTransit(object):
         parameters={}
     ):
         """
+        constructor
         """
         ## TODO Sijia
         self.cube_transit_network = cube_transit_network
@@ -42,6 +46,18 @@ class CubeTransit(object):
         gtfs_feed_dir: Optional[str] = None,
         parameters={},
     ):
+        """
+        Create CubeTransit object
+
+        Args:
+            cube_transit_dir (str): Folder path to cube transit .lin file.
+            cube_transit_file (str): File path to cube transit .lin file.
+            gtfs_feed_dir (str): Folder path to transit standard.
+            parameters : Lasso paramters.
+
+        Returns:
+            CubeTransit object
+        """
         if (
             sum(
                 x is not None
@@ -74,13 +90,13 @@ class CubeTransit(object):
 
     def evaluate_differences(self, base_transit):
         """
+        Evaluate difference between build and base transit network.
 
-        Parameters
-        -----------
+        Args:
+            base_transit (CubeTransit): base CubeTransit
 
-        Returns
-        -------
-
+        Returns:
+            list of transit changes dictionary
         """
 
         # loop thru every record in new .lin
@@ -189,7 +205,16 @@ class CubeTransit(object):
         return transit_change_list
 
     def evaluate_route_shape_changes(line_build, line_base):
-        ##TODO Sijia
+        """
+        Evaluates transit route shape changes.
+
+        Args:
+            line_build: build transit line record.
+            line_base: base transit line record.
+
+        Returns:
+            list of dictionary for route shape change.
+        """
         shape_change_list = []
 
         base_node_list = [int(node.num) for node in line_base.n]
@@ -231,6 +256,16 @@ class CubeTransit(object):
         return shape_change_list
 
     def evaluate_route_property_changes(line_build, line_base):
+        """
+        Evaluate route property changes.
+
+        Args:
+            line_build : build transit line record.
+            line_base: base transit line record.
+
+        Returns:
+            List of dictionary for property changes.
+        """
         properties_list = []
         if line_build.getFreq() != line_base.getFreq():
             _headway_diff = line_build.getFreq() - line_base.getFreq()
@@ -243,7 +278,11 @@ class CubeTransit(object):
     @staticmethod
     def gtfs_to_cube(self):
         """
-        prepare gtfs for cube lin file
+        Process gtfs format transit standard for writing cube .lin file.
+
+        Returns:
+            DataFrame
+
         """
         mode_dict = {0: 8, 2: 9}
         bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
@@ -319,7 +358,10 @@ class CubeTransit(object):
 
     def cube_format(self, x):
         """
-        formatter for cube .lin file
+        Formatter for cube .lin file
+
+        Args:
+            x: single transit trip record as a row in DataFrame.
         """
         trip_stop_times_df = self.gtfs_feed.stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[trip_stop_times_df.trip_id == x.trip_id]
@@ -365,7 +407,10 @@ class CubeTransit(object):
 
     def write_cube_transit(self, outpath):
         """
-        write out to .lin file
+        Write out to .lin file.
+
+        Args:
+            outpath (str): File path to output CUBE .lin file
         """
         trip_cube_df = CubeTransit.gtfs_to_cube(self)
 
