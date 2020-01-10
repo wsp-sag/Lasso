@@ -18,7 +18,7 @@ class Project(object):
     """
     A single or set of changes to the roadway or transit system.
     """
-
+    
     DEFAULT_PROJECT_NAME = "USER TO define"
 
     STATIC_VALUES = [
@@ -40,7 +40,7 @@ class Project(object):
         evaluate: bool = False,
     ):
         """
-
+        constructor
         """
         self.card_data = Dict[str, Dict[str, Any]]
 
@@ -61,12 +61,13 @@ class Project(object):
 
     def write_project_card(self, filename):
         """
+        Writes project cards.
 
-        Parameters
-        -----------
-        filename
-        Returns
-        -------
+        Args:
+            filename (str): File path to output .yml
+
+        Returns:
+            None
         """
         ProjectCard(self.card_data).write(filename)
         WranglerLogger.info("Wrote project card to: {}".format(filename))
@@ -86,15 +87,23 @@ class Project(object):
         build_transit_network: Optional[CubeTransit] = None,
     ):
         """
+        Create project objects.
 
-        Parameters
-        -----------
-        roadway_log_file : str
-            filename for consuming logfile
+        Args:
+            roadway_log_file (str): File path to consuming logfile.
+            base_roadway_dir (str): Folder path to base roadway network.
+            base_transit_dir (str): Folder path to base transit network.
+            base_transit_file (str): File path to base transit network.
+            build_transit_dir (str): Folder path to build transit network.
+            build_transit_file (str): File path to build transit network.
+            roadway_changes (DataFrame): pandas dataframe of CUBE roadway changes.
+            transit_changes (CubeTransit): build transit changes.
+            base_roadway_network (RoadwayNetwork): Base roadway network object.
+            base_transit_network (CubeTransit): Base transit network object.
+            build_transit_network (CubeTransit): Build transit network object.
 
-        Returns
-        -------
-        Project object
+        Returns:
+            Project object
         """
 
         if build_transit_dir and transit_changes:
@@ -165,13 +174,12 @@ class Project(object):
     def read_logfile(logfilename: str) -> DataFrame:
         """
         Reads a Cube log file and returns a dataframe of roadway_changes
-        Parameters
-        -----------
-        logfilename : str
-            filename for consuming logfile
 
-        Returns
-        -------
+        Args:
+            logfilename (str): File path to CUBE logfile.
+
+        Returns:
+            DataFrame
         """
         WranglerLogger.info("Reading logfile: {}".format(logfilename))
         with open(logfilename) as f:
@@ -286,6 +294,9 @@ class Project(object):
         """
         Evaluates changes from the log file based on the base highway object and
         adds entries into the self.card_data dictionary.
+
+        Args:
+            limit_variables_to_existing_network (bool): True if no ad-hoc variables.  Default to False.
         """
 
         ## if worth it, could also add some functionality  to network wrangler itself.
