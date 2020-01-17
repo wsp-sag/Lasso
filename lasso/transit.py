@@ -10,8 +10,8 @@ from pandas import DataFrame
 import pandas as pd
 import partridge as ptg
 
-from .Logger import WranglerLogger
-from .Parameters import Parameters
+from .logger import WranglerLogger
+from .parameters import Parameters
 
 
 class CubeTransformer(Transformer):
@@ -651,20 +651,20 @@ class CubeTransit(object):
         )
 
     @staticmethod
-    def unpack_route_name(line_name):
+    def unpack_route_name(line_name:str):
         """
         Unpacks route name into direction, route, agency, and time period info
 
         Args
         ------
-        line_name (str): i.e. "0_452-111_452_pk1"
+        line_name (str): For example `0_452-111_452_pk1`
 
         Returns
         --------
-        route_id (str): 452-111
-        time_period (str): i.e. pk
-        direction_id (str) : i.e. 1
-        agency_id (str) : i.e. 0
+        route_id (str): Route ID, for example 452-111
+        time_period (str): Time Period abbrebiation, for example pk or MD
+        direction_id (str) : Direction ID, for example 1
+        agency_id (str) : Agency ID, for example 0
         """
 
         line_name = line_name.strip('"')

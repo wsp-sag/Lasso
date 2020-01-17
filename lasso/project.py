@@ -10,7 +10,7 @@ from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
 
 from .transit import CubeTransit, StandardTransit
-from .Logger import WranglerLogger
+from .logger import WranglerLogger
 
 
 class Project(object):
