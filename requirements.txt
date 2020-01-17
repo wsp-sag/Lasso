@@ -1,4 +1,4 @@
-lark
+lark-parser
 pandas
 jupyter
 notebook
