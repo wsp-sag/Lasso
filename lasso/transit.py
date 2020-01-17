@@ -41,7 +41,7 @@ class CubeTransformer(Transformer):
         lin_name = lin_attributes["NAME"]
 
         self.line_order = 0
-        WranglerLogger.debug("parsing: {}".format(lin_name))
+        #WranglerLogger.debug("parsing: {}".format(lin_name))
 
         return (lin_name, {"line_properties": lin_attributes, "line_shape": nodes})
 
@@ -364,12 +364,21 @@ class CubeTransit(object):
                 base_transit.line_properties[line],
                 base_cube_time_period_number,
             )
-            if not updated_properties:
-                continue
-            update_card_dict = self.create_update_route_card_dict(
-                line, updated_properties
+            updated_shapes = self.evaluate_route_shape_changes(
+                self.shapes[line],
+                base_transit.shapes[line],
             )
-            project_card_changes.append(update_card_dict)
+            if updated_properties:
+                update_prop_card_dict = self.create_update_route_card_dict(
+                    line, updated_properties
+                )
+                project_card_changes.append(update_prop_card_dict)
+
+            if updated_shapes:
+                update_shape_card_dict = self.create_update_route_card_dict(
+                    line, updated_shapes
+                )
+                project_card_changes.append(update_shape_card_dict)
 
         """
         Evaluate Deletions
@@ -768,7 +777,8 @@ class CubeTransit(object):
         validate_base=False,
     ):
         """
-        Checks if any values have been updated or added for a specific route and creates project card entries for each.
+        Checks if any values have been updated or added for a specific
+        route and creates project card entries for each.
 
         Parameters
         -----------
@@ -839,6 +849,58 @@ class CubeTransit(object):
             )
         )
         return properties_list
+
+    def evaluate_route_shape_changes(self, shape_build: DataFrame, shape_base: DataFrame):
+        """
+
+        Args:
+            shape_build: DataFrame
+            shape_base: DataFrame
+
+        """
+
+        if shape_build.node.equals(shape_base.node):
+            return None
+
+        shape_change_list = []
+
+        base_node_list = shape_build.node.tolist()
+        build_node_list = shape_base.node.tolist()
+
+        sort_len = max(len(base_node_list), len(build_node_list))
+
+        start_pos = None
+        end_pos = None
+        for i in range(sort_len):
+            if ((i == len(base_node_list)) | (i == len(build_node_list))):
+                start_pos = i-1
+                break
+            if base_node_list[i] != build_node_list[i]:
+                start_pos = i
+                break
+            else:
+                continue
+
+        j = -1
+        for i in range(sort_len):
+            if ((i == len(base_node_list)) | (i == len(build_node_list))):
+                end_pos = j+1
+                break
+            if base_node_list[j] != build_node_list[j]:
+                end_pos = j
+                break
+            else:
+                j -= 1
+
+        if (start_pos or end_pos):
+            existing = base_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
+            set = build_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
+
+            shape_change_list.append(
+                {"property" : "routing", "existing" : existing, "set" : set}
+            )
+
+        return shape_change_list
 
 
 class StandardTransit(object):

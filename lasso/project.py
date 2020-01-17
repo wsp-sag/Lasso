@@ -17,7 +17,7 @@ class Project(object):
     """
     A single or set of changes to the roadway or transit system.
     """
-    
+
     DEFAULT_PROJECT_NAME = "USER TO define"
 
     STATIC_VALUES = [
@@ -106,7 +106,13 @@ class Project(object):
 
         if base_transit_source:
             base_transit_network = CubeTransit.create_from_cube(base_transit_source)
-            WranglerLogger.debug("base nw lines: {}".format(base_transit_network.lines))
+            WranglerLogger.debug(
+                "Base network has {} lines".format(len(base_transit_network.lines))
+            )
+            if len(base_transit_network.lines)<=10:
+                WranglerLogger.debug(
+                    "Base network lines: {}".format("\n - ".join(base_transit_network.lines))
+                )
         else:
             msg = "No base transit network."
             WranglerLogger.info(msg)
@@ -120,8 +126,12 @@ class Project(object):
             WranglerLogger.debug("build")
             build_transit_network = CubeTransit.create_from_cube(build_transit_source)
             WranglerLogger.debug(
-                "build nw lines: {}".format(build_transit_network.lines)
+                "Build network has {} lines".format(len(build_transit_network.lines))
             )
+            if len(build_transit_network.lines)<=10:
+                WranglerLogger.debug(
+                    "Build network lines: {}".format("\n - ".join(build_transit_network.lines))
+                )
         else:
             msg = "No transit changes given or processed."
             WranglerLogger.info(msg)
