@@ -10,7 +10,7 @@ from .TransitParser0 import TransitParser, transit_file_def
 __all__ = ["TransitNetworkLasso"]
 
 
-class TransitNetworkLasso():
+class TransitNetworkLasso:
     ##rename
     """
     Cube representation of a transit network
@@ -18,23 +18,18 @@ class TransitNetworkLasso():
 
     TRANSIT_FILE_SUFFIXES = ["lin", "link", "pnr", "zac", "access", "xfer", "pts"]
 
-    def __init__(
-        self,
-        network_dir = None,
-        network_files = [],
-        parameters = None,
-    ):
+    def __init__(self, network_dir=None, network_files=[], parameters=None):
         """
         If *basenetworkpath* is passed and *isTiered* is True, then start by reading the files
         named *networkName*.* in the *basenetworkpath*
         """
 
         try:
-            self.cube_program =  parameters[program]
+            self.cube_program = parameters[program]
             assert self.cube_program in ["TRNBUILD", "PT"]
         except:
             self.cube_program = "TRNBUILD"
-        #will be one of PROGRAM_PT or PROGRAM_TRNBUILD
+        # will be one of PROGRAM_PT or PROGRAM_TRNBUILD
 
         self.lines = []
         self.links = (
@@ -91,15 +86,10 @@ class TransitNetworkLasso():
         TODO: could be smarter here and check that there are no non-comments since those
         don't really count.
         """
-        if (
-            len(self.lines) == 0
-            and len(self.links) == 0
-            and len(self.pnrs) == 0
-        ):
+        if len(self.lines) == 0 and len(self.links) == 0 and len(self.pnrs) == 0:
             return True
 
         return False
-
 
     def line(self, name):
         """
@@ -151,12 +141,7 @@ class TransitNetworkLasso():
         # Convert from parser-tree format to in-memory transit data structures:
         (program, convertedLines) = self.parser.convertLineData()
 
-        return (
-            program,
-            convertedLines,
-            convertedLinks,
-            convertedPNR,
-        )
+        return (program, convertedLines, convertedLinks, convertedPNR)
 
     def parseFile(self, fullfile, insert_replace=True):
         """
@@ -175,32 +160,12 @@ class TransitNetworkLasso():
         self.parser.tfp.liType = suffix
         logstr = "   Reading %s as %s" % (fullfile, suffix)
         f = open(fullfile, "r")
-        (
-            prog,
-            lines,
-            links,
-            pnr,
-        ) = self.parseAndPrintTransitFile(f.read(), verbosity=0)
+        (prog, lines, links, pnr) = self.parseAndPrintTransitFile(f.read(), verbosity=0)
         f.close()
-        logstr += self.doMerge(
-            fullfile,
-            prog,
-            lines,
-            links,
-            pnr,
-            insert_replace,
-        )
+        logstr += self.doMerge(fullfile, prog, lines, links, pnr, insert_replace)
         WranglerLogger.debug(logstr)
 
-    def doMerge(
-        self,
-        path,
-        prog,
-        lines,
-        links,
-        pnrs,
-        insert_replace=False,
-    ):
+    def doMerge(self, path, prog, lines, links, pnrs, insert_replace=False):
         """
         Merge a set of transit lines & support links with this network's transit representation.
         """
@@ -258,7 +223,9 @@ class TransitNetworkLasso():
         suffix = filename.rsplit(".")[-1].lower()
 
         if suffix not in TransitNetworkLasso.TRANSIT_FILE_SUFFIXES:
-            msg = 'File doesn\'t have a typical transit suffix: {} '.format(TransitNetworkLasso.TRANSIT_FILE_SUFFIXES)
+            msg = "File doesn't have a typical transit suffix: {} ".format(
+                TransitNetworkLasso.TRANSIT_FILE_SUFFIXES
+            )
             WranglerLogger.warning(msg)
 
         self.parser = TransitParser(transit_file_def, verbosity=0)
@@ -266,21 +233,9 @@ class TransitNetworkLasso():
 
         logstr = "   Reading %s" % filename
         f = open(filename, "r")
-        (
-            prog,
-            lines,
-            links,
-            pnr,
-        ) = self.parseAndPrintTransitFile(f.read(), verbosity=2)
+        (prog, lines, links, pnr) = self.parseAndPrintTransitFile(f.read(), verbosity=2)
         f.close()
-        logstr += self.doMerge(
-            filename,
-            prog,
-            lines,
-            links,
-            pnr,
-            insert_replace,
-        )
+        logstr += self.doMerge(filename, prog, lines, links, pnr, insert_replace)
         WranglerLogger.debug(logstr)
 
     def mergeDir(self, path, insert_replace=False):

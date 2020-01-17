@@ -19,6 +19,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     A representation of the physical roadway network and its properties.
     """
+
     def __init__(
         self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
     ):
@@ -647,13 +648,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # shstReferenceId,shstGeometryId,pp_link_id
         mrcc_shst_ref_df = pd.read_csv(mrcc_shst_data)
-        WranglerLogger.debug("mrcc shst ref df columns\n{}".format(mrcc_shst_ref_df.columns))
+        WranglerLogger.debug(
+            "mrcc shst ref df columns\n{}".format(mrcc_shst_ref_df.columns)
+        )
 
         widot_gdf = gpd.read_file(widot_roadway_class_shape)
         widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
         WranglerLogger.debug("WiDOT GDF Columns\n{}".format(widot_gdf.columns))
         widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
-        WranglerLogger.debug("widot shst ref df columns".format(widot_shst_ref_df.columns))
+        WranglerLogger.debug(
+            "widot shst ref df columns".format(widot_shst_ref_df.columns)
+        )
         # join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
         #
         # get route_sys from MRCC
@@ -675,7 +680,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict, dtype = {mrcc_roadway_class_variable_shp : str})
+        mrcc_asgngrp_crosswalk_df = pd.read_csv(
+            mrcc_assgngrp_dict, dtype={mrcc_roadway_class_variable_shp: str}
+        )
         widot_asgngrp_crosswak_df = pd.read_csv(widot_assgngrp_dict)
 
         join_gdf = pd.merge(
@@ -758,10 +765,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         asgngrp_rc_num_crosswalk_df = pd.read_csv(roadway_class_dict)
 
         join_gdf = pd.merge(
-            self.links_df,
-            asgngrp_rc_num_crosswalk_df,
-            how="left",
-            on="assign_group",
+            self.links_df, asgngrp_rc_num_crosswalk_df, how="left", on="assign_group"
         )
 
         self.links_df[network_variable] = join_gdf[network_variable]
@@ -951,7 +955,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # pp_link_id is shared streets match return
         # source_ink_id is mrcc
         WranglerLogger.debug(
-            "source ShSt rename_variables_for_dbf columns\n{}".format(source_shst_ref_df.columns)
+            "source ShSt rename_variables_for_dbf columns\n{}".format(
+                source_shst_ref_df.columns
+            )
         )
         WranglerLogger.debug("source gdf columns\n{}".format(source_gdf.columns))
         # end up with OSM network with the MRCC Link ID
@@ -1035,8 +1041,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.reset_index()
         self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
 
-        self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(lambda g: g.x)
-        self.nodes_metcouncil_df["Y"] = self.nodes_metcouncil_df.geometry.apply(lambda g: g.y)
+        self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(
+            lambda g: g.x
+        )
+        self.nodes_metcouncil_df["Y"] = self.nodes_metcouncil_df.geometry.apply(
+            lambda g: g.y
+        )
 
     def rename_variables_for_dbf(
         self,
@@ -1226,13 +1236,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info("Starting fixed width convertion")
 
         # get the max length for each variable column
-        max_width_dict = dict([(v, df[v].apply(lambda r: len(str(r)) if r!=None else 0).max()) for v in df.columns.values if v != "geometry"])
+        max_width_dict = dict(
+            [
+                (v, df[v].apply(lambda r: len(str(r)) if r != None else 0).max())
+                for v in df.columns.values
+                if v != "geometry"
+            ]
+        )
 
-        fw_df = df.drop("geometry", axis = 1).copy()
+        fw_df = df.drop("geometry", axis=1).copy()
         for c in fw_df.columns:
             fw_df[c] = fw_df[c].apply(lambda x: str(x))
-            fw_df["pad"] = fw_df[c].apply(lambda x: " "*(max_width_dict[c] - len(x)))
-            fw_df[c] = fw_df.apply(lambda x: x.pad + x[c], axis = 1)
+            fw_df["pad"] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
+            fw_df[c] = fw_df.apply(lambda x: x.pad + x[c], axis=1)
 
         return fw_df, max_width_dict
 
@@ -1244,8 +1260,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_node_txt: str = None,
         output_link_header_width_csv: str = None,
         output_node_header_width_csv: str = None,
-        output_cube_network_script: str = None
-        ):
+        output_cube_network_script: str = None,
+    ):
         """
         this function does:
         1. write out link and node fixed width data files for cube
@@ -1311,71 +1327,87 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         output_link_header_width_csv = (
-            output_link_header_width_csv if output_link_header_width_csv else self.parameters.output_link_header_width_csv
+            output_link_header_width_csv
+            if output_link_header_width_csv
+            else self.parameters.output_link_header_width_csv
         )
 
         output_node_header_width_csv = (
-            output_node_header_width_csv if output_node_header_width_csv else self.parameters.output_node_header_width_csv
+            output_node_header_width_csv
+            if output_node_header_width_csv
+            else self.parameters.output_node_header_width_csv
         )
 
         output_cube_network_script = (
-            output_cube_network_script if output_cube_network_script else self.parameters.output_cube_network_script
+            output_cube_network_script
+            if output_cube_network_script
+            else self.parameters.output_cube_network_script
         )
 
         """
         Start Process
         """
-        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(self.links_metcouncil_df[link_output_variables])
+        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(
+            self.links_metcouncil_df[link_output_variables]
+        )
         WranglerLogger.info("Writing out link database")
 
-        link_ff_df.to_csv(output_link_txt,
-                      sep = ";",
-                     index = False,
-                     header = False)
+        link_ff_df.to_csv(output_link_txt, sep=";", index=False, header=False)
 
         # write out header and width correspondence
         WranglerLogger.info("Writing out link header and width ----")
-        link_max_width_df = DataFrame(list(link_max_width_dict.items()),
-                                        columns=["header", "width"])
-        link_max_width_df.to_csv(output_link_header_width_csv,
-                         index = False)
+        link_max_width_df = DataFrame(
+            list(link_max_width_dict.items()), columns=["header", "width"]
+        )
+        link_max_width_df.to_csv(output_link_header_width_csv, index=False)
 
-        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(self.nodes_metcouncil_df[node_output_variables])
+        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(
+            self.nodes_metcouncil_df[node_output_variables]
+        )
         WranglerLogger.info("Writing out node database")
 
-        node_ff_df.to_csv(output_node_txt,
-                      sep = ";",
-                     index = False,
-                     header = False)
+        node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
 
         # write out header and width correspondence
         WranglerLogger.info("Writing out node header and width")
-        node_max_width_df = DataFrame(list(node_max_width_dict.items()),
-                                columns=["header", "width"])
-        node_max_width_df.to_csv(output_node_header_width_csv,
-                         index = False)
+        node_max_width_df = DataFrame(
+            list(node_max_width_dict.items()), columns=["header", "width"]
+        )
+        node_max_width_df.to_csv(output_node_header_width_csv, index=False)
 
         # write out cube script
-        s = "RUN PGM = NETWORK MSG = \"Read in network from fixed width file\" \n"
+        s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
         s += "FILEI LINKI[1] = %LINK_DATA_PATH%, VAR ="
         start_pos = 1
         for i in range(len(link_max_width_df)):
-            s += (" " + link_max_width_df.header.iloc[i] +
-                    "," + str(start_pos) + "-" +
-                    str(start_pos + link_max_width_df.width.iloc[i] - 1) + ",")
-            start_pos += (link_max_width_df.width.iloc[i] + 1)
+            s += (
+                " "
+                + link_max_width_df.header.iloc[i]
+                + ","
+                + str(start_pos)
+                + "-"
+                + str(start_pos + link_max_width_df.width.iloc[i] - 1)
+                + ","
+            )
+            start_pos += link_max_width_df.width.iloc[i] + 1
         s = s[:-1]
         s += "\n"
         s += "FILEI NODEI[1] = %NODE_DATA_PATH%, VAR ="
         start_pos = 1
         for i in range(len(node_max_width_df)):
-            s += (" " + node_max_width_df.header.iloc[i] +
-                    "," + str(start_pos) + "-" +
-                    str(start_pos + node_max_width_df.width.iloc[i] - 1) + ",")
-            start_pos += (node_max_width_df.width.iloc[i] + 1)
+            s += (
+                " "
+                + node_max_width_df.header.iloc[i]
+                + ","
+                + str(start_pos)
+                + "-"
+                + str(start_pos + node_max_width_df.width.iloc[i] - 1)
+                + ","
+            )
+            start_pos += node_max_width_df.width.iloc[i] + 1
         s = s[:-1]
         s += "\n"
-        s += "FILEO NETO = \"%SCENARIO_DIR%/complete_network.net\" \n    ZONES = %zones% \n \nENDRUN"
+        s += 'FILEO NETO = "%SCENARIO_DIR%/complete_network.net" \n    ZONES = %zones% \n \nENDRUN'
 
-        with open(output_cube_network_script, 'w') as f:
+        with open(output_cube_network_script, "w") as f:
             f.write(s)

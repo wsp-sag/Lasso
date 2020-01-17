@@ -1,3 +1,4 @@
+lark
 pandas
-simpleparse
-xlrd
+jupyter
+notebook

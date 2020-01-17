@@ -9,8 +9,7 @@ from pandas import DataFrame
 from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
 
-from .TransitNetwork import TransitNetworkLasso
-from .transit import CubeTransit
+from .transit import CubeTransit, StandardTransit
 from .Logger import WranglerLogger
 
 
@@ -75,15 +74,14 @@ class Project(object):
     def create_project(
         roadway_log_file: Optional[str] = None,
         base_roadway_dir: Optional[str] = None,
-        base_transit_dir: Optional[str] = None,
-        base_transit_file: Optional[str] = None,
-        build_transit_dir: Optional[str] = None,
-        build_transit_file: Optional[str] = None,
+        base_transit_source: Optional[str] = None,
+        build_transit_source: Optional[str] = None,
         roadway_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
         build_transit_network: Optional[CubeTransit] = None,
+        project_name=None,
     ):
         """
 
@@ -97,13 +95,23 @@ class Project(object):
         Project object
         """
 
-        if build_transit_dir and transit_changes:
-            msg = "Method takes only one of 'build_transit_dir' and 'transit_changes' but both given"
+        if base_transit_source:
+            base_transit_network = CubeTransit.create_from_cube(base_transit_source)
+            WranglerLogger.debug("base nw lines: {}".format(base_transit_network.lines))
+        else:
+            msg = "No base transit network."
+            WranglerLogger.info(msg)
+            base_transit_network = None
+
+        if build_transit_source and transit_changes:
+            msg = "Method takes only one of 'build_transit_source' and 'transit_changes' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
-        if build_transit_dir or build_transit_file:
-            build_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=build_transit_dir, cube_transit_file=build_transit_file
+        if build_transit_source:
+            WranglerLogger.debug("build")
+            build_transit_network = CubeTransit.create_from_cube(build_transit_source)
+            WranglerLogger.debug(
+                "build nw lines: {}".format(build_transit_network.lines)
             )
         else:
             msg = "No transit changes given or processed."
@@ -137,19 +145,6 @@ class Project(object):
             WranglerLogger.info(msg)
             base_roadway_network = None
 
-        if base_transit_dir and base_transit_network:
-            msg = "Method takes only one of 'base_transit_dir' and 'base_transit_network' but both given"
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
-        if base_transit_dir or base_transit_file:
-            base_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=base_transit_dir, cube_transit_file=base_transit_file,
-            )
-        else:
-            msg = "No base transit network."
-            WranglerLogger.info(msg)
-            base_transit_network = None
-
         project = Project(
             roadway_changes=roadway_changes,
             transit_changes=transit_changes,
@@ -157,6 +152,7 @@ class Project(object):
             base_transit_network=base_transit_network,
             build_transit_network=build_transit_network,
             evaluate=True,
+            project_name=project_name,
         )
 
         return project
