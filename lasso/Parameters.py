@@ -17,6 +17,12 @@ class Parameters:
         "NT": ("19:00", "6:00"),
     }
 
+    route_type_bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
+
+    route_type_mode_dict = {0: 8, 2: 9}
+
+    DEFAULT_CUBE_TIME_PERIODS = {"1": "AM", "2": "MD"}
+
     DEFAULT_CATEGORIES = {
         # suffix, source (in order of search)
         "sov": ["sov", "default"],
@@ -57,7 +63,7 @@ class Parameters:
     WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
     DEFAULT_COUNTY_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "county", "cb_2017_us_county_5m.shp",
+        DATA_FILE_LOCATION, "county", "cb_2017_us_county_5m.shp"
     )
     DEFAULT_COUNTY_VARIABLE_SHP = "NAME"
 
@@ -72,13 +78,13 @@ class Parameters:
     ]
 
     DEFAULT_TAZ_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "TAZ", "TAZOfficialWCurrentForecasts.shp",
+        DATA_FILE_LOCATION, "TAZ", "TAZOfficialWCurrentForecasts.shp"
     )
     DEFAULT_TAZ_DATA = None
     DEFAULT_HIGHEST_TAZ_NUMBER = 3100
 
     DEFAULT_AREA_TYPE_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "area_type", "ThriveMSP2040CommunityDesignation.shp",
+        DATA_FILE_LOCATION, "area_type", "ThriveMSP2040CommunityDesignation.shp"
     )
     DEFAULT_AREA_TYPE_VARIABLE_SHP = "COMDES2040"
     # area type map from raw data to model category
@@ -107,55 +113,53 @@ class Parameters:
     }
 
     DEFAULT_OSM_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION, "lookups", "osm_highway_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "osm_highway_asgngrp_crosswalk.csv"
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "mrcc", "trans_mrcc_centerlines.shp",
+        DATA_FILE_LOCATION, "mrcc", "trans_mrcc_centerlines.shp"
     )
 
     DEFAULT_MRCC_ROADWAY_CLASS_VARIABLE_SHP = "ROUTE_SYS"
 
     DEFAULT_MRCC_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION, "lookups", "mrcc_route_sys_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "mrcc_route_sys_asgngrp_crosswalk.csv"
     )
 
     DEFAULT_MRCC_SHST_DATA = os.path.join(
-        DATA_FILE_LOCATION, "mrcc", "mrcc.out.matched.csv",
+        DATA_FILE_LOCATION, "mrcc", "mrcc.out.matched.csv"
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "WISLR.shp",
+        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "WISLR.shp"
     )
 
     DEFAULT_WIDOT_ROADWAY_CLASS_VARIABLE_SHP = "RDWY_CTGY_"
 
     DEFAULT_WIDOT_ASSGNGRP_DICT = os.path.join(
-        DATA_FILE_LOCATION, "lookups", "widot_ctgy_asgngrp_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "widot_ctgy_asgngrp_crosswalk.csv"
     )
 
     DEFAULT_WIDOT_SHST_DATA = os.path.join(
-        DATA_FILE_LOCATION,
-        "Wisconsin_Lanes_Counts_Median",
-        "widot.out.matched.geojson",
+        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "widot.out.matched.geojson"
     )
 
     DEFAULT_ROADWAY_CLASS_DICT = os.path.join(
-        DATA_FILE_LOCATION, "lookups", "asgngrp_rc_num_crosswalk.csv",
+        DATA_FILE_LOCATION, "lookups", "asgngrp_rc_num_crosswalk.csv"
     )
 
     DEFAULT_MNDOT_COUNT_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "count_mn", "AADT_2017_Count_Locations.shp",
+        DATA_FILE_LOCATION, "count_mn", "AADT_2017_Count_Locations.shp"
     )
 
     DEFAULT_MNDOT_COUNT_SHST_DATA = os.path.join(
-        DATA_FILE_LOCATION, "count_mn", "mn_count_ShSt_API_match.csv",
+        DATA_FILE_LOCATION, "count_mn", "mn_count_ShSt_API_match.csv"
     )
 
     DEFAULT_MNDOT_COUNT_VARIABLE_SHP = "AADT_mn"
 
     DEFAULT_WIDOT_COUNT_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "TRADAS_(counts).shp",
+        DATA_FILE_LOCATION, "Wisconsin_Lanes_Counts_Median", "TRADAS_(counts).shp"
     )
 
     DEFAULT_WIDOT_COUNT_SHST_DATA = os.path.join(
@@ -166,7 +170,7 @@ class Parameters:
 
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
-    DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(SETTINGS_LOCATION, "net_to_dbf.csv",)
+    DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(SETTINGS_LOCATION, "net_to_dbf.csv")
 
     DEFAULT_OUTPUT_VARIABLES = [
         "model_link_id",
@@ -236,32 +240,34 @@ class Parameters:
         "drive_node",
         "geometry",
         "X",
-        "Y"
+        "Y",
     ]
 
-    DEFAULT_OUTPUT_LINK_SHP = os.path.join(SCRATCH_LOCATION, "links.shp",)
+    DEFAULT_OUTPUT_LINK_SHP = os.path.join(SCRATCH_LOCATION, "links.shp")
 
-    DEFAULT_OUTPUT_NODE_SHP = os.path.join(SCRATCH_LOCATION, "nodes.shp",)
+    DEFAULT_OUTPUT_NODE_SHP = os.path.join(SCRATCH_LOCATION, "nodes.shp")
 
-    DEFAULT_OUTPUT_LINK_CSV = os.path.join(SCRATCH_LOCATION, "links.csv",)
+    DEFAULT_OUTPUT_LINK_CSV = os.path.join(SCRATCH_LOCATION, "links.csv")
 
-    DEFAULT_OUTPUT_NODE_CSV = os.path.join(SCRATCH_LOCATION, "nodes.csv",)
+    DEFAULT_OUTPUT_NODE_CSV = os.path.join(SCRATCH_LOCATION, "nodes.csv")
 
-    DEFAULT_OUTPUT_LINK_TXT = os.path.join(SCRATCH_LOCATION, "links.txt",)
+    DEFAULT_OUTPUT_LINK_TXT = os.path.join(SCRATCH_LOCATION, "links.txt")
 
-    DEFAULT_OUTPUT_NODE_TXT = os.path.join(SCRATCH_LOCATION, "nodes.txt",)
+    DEFAULT_OUTPUT_NODE_TXT = os.path.join(SCRATCH_LOCATION, "nodes.txt")
 
-    DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV = os.path.join(SCRATCH_LOCATION, "links_header_width.csv",)
+    DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV = os.path.join(
+        SCRATCH_LOCATION, "links_header_width.csv"
+    )
 
-    DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV = os.path.join(SCRATCH_LOCATION, "nodes_header_width.csv",)
+    DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV = os.path.join(
+        SCRATCH_LOCATION, "nodes_header_width.csv"
+    )
 
-    DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT = os.path.join(SCRATCH_LOCATION, "make_complete_network_from_fixed_width_file.s",)
+    DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT = os.path.join(
+        SCRATCH_LOCATION, "make_complete_network_from_fixed_width_file.s"
+    )
 
     DEFAULT_OUTPUT_EPSG = 26915
-
-    DEFAULT_BUS_ROUTETYPE_SHAPE = os.path.join(
-        DATA_FILE_LOCATION, "transit", "shp_trans_transit_routes", "TransitRoutes.shp",
-    )
 
     def __init__(self, **kwargs):
 
@@ -269,6 +275,8 @@ class Parameters:
 
         if "time_period_to_time" not in kwargs:
             self.time_period_to_time = Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+        if "cube_time_periods" not in kwargs:
+            self.cube_time_periods = Parameters.DEFAULT_CUBE_TIME_PERIODS
         if "categories" not in kwargs:
             self.categories = Parameters.DEFAULT_CATEGORIES
         if "properties_to_split" not in kwargs:
@@ -348,10 +356,22 @@ class Parameters:
         if "output_node_txt" not in kwargs:
             self.output_node_txt = Parameters.DEFAULT_OUTPUT_NODE_TXT
         if "output_link_header_width_csv" not in kwargs:
-            self.output_link_header_width_csv = Parameters.DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV
+            self.output_link_header_width_csv = (
+                Parameters.DEFAULT_OUTPUT_LINK_HEADER_WIDTH_CSV
+            )
         if "output_node_header_width_csv" not in kwargs:
-            self.output_node_header_width_csv = Parameters.DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV
+            self.output_node_header_width_csv = (
+                Parameters.DEFAULT_OUTPUT_NODE_HEADER_WIDTH_CSV
+            )
         if "output_cube_network_script" not in kwargs:
-            self.output_cube_network_script = Parameters.DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT
-        if "bus_routetype_shape" not in kwargs:
-            self.bus_routetype_shape = Parameters.DEFAULT_BUS_ROUTETYPE_SHAPE
+            self.output_cube_network_script = (
+                Parameters.DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT
+            )
+        """
+        Create all the possible headway variable combinations based on the cube time periods setting
+        """
+        self.time_period_properties_list = [
+            p + "[" + str(t) + "]"
+            for p in ["HEADWAY", "FREQ"]
+            for t in self.cube_time_periods.keys()
+        ]

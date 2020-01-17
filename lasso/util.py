@@ -15,3 +15,35 @@ def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
     unhashed = message.encode("utf-8")
     hash = hashlib.md5(unhashed).hexdigest()
     return hash
+
+
+def hhmmss_to_datetime(hhmmss_str: str):
+    """
+    Creates a datetime time object from a string of hh:mm:ss
+
+    Args:
+        hhmmss_str: string of hh:mm:ss
+    Returns:
+        dt: datetime.time object representing time
+    """
+    import datetime
+
+    dt = datetime.time(*[int(i) for i in hhmmss_str.split(":")])
+
+    return dt
+
+
+def secs_to_datetime(secs: int):
+    """
+    Creates a datetime time object from a seconds from midnight
+
+    Args:
+        secs: seconds from midnight
+    Returns:
+        dt: datetime.time object representing time
+    """
+    import datetime
+
+    dt = (datetime.datetime.min + datetime.timedelta(seconds=secs)).time()
+
+    return dt

@@ -38,17 +38,17 @@ author = "Sijia Wang and Elizabeth Sall"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    'sphinx.ext.doctest',
+    "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
-    'sphinx.ext.ifconfig',
+    "sphinx.ext.ifconfig",
     "sphinx.ext.inheritance_diagram",
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    'recommonmark',
+    "recommonmark",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -73,20 +73,22 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 intersphinx_mapping = {
-    'pandas':('http://pandas.pydata.org/pandas-docs/stable/',None),
-    'network_wrangler':('https://wsp-sag.github.io/network_wrangler/',None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "network_wrangler": ("https://wsp-sag.github.io/network_wrangler/", None),
 }
 
 
 autodoc_default_options = {
-    'members': True,
-    'undoc-members': True,
-    'inherited-members':True,
-    'imported-members': True,
-    'show-inheritance':True,
-    'member-order': 'groupwise',
+    "members": True,
+    "undoc-members": True,
+    "inherited-members": True,
+    "imported-members": True,
+    "show-inheritance": True,
+    "member-order": "groupwise",
 }
 
-autoclass_content = "class" # classes should include both the class' and the __init__ method's docstring
+autoclass_content = (
+    "class"
+)  # classes should include both the class' and the __init__ method's docstring
 
 autosummary_generate = True
