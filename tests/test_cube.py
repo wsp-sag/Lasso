@@ -282,6 +282,18 @@ def test_write_transit_project_card_diffing_lin(request):
     test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_transit_test.yml"))
     ## todo write an assert that actually tests something
 
+@pytest.mark.travis
+def test_write_transit_project_card_route_shape(request):
+    print("\n--Starting:", request.node.name)
+
+    test_project = Project.create_project(
+        base_transit_file=os.path.join(CUBE_DIR, "transit.LIN"),
+        build_transit_dir=os.path.join(
+            CUBE_DIR, "transit_route_shape_change"
+        ),
+    )
+    test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_transit_shape_test.yml"))
+    ## todo write an assert that actually tests something
 
 @pytest.mark.travis
 @pytest.mark.transit
