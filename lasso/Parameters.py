@@ -1,5 +1,5 @@
 import os
-from .Logger import WranglerLogger
+from .logger import WranglerLogger
 
 
 class Parameters:

@@ -9,8 +9,8 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 
 from network_wrangler import RoadwayNetwork
-from .Parameters import Parameters
-from .Logger import WranglerLogger
+from .parameters import Parameters
+from .logger import WranglerLogger
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):

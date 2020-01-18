@@ -10,138 +10,8 @@ from pandas import DataFrame
 import pandas as pd
 import partridge as ptg
 
-from .Logger import WranglerLogger
-from .Parameters import Parameters
-
-
-class CubeTransformer(Transformer):
-    def __init__(self):
-        self.line_order = 0
-        self.lines_list = []
-
-    def lines(self, line):
-        # WranglerLogger.debug("lines: \n {}".format(line))
-
-        # This MUST be a tuple because it returns to start in the tree
-        lines = {k: v for k, v in line}
-        return ("lines", lines)
-
-    @v_args(inline=True)
-    def program_type_line(self, PROGRAM_TYPE, whitespace=None):
-        # WranglerLogger.debug("program_type_line:{}".format(PROGRAM_TYPE))
-        self.program_type = PROGRAM_TYPE.value
-
-        # This MUST be a tuple because it returns to start  in the tree
-        return ("program_type", PROGRAM_TYPE.value)
-
-    @v_args(inline=True)
-    def line(self, lin_attributes, nodes):
-        # WranglerLogger.debug("line...attributes:\n  {}".format(lin_attributes))
-        # WranglerLogger.debug("line...nodes:\n  {}".format(nodes))
-        lin_name = lin_attributes["NAME"]
-
-        self.line_order = 0
-        #WranglerLogger.debug("parsing: {}".format(lin_name))
-
-        return (lin_name, {"line_properties": lin_attributes, "line_shape": nodes})
-
-    @v_args(inline=True)
-    def lin_attributes(self, *lin_attr):
-        lin_attr = {k: v for (k, v) in lin_attr}
-        # WranglerLogger.debug("lin_attributes:  {}".format(lin_attr))
-        return lin_attr
-
-    @v_args(inline=True)
-    def lin_attr(self, lin_attr_name, attr_value, SEMICOLON_COMMENT=None):
-        # WranglerLogger.debug("lin_attr {}:  {}".format(lin_attr_name, attr_value))
-        return lin_attr_name, attr_value
-
-    def lin_attr_name(self, args):
-        attr_name = args[0].value.upper()
-        # WranglerLogger.debug(".......args {}".format(args))
-        if attr_name in ["USERA", "FREQ", "HEADWAY"]:
-            attr_name = attr_name + "[" + str(args[2]) + "]"
-        return attr_name
-
-    def attr_value(self, attr_value):
-        try:
-            return int(attr_value[0].value)
-        except:
-            return attr_value[0].value
-
-    def nodes(self, lin_node):
-        lin_node = DataFrame(lin_node)
-        # WranglerLogger.debug("nodes:\n {}".format(lin_node))
-
-        return lin_node
-
-    @v_args(inline=True)
-    def lin_node(self, NODE_NUM, SEMICOLON_COMMENT=None, *lin_nodeattr):
-        self.line_order += 1
-        n = int(NODE_NUM.value)
-        return {"node_id": abs(n), "node": n, "stop": n > 0, "order": self.line_order}
-
-    start = dict
-
-
-TRANSIT_LINE_FILE_GRAMMAR = r"""
-
-?start             : program_type_line? lines
-WHITESPACE        : /[ \t\r\n]/+
-STRING            : /("(?!"").*?(?<!\\)(\\\\)*?"|'(?!'').*?(?<!\\)(\\\\)*?')/i
-SEMICOLON_COMMENT : /;[^\n]*/
-BOOLEAN           : "T"i | "F"i
-program_type_line : ";;<<" PROGRAM_TYPE ">><<LINE>>;;" WHITESPACE?
-PROGRAM_TYPE      : "PT" | "TRNBUILD"
-
-lines             : line*
-line              : "LINE" lin_attributes nodes
-
-lin_attributes    : lin_attr+
-lin_attr          : lin_attr_name "=" attr_value "," SEMICOLON_COMMENT*
-TIME_PERIOD       : "1".."5"
-!lin_attr_name     : "allstops"i
-                    | "color"i
-                    | ("freq"i "[" TIME_PERIOD "]")
-                    | ("headway"i "[" TIME_PERIOD "]")
-                    | "mode"i
-                    | "name"i
-                    | "oneway"i
-                    | "owner"i
-                    | "runtime"i
-                    | "timefac"i
-                    | "xyspeed"i
-                    | "longname"i
-                    | "shortname"i
-                    | ("usera"i TIME_PERIOD)
-                    | "vehicletype"i
-                    | "operator"i
-                    | "faresystem"i
-
-attr_value        : BOOLEAN | STRING | SIGNED_INT
-
-nodes             : lin_node+
-lin_node          : ("N" | "NODES")? "="? NODE_NUM ","? SEMICOLON_COMMENT? lin_nodeattr*
-NODE_NUM          : SIGNED_INT
-lin_nodeattr      : lin_nodeattr_name "=" attr_value ","? SEMICOLON_COMMENT*
-!lin_nodeattr_name : "access_c"i
-                    | "access"i
-                    | "delay"i
-                    | "xyspeed"i
-                    | "timefac"i
-                    | "nntime"i
-                    | "time"i
-
-operator          : SEMICOLON_COMMENT* "OPERATOR" opmode_attr* SEMICOLON_COMMENT*
-mode              : SEMICOLON_COMMENT* "MODE" opmode_attr* SEMICOLON_COMMENT*
-opmode_attr       : ( (opmode_attr_name "=" attr_value) ","?  )
-opmode_attr_name  : "number" | "name" | "longname"
-
-%import common.SIGNED_INT
-%import common.WS
-%ignore WS
-
-"""
+from .logger import WranglerLogger
+from .parameters import Parameters
 
 
 class CubeTransit(object):
@@ -365,8 +235,7 @@ class CubeTransit(object):
                 base_cube_time_period_number,
             )
             updated_shapes = self.evaluate_route_shape_changes(
-                self.shapes[line],
-                base_transit.shapes[line],
+                self.shapes[line], base_transit.shapes[line]
             )
             if updated_properties:
                 update_prop_card_dict = self.create_update_route_card_dict(
@@ -527,7 +396,9 @@ class CubeTransit(object):
 
         return update_card_dict
 
-    def create_delete_route_card_dict(self, line: str, base_transit_line_properties_dict: dict):
+    def create_delete_route_card_dict(
+        self, line: str, base_transit_line_properties_dict: dict
+    ):
         """
         Creates a project card change formatted dictionary for deleting a line.
 
@@ -850,7 +721,9 @@ class CubeTransit(object):
         )
         return properties_list
 
-    def evaluate_route_shape_changes(self, shape_build: DataFrame, shape_base: DataFrame):
+    def evaluate_route_shape_changes(
+        self, shape_build: DataFrame, shape_base: DataFrame
+    ):
         """
 
         Args:
@@ -872,8 +745,8 @@ class CubeTransit(object):
         start_pos = None
         end_pos = None
         for i in range(sort_len):
-            if ((i == len(base_node_list)) | (i == len(build_node_list))):
-                start_pos = i-1
+            if (i == len(base_node_list)) | (i == len(build_node_list)):
+                start_pos = i - 1
                 break
             if base_node_list[i] != build_node_list[i]:
                 start_pos = i
@@ -883,8 +756,8 @@ class CubeTransit(object):
 
         j = -1
         for i in range(sort_len):
-            if ((i == len(base_node_list)) | (i == len(build_node_list))):
-                end_pos = j+1
+            if (i == len(base_node_list)) | (i == len(build_node_list)):
+                end_pos = j + 1
                 break
             if base_node_list[j] != build_node_list[j]:
                 end_pos = j
@@ -892,12 +765,20 @@ class CubeTransit(object):
             else:
                 j -= 1
 
-        if (start_pos or end_pos):
-            existing = base_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
-            set = build_node_list[(start_pos-2 if start_pos > 1 else None):(end_pos+2 if end_pos < -2 else None)]
+        if start_pos or end_pos:
+            existing = base_node_list[
+                (start_pos - 2 if start_pos > 1 else None) : (
+                    end_pos + 2 if end_pos < -2 else None
+                )
+            ]
+            set = build_node_list[
+                (start_pos - 2 if start_pos > 1 else None) : (
+                    end_pos + 2 if end_pos < -2 else None
+                )
+            ]
 
             shape_change_list.append(
-                {"property" : "routing", "existing" : existing, "set" : set}
+                {"property": "routing", "existing": existing, "set": set}
             )
 
         return shape_change_list
@@ -939,14 +820,13 @@ class StandardTransit(object):
 
         """
 
-
         trip_cube_df = self.route_properties_gtfs_to_cube(self)
 
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
 
         l = trip_cube_df["LIN"].tolist()
 
-        with open(outpath,'w') as f:
+        with open(outpath, "w") as f:
             f.write("\n".join(l))
 
     @staticmethod
@@ -962,7 +842,9 @@ class StandardTransit(object):
                 - MODE
                 - HEADWAY
         """
-        WranglerLogger.info("Converting GTFS Standard Properties to MetCouncil's Cube Standard")
+        WranglerLogger.info(
+            "Converting GTFS Standard Properties to MetCouncil's Cube Standard"
+        )
         metro_operator_dict = {
             "0": 3,
             "1": 3,
@@ -1046,24 +928,27 @@ class StandardTransit(object):
             cube_mode: cube mode number
         """
         #                 route_type : cube_mode
-        route_type_to_cube_mode = {0: 8, # Tram, Streetcar, Light rail
-                                   3: 0, # Bus; further disaggregated for cube
-                                   2: 9} # Rail
-
+        route_type_to_cube_mode = {
+            0: 8,  # Tram, Streetcar, Light rail
+            3: 0,  # Bus; further disaggregated for cube
+            2: 9,
+        }  # Rail
 
         cube_mode = route_type_to_cube_mode[row["route_type"]]
 
         if not cube_mode:
-            if 'express' in row['route_long_name'].lower():
+            if "express" in row["route_long_name"].lower():
                 cube_mode = 7  # Express
-            elif int(row['route_id'].split("-")[0]) > 99:
+            elif int(row["route_id"].split("-")[0]) > 99:
                 cube_mode = 6  # Suburban Local
             else:
                 cube_mode = 5  # Urban Local
 
         return cube_mode
 
-    def time_to_cube_time_period(self, start_time_secs: int, as_str: bool = True, verbose: bool = False):
+    def time_to_cube_time_period(
+        self, start_time_secs: int, as_str: bool = True, verbose: bool = False
+    ):
         """
         Converts seconds from midnight to the cube time period.
 
@@ -1141,7 +1026,9 @@ class StandardTransit(object):
 
         """
         trip_stop_times_df = self.feed.stop_times.copy()
-        trip_stop_times_df = trip_stop_times_df[trip_stop_times_df.trip_id == row.trip_id]
+        trip_stop_times_df = trip_stop_times_df[
+            trip_stop_times_df.trip_id == row.trip_id
+        ]
 
         trip_node_df = self.feed.shapes.copy()
         trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
@@ -1187,3 +1074,133 @@ class StandardTransit(object):
         s += "\n NODES={}".format(self.shape_gtfs_to_cube(row))
 
         return s
+
+
+class CubeTransformer(Transformer):
+    def __init__(self):
+        self.line_order = 0
+        self.lines_list = []
+
+    def lines(self, line):
+        # WranglerLogger.debug("lines: \n {}".format(line))
+
+        # This MUST be a tuple because it returns to start in the tree
+        lines = {k: v for k, v in line}
+        return ("lines", lines)
+
+    @v_args(inline=True)
+    def program_type_line(self, PROGRAM_TYPE, whitespace=None):
+        # WranglerLogger.debug("program_type_line:{}".format(PROGRAM_TYPE))
+        self.program_type = PROGRAM_TYPE.value
+
+        # This MUST be a tuple because it returns to start  in the tree
+        return ("program_type", PROGRAM_TYPE.value)
+
+    @v_args(inline=True)
+    def line(self, lin_attributes, nodes):
+        # WranglerLogger.debug("line...attributes:\n  {}".format(lin_attributes))
+        # WranglerLogger.debug("line...nodes:\n  {}".format(nodes))
+        lin_name = lin_attributes["NAME"]
+
+        self.line_order = 0
+        # WranglerLogger.debug("parsing: {}".format(lin_name))
+
+        return (lin_name, {"line_properties": lin_attributes, "line_shape": nodes})
+
+    @v_args(inline=True)
+    def lin_attributes(self, *lin_attr):
+        lin_attr = {k: v for (k, v) in lin_attr}
+        # WranglerLogger.debug("lin_attributes:  {}".format(lin_attr))
+        return lin_attr
+
+    @v_args(inline=True)
+    def lin_attr(self, lin_attr_name, attr_value, SEMICOLON_COMMENT=None):
+        # WranglerLogger.debug("lin_attr {}:  {}".format(lin_attr_name, attr_value))
+        return lin_attr_name, attr_value
+
+    def lin_attr_name(self, args):
+        attr_name = args[0].value.upper()
+        # WranglerLogger.debug(".......args {}".format(args))
+        if attr_name in ["USERA", "FREQ", "HEADWAY"]:
+            attr_name = attr_name + "[" + str(args[2]) + "]"
+        return attr_name
+
+    def attr_value(self, attr_value):
+        try:
+            return int(attr_value[0].value)
+        except:
+            return attr_value[0].value
+
+    def nodes(self, lin_node):
+        lin_node = DataFrame(lin_node)
+        # WranglerLogger.debug("nodes:\n {}".format(lin_node))
+
+        return lin_node
+
+    @v_args(inline=True)
+    def lin_node(self, NODE_NUM, SEMICOLON_COMMENT=None, *lin_nodeattr):
+        self.line_order += 1
+        n = int(NODE_NUM.value)
+        return {"node_id": abs(n), "node": n, "stop": n > 0, "order": self.line_order}
+
+    start = dict
+
+
+TRANSIT_LINE_FILE_GRAMMAR = r"""
+
+?start             : program_type_line? lines
+WHITESPACE        : /[ \t\r\n]/+
+STRING            : /("(?!"").*?(?<!\\)(\\\\)*?"|'(?!'').*?(?<!\\)(\\\\)*?')/i
+SEMICOLON_COMMENT : /;[^\n]*/
+BOOLEAN           : "T"i | "F"i
+program_type_line : ";;<<" PROGRAM_TYPE ">><<LINE>>;;" WHITESPACE?
+PROGRAM_TYPE      : "PT" | "TRNBUILD"
+
+lines             : line*
+line              : "LINE" lin_attributes nodes
+
+lin_attributes    : lin_attr+
+lin_attr          : lin_attr_name "=" attr_value "," SEMICOLON_COMMENT*
+TIME_PERIOD       : "1".."5"
+!lin_attr_name     : "allstops"i
+                    | "color"i
+                    | ("freq"i "[" TIME_PERIOD "]")
+                    | ("headway"i "[" TIME_PERIOD "]")
+                    | "mode"i
+                    | "name"i
+                    | "oneway"i
+                    | "owner"i
+                    | "runtime"i
+                    | "timefac"i
+                    | "xyspeed"i
+                    | "longname"i
+                    | "shortname"i
+                    | ("usera"i TIME_PERIOD)
+                    | "vehicletype"i
+                    | "operator"i
+                    | "faresystem"i
+
+attr_value        : BOOLEAN | STRING | SIGNED_INT
+
+nodes             : lin_node+
+lin_node          : ("N" | "NODES")? "="? NODE_NUM ","? SEMICOLON_COMMENT? lin_nodeattr*
+NODE_NUM          : SIGNED_INT
+lin_nodeattr      : lin_nodeattr_name "=" attr_value ","? SEMICOLON_COMMENT*
+!lin_nodeattr_name : "access_c"i
+                    | "access"i
+                    | "delay"i
+                    | "xyspeed"i
+                    | "timefac"i
+                    | "nntime"i
+                    | "time"i
+
+operator          : SEMICOLON_COMMENT* "OPERATOR" opmode_attr* SEMICOLON_COMMENT*
+mode              : SEMICOLON_COMMENT* "MODE" opmode_attr* SEMICOLON_COMMENT*
+opmode_attr       : ( (opmode_attr_name "=" attr_value) ","?  )
+opmode_attr_name  : "number" | "name" | "longname"
+
+%import common.SIGNED_INT
+%import common.WS
+%ignore WS
+
+"""

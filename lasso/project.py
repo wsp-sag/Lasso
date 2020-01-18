@@ -10,7 +10,7 @@ from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
 
 from .transit import CubeTransit, StandardTransit
-from .Logger import WranglerLogger
+from .logger import WranglerLogger
 
 
 class Project(object):
@@ -109,9 +109,11 @@ class Project(object):
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
             )
-            if len(base_transit_network.lines)<=10:
+            if len(base_transit_network.lines) <= 10:
                 WranglerLogger.debug(
-                    "Base network lines: {}".format("\n - ".join(base_transit_network.lines))
+                    "Base network lines: {}".format(
+                        "\n - ".join(base_transit_network.lines)
+                    )
                 )
         else:
             msg = "No base transit network."
@@ -128,9 +130,11 @@ class Project(object):
             WranglerLogger.debug(
                 "Build network has {} lines".format(len(build_transit_network.lines))
             )
-            if len(build_transit_network.lines)<=10:
+            if len(build_transit_network.lines) <= 10:
                 WranglerLogger.debug(
-                    "Build network lines: {}".format("\n - ".join(build_transit_network.lines))
+                    "Build network lines: {}".format(
+                        "\n - ".join(build_transit_network.lines)
+                    )
                 )
         else:
             msg = "No transit changes given or processed."

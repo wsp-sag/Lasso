@@ -15,11 +15,10 @@ Base Classes
   :nosignatures:
 
   CubeTransit
+  StandardTransit
   ModelRoadwayNetwork
   Project
   Parameters
-  TransitLine
-  TransitParser
 
 Utils and Functions
 --------------------
@@ -27,4 +26,4 @@ Utils and Functions
   :toctree: _generated
 
   util
-  WranglerLogger
+  logger
