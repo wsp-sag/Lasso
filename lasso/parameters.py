@@ -233,6 +233,7 @@ class Parameters:
         "count_NT",
         "count_daily",
         "model_node_id",
+        "N",
         "osm_node_id",
         "bike_node",
         "transit_node",

@@ -1173,6 +1173,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             lambda g: g.y
         )
 
+        # CUBE expect node id to be N
+        self.nodes_metcouncil_df.rename(
+            columns = {
+                "model_node_id" : "N"
+                },
+            inplace = True)
+
     def rename_variables_for_dbf(
         self,
         input_df,
@@ -1529,34 +1536,58 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # write out cube script
         s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
-        s += "FILEI LINKI[1] = %LINK_DATA_PATH%, VAR ="
+        s += "FILEI LINKI[1] = %LINK_DATA_PATH%,"
         start_pos = 1
         for i in range(len(link_max_width_df)):
             s += (
-                " "
+                " VAR="
                 + link_max_width_df.header.iloc[i]
-                + ","
+                )
+
+            if self.links_metcouncil_df.dtypes.loc[link_max_width_df.header.iloc[i]] == "O":
+                s += (
+                    "(C"
+                    + str(link_max_width_df.width.iloc[i])
+                    + ")"
+                    )
+
+            s += (
+                ", BEG="
                 + str(start_pos)
-                + "-"
-                + str(start_pos + link_max_width_df.width.iloc[i] - 1)
+                + ", LEN="
+                + str(link_max_width_df.width.iloc[i])
                 + ","
-            )
+                )
+
             start_pos += link_max_width_df.width.iloc[i] + 1
+
         s = s[:-1]
         s += "\n"
-        s += "FILEI NODEI[1] = %NODE_DATA_PATH%, VAR ="
+        s += "FILEI NODEI[1] = %NODE_DATA_PATH%,"
         start_pos = 1
         for i in range(len(node_max_width_df)):
             s += (
-                " "
+                " VAR="
                 + node_max_width_df.header.iloc[i]
-                + ","
+                )
+
+            if self.nodes_metcouncil_df.dtypes.loc[node_max_width_df.header.iloc[i]] == "O":
+                s += (
+                    "(C"
+                    + str(node_max_width_df.width.iloc[i])
+                    + ")"
+                    )
+
+            s += (
+                ", BEG="
                 + str(start_pos)
-                + "-"
-                + str(start_pos + node_max_width_df.width.iloc[i] - 1)
+                + ", LEN="
+                + str(node_max_width_df.width.iloc[i])
                 + ","
-            )
+                )
+
             start_pos += node_max_width_df.width.iloc[i] + 1
+
         s = s[:-1]
         s += "\n"
         s += 'FILEO NETO = "%SCENARIO_DIR%/complete_network.net" \n    ZONES = %zones% \n \nENDRUN'
