@@ -3,8 +3,299 @@ from .logger import WranglerLogger
 
 
 class Parameters:
-    """
-    # TODO: this whole flow needs work.
+    """A class representing all the parameters defining the networks
+    including time of day, categories, etc.
+
+    Parameters can be set at runtime by initializing a parameters instance
+    with a keyword argument setting the attribute.  Parameters that are
+    not explicitly set will use default parameters listed in this class.
+    .. highlight:: python
+    ##TODO potentially split this between several classes.
+
+    Attr:
+        time_period_to_time (dict): Maps time period abbreviations used in
+            Cube to time of days used on gtfs and highway network standard
+            Default:
+            ::
+                {
+                    "AM": ("6:00", "9:00"),
+                    "MD": ("9:00", "16:00"),
+                    "PM": ("16:00", "19:00"),
+                    "NT": ("19:00", "6:00"),
+                }
+        cube_time_periods (dict):  Maps cube time period numbers used in
+            transit line files to the time period abbreviations in time_period_to_time
+            dictionary.
+            Default:
+            ::
+                {"1": "AM", "2": "MD"}
+        categories (dict): Maps demand category abbreviations to a list of
+            network categories they are allowed to use.
+            Default:
+            ::
+                {
+                    # suffix, source (in order of search)
+                    "sov": ["sov", "default"],
+                    "hov2": ["hov2", "default", "sov"],
+                    "hov3": ["hov3", "hov2", "default", "sov"],
+                    "truck": ["trk", "sov", "default"],
+                }
+        properties_to_split (dict): Dictionary mapping variables in standard
+            roadway network to categories and time periods that need to be
+            split out in final model network to get variables like LANES_AM.
+            Default:
+            ::
+                {
+                    "trn_priority": {
+                        "v": "trn_priority",
+                        "time_periods": DEFAULT_TIME_PERIOD_TO_TIME,
+                    },
+                    "ttime_assert": {
+                        "v": "ttime_assert",
+                        "time_periods": DEFAULT_TIME_PERIOD_TO_TIME,
+                    },
+                    "lanes": {"v": "lanes", "time_periods": DEFAULT_TIME_PERIOD_TO_TIME},
+                    "price": {
+                        "v": "price",
+                        "time_periods": DEFAULT_TIME_PERIOD_TO_TIME,
+                        "categories": DEFAULT_CATEGORIES,
+                    },
+                    "access": {"v": "access", "time_periods": DEFAULT_TIME_PERIOD_TO_TIME},
+                }
+        county_shape (str): File location of shapefile defining counties.
+            Default:
+            ::
+                r"metcouncil_data/county/cb_2017_us_county_5m.shp"
+
+        county_variable_shp (str): Property defining the county n ame in
+            the county_shape file.
+            Default:
+            ::
+                NAME
+        mpo_counties (list): list of county names within MPO boundary.
+            Default:
+            ::
+                [
+                    "ANOKA",
+                    "DAKOTA",
+                    "HENNEPIN",
+                    "RAMSEY",
+                    "SCOTT",
+                    "WASHINGTON",
+                    "CARVER",
+                ]
+
+        taz_shape (str):
+            Default:
+            ::
+                r"metcouncil_data/TAZ/TAZOfficialWCurrentForecasts.shp"
+        taz_data (str):
+            Default:
+            ::
+                ??
+        highest_taz_number (int): highest TAZ number in order to define
+            centroid connectors.
+            Default:
+            ::
+                3100
+        output_variables (list): list of variables to output in final model
+            network.
+            Default:
+            ::
+                [
+                    "model_link_id",
+                    "A",
+                    "B",
+                    "shstGeometryId",
+                    "distance",
+                    "roadway",
+                    "name",
+                    "roadway_class",
+                    "bike_access",
+                    "transit_access",
+                    "walk_access",
+                    "drive_access",
+                    "truck_access",
+                    "trn_priority_AM",
+                    "trn_priority_MD",
+                    "trn_priority_PM",
+                    "trn_priority_NT",
+                    "ttime_assert_AM",
+                    "ttime_assert_MD",
+                    "ttime_assert_PM",
+                    "ttime_assert_NT",
+                    "lanes_AM",
+                    "lanes_MD",
+                    "lanes_PM",
+                    "lanes_NT",
+                    "price_sov_AM",
+                    "price_hov2_AM",
+                    "price_hov3_AM",
+                    "price_truck_AM",
+                    "price_sov_MD",
+                    "price_hov2_MD",
+                    "price_hov3_MD",
+                    "price_truck_MD",
+                    "price_sov_PM",
+                    "price_hov2_PM",
+                    "price_hov3_PM",
+                    "price_truck_PM",
+                    "price_sov_NT",
+                    "price_hov2_NT",
+                    "price_hov3_NT",
+                    "price_truck_NT",
+                    "roadway_class_idx",
+                    "assign_group",
+                    "access_AM",
+                    "access_MD",
+                    "access_PM",
+                    "access_NT",
+                    "mpo",
+                    "area_type",
+                    "county",
+                    "centroidconnect",
+                    "AADT",
+                    "count_year",
+                    "count_AM",
+                    "count_MD",
+                    "count_PM",
+                    "count_NT",
+                    "count_daily",
+                    "model_node_id",
+                    "N",
+                    "osm_node_id",
+                    "bike_node",
+                    "transit_node",
+                    "walk_node",
+                    "drive_node",
+                    "geometry",
+                    "X",
+                    "Y",
+                ]
+        area_type_shape (str):   Location of shapefile defining area type.
+            Default:
+            ::
+                r"metcouncil_data/area_type/ThriveMSP2040CommunityDesignation.shp"
+        area_type_variable_shp (str): property in area_type_shape with area
+            type in it.
+            Default:
+            ::
+                "COMDES2040"
+        area_type_code_dict (dict): Mapping of the area_type_variable_shp to
+            the area type code used in the MetCouncil cube network.
+            Default:
+            ::
+                {
+                    23: 4,  # urban center
+                    24: 3,
+                    25: 2,
+                    35: 2,
+                    36: 1,
+                    41: 1,
+                    51: 1,
+                    52: 1,
+                    53: 1,
+                    60: 1,
+                }
+        mrcc_roadway_class_shape (str): Shapefile of MRCC links with a property
+            associated with roadway class. Default:
+            ::
+                r"metcouncil_data/mrcc/trans_mrcc_centerlines.shp"
+        mrcc_roadway_class_variable_shp (str): The property in mrcc_roadway_class_shp
+            associated with roadway class. Default:
+            ::
+                "ROUTE_SYS"
+        widot_roadway_class_shape (str): Shapefile of Wisconsin links with a property
+            associated with roadway class. Default:
+            ::
+                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/WISLR.shp"
+        widot_roadway_class_variable_shp (str):  The property in widot_roadway_class_shape
+            associated with roadway class.Default:
+            ::
+                "RDWY_CTGY_"
+        mndot_count_shape (str):  Shapefile of MnDOT links with a property
+            associated with counts. Default:
+            ::
+                r"metcouncil_data/count_mn/AADT_2017_Count_Locations.shp"
+        mndot_count_variable_shp (str): The property in mndot_count_shape
+            associated with counts. Default:
+            ::
+                "AADT_mn"
+        widot_count_shape (str): Shapefile of Wisconsin DOT links with a property
+            associated with counts. Default:Default:
+            ::
+                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/TRADAS_(counts).shp"
+        widot_count_variable_shp (str): The property in widot_count_shape
+            associated with counts. Default:
+            ::
+                "AADT_wi"
+        mrcc_shst_data (str): MnDOT MRCC to Shared Streets crosswalk. Default:
+            ::
+                r"metcouncil_data/mrcc/mrcc.out.matched.csv"
+        widot_shst_data (str): WisconsinDOT to Shared Streets crosswalk.Default:
+            ::
+                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/widot.out.matched.geojson"
+        mndot_count_shst_data (str): MetCouncil count data with ShST Default:
+            ::
+                r"metcouncil_data/count_mn/mn_count_ShSt_API_match.csv"
+        widot_count_shst_data (str): WisconsinDOT count data with ShST Default:
+            ::
+                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/wi_count_ShSt_API_match.csv",
+        mrcc_assgngrp_dict (str): Mapping beetween MRCC ROUTE_SYS variable
+            and assignment group. Default:
+            ::
+                "lookups/mrcc_route_sys_asgngrp_crosswalk.csv"
+        widot_assgngrp_dict (dict): Mapping beetween Wisconsin DOT RDWY_CTGY_
+            variable and assignment group. Default:
+            ::
+                "lookups/widot_ctgy_asgngrp_crosswalk.csv"
+        osm_assgngrp_dict (dict): Mapping between OSM Roadway variable
+            and assignment group. Default:
+            ::
+                "lookups/osm_highway_asgngrp_crosswalk.csv"
+        roadway_class_dict (str):  Mapping between assignment group and
+            roadway class. Default:
+            ::
+                "lookups/asgngrp_rc_num_crosswalk.csv"
+        output_epsg (int): EPSG type of geographic projection for output
+            shapefiles. Default:
+            ::
+                26915
+        net_to_dbf (str): Lookup of network variables to DBF compliant
+            lengths. Default:
+            ::
+                "examples/settings/net_to_dbf.csv"
+        output_link_shp (str): Output shapefile for roadway links. Default:
+            ::
+                r"tests/scratch/links.shp"
+        output_node_shp (str):  Output shapefile for roadway nodes. Default:
+            ::
+                r"tests/scratch/nodes.shp"
+        output_link_csv (str):  Output csv for roadway links. Default:
+            ::
+                r"tests/scratch/links.csv"
+        output_node_csv (str): Output csv for roadway nodes. Default:
+            ::
+                r"tests/scratch/nodes.csv"
+        output_link_txt (str): Output fixed format txt for roadway links. Default:
+            ::
+                r"tests/scratch/links.txt"
+        output_node_txt (str): Output fixed format txt for roadway nodes. Default:
+            ::
+                r"tests/scratch/nodes.txt"
+        output_link_header_width_csv (str): Header for csv roadway links. Default:
+            ::
+                r"tests/scratch/links_header_width.csv"
+        output_node_header_width_csv (str): Header for csv for roadway Nodes. Default:
+            ::
+                r"tests/scratch/nodes_header_width.csv"
+        output_cube_network_script (str): Cube script for importing
+            fixed-format roadway network. Default:
+            ::
+                r"tests/scratch/make_complete_network_from_fixed_width_file.s
+
+
+
     """
 
     """

@@ -14,8 +14,36 @@ from .logger import WranglerLogger
 
 
 class Project(object):
-    """
-    A single or set of changes to the roadway or transit system.
+    """A single or set of changes to the roadway or transit system.
+
+    Compares a base and a build transit network or a base and build
+    highway network and produces project cards.
+
+    .. highlight:: python
+
+    Typical usage example:
+    ::
+        test_project = Project.create_project(
+            base_transit_source=os.path.join(CUBE_DIR, "transit.LIN"),
+            build_transit_source=os.path.join(CUBE_DIR, "transit_route_shape_change"),
+        )
+        test_project.evaluate_changes()
+        test_project.write_project_card(
+            os.path.join(SCRATCH_DIR, "t_transit_shape_test.yml")
+        )
+
+    Attributes:
+        DEFAULT_PROJECT_NAME: a class-level constant that defines what
+            the project name will be if none is set.
+        STATIC_VALUES: a class-level constant which defines values that
+            are not evaluated when assessing changes.
+        card_data (dict):  {"project": <project_name>, "changes": <list of change dicts>}
+        roadway_changes (DataFrame):  pandas dataframe of CUBE roadway changes.
+        transit_changes (CubeTransit):
+        base_roadway_network (RoadwayNetwork):
+        base_transit_network (CubeTransit):
+        build_transit_network (CubeTransit):
+        project_name (str): name of the project, set to DEFAULT_PROJECT_NAME if not provided
     """
 
     DEFAULT_PROJECT_NAME = "USER TO define"
@@ -85,7 +113,7 @@ class Project(object):
         project_name=None,
     ):
         """
-        Create project objects.
+        Constructor for a Project instance.
 
         Args:
             roadway_log_file (str): File path to consuming logfile.
@@ -101,7 +129,7 @@ class Project(object):
             build_transit_network (CubeTransit): Build transit network object.
 
         Returns:
-            Project object
+            A Project instance.
         """
 
         if base_transit_source:
@@ -189,7 +217,7 @@ class Project(object):
             logfilename (str): File path to CUBE logfile.
 
         Returns:
-            DataFrame
+            A DataFrame reprsentation of the log file.
         """
         WranglerLogger.info("Reading logfile: {}".format(logfilename))
         with open(logfilename) as f:
@@ -267,7 +295,8 @@ class Project(object):
 
     def evaluate_changes(self):
         """
-        Determines which changes should be evaluated.
+        Determines which changes should be evaluated, initiates
+        self.card_data to be an aggregation of transit and highway changes.
         """
         highway_change_list = []
         transit_change_list = []
