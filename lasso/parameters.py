@@ -1,6 +1,18 @@
 import os
 from .logger import WranglerLogger
 
+def get_base_dir(init_d = os.getcwd()):
+    d = init_d
+    for i in range(3):
+        if 'metcouncil_data' in os.listdir(d):
+            WranglerLogger.info("Lasso base directory set as: {}".format(d))
+            return d
+        d = os.path.dirname(d)
+
+    msg = "Cannot find Lasso base directory from {}, please input using keyword in parameters: `lasso_dir =` ".format(init_d)
+    WranglerLogger.error(msg)
+    raise(ValueError(msg))
+
 
 class Parameters:
     """A class representing all the parameters defining the networks
@@ -345,11 +357,13 @@ class Parameters:
     Details for calculating the county based on the centroid of the link.
     The COUNTY_VARIABLE should be the name of a field in shapefile.
     """
-    DATA_FILE_LOCATION = os.path.join(os.getcwd(), "metcouncil_data")
 
-    SETTINGS_LOCATION = os.path.join(os.getcwd(), "examples", "settings")
+    BASE_DIR = get_base_dir()
+    DATA_FILE_LOCATION = os.path.join(BASE_DIR,  "metcouncil_data")
 
-    SCRATCH_LOCATION = os.path.join(os.getcwd(), "tests", "scratch")
+    SETTINGS_LOCATION = os.path.join(BASE_DIR , "examples", "settings")
+
+    SCRATCH_LOCATION = os.path.join(BASE_DIR , "tests", "scratch")
 
     WranglerLogger.info("Data File Location set as : {}".format(DATA_FILE_LOCATION))
 
@@ -559,6 +573,8 @@ class Parameters:
         SCRATCH_LOCATION, "make_complete_network_from_fixed_width_file.s"
     )
 
+    DEFAULT_OUTPUT_DIR = os.path.join(SCRATCH_LOCATION)
+
     DEFAULT_OUTPUT_EPSG = 26915
 
     def __init__(self, **kwargs):
@@ -659,6 +675,8 @@ class Parameters:
             self.output_cube_network_script = (
                 Parameters.DEFAULT_OUTPUT_CUBE_NETWORK_SCRIPT
             )
+        if "output_dir" not in kwargs:
+            self.output_dir = Parameters.DEFAULT_OUTPUT_DIR
         """
         Create all the possible headway variable combinations based on the cube time periods setting
         """

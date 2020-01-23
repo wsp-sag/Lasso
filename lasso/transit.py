@@ -20,6 +20,8 @@ from pandas import DataFrame
 import pandas as pd
 import partridge as ptg
 
+from network_wrangler import TransitNetwork
+
 from .logger import WranglerLogger
 from .parameters import Parameters
 
@@ -821,6 +823,20 @@ class StandardTransit(object):
         self.parameters = parameters
 
     @staticmethod
+    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: Parameters = Parameters()):
+        """
+        RoadwayNetwork to ModelRoadwayNetwork
+
+        Args:
+            transit_network_object: Reference to an instance of TransitNetwork.
+            parameters : Parameters instance for lasso.
+
+        Returns:
+            StandardTransit
+        """
+        return StandardTransit(transit_network_object.feed, parameters=parameters)
+
+    @staticmethod
     def read_gtfs(gtfs_feed_dir: str, parameters: Parameters = Parameters()):
         """
         Reads GTFS files from a directory and returns a StandardTransit
@@ -836,7 +852,7 @@ class StandardTransit(object):
         """
         return StandardTransit(ptg.load_feed(gtfs_feed_dir), parameters=parameters)
 
-    def write_as_cube_lin(self, outpath: str):
+    def write_as_cube_lin(self, outpath: str  = None):
         """
         Writes the gtfs feed as a cube line file after
         converting gtfs properties to MetCouncil cube properties.
@@ -845,7 +861,8 @@ class StandardTransit(object):
             outpath: File location for output cube line file.
 
         """
-
+        if not outpath:
+            outpath  = os.path.join(parameters.outpath,"outtransit.lin")
         trip_cube_df = self.route_properties_gtfs_to_cube(self)
 
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)

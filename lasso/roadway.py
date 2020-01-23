@@ -33,7 +33,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None
-        self.shapes_metcounciL_df = None
+        self.shapes_metcouncil_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
@@ -296,7 +296,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         area_type_shape = (
             area_type_shape if area_type_shape else self.parameters.area_type_shape
         )
-
+        print(area_type_shape)
         if not area_type_shape:
             msg = "No area type shape specified"
             WranglerLogger.error(msg)

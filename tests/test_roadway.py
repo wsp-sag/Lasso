@@ -119,7 +119,6 @@ def test_calculate_area_type(request):
 
 @pytest.mark.roadway
 @pytest.mark.travis
-@pytest.mark.menow
 def test_calculate_assign_group_rdclass(request):
     """
     Tests that parameters are read

@@ -8,6 +8,7 @@ from lasso import Project
 from lasso import CubeTransit
 from lasso import StandardTransit
 
+
 """
 Run tests from bash/shell
 Run just the tests labeled project using `pytest -m project`
@@ -296,6 +297,28 @@ def test_write_transit_project_card_route_shape(request):
     )
     ## todo write an assert that actually tests something
 
+@pytest.mark.travis
+@pytest.mark.transit
+def test_read_cube_transit_standard_from_wrangler_object(request):
+    print("\n--Starting:", request.node.name)
+    from network_wrangler import TransitNetwork
+    tnet = TransitNetwork.read(feed_path=BASE_TRANSIT_DIR)
+    cube_transit_net = StandardTransit.fromTransitNetwork(tnet)
+
+@pytest.mark.travis
+@pytest.mark.transit
+def test_read_cube_transit_standard_from_file(request):
+    print("\n--Starting:", request.node.name)
+    cube_transit_net = StandardTransit.read_gtfs(BASE_TRANSIT_DIR)
+
+@pytest.mark.travis
+@pytest.mark.transit
+@pytest.mark.menow
+def test_read_write_cube_transit_standard_from_wrangler_object(request):
+    print("\n--Starting:", request.node.name)
+    from network_wrangler import TransitNetwork
+    cube_transit_net = StandardTransit.fromTransitNetwork(TransitNetwork.read(feed_path=BASE_TRANSIT_DIR))
+    cube_transit_net.write_as_cube_lin(os.path.join(SCRATCH_DIR, "t_transit_test.lin"))
 
 @pytest.mark.travis
 @pytest.mark.transit

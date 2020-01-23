@@ -1,0 +1,148 @@
+changes:
+- category: Transit Service Property Change
+  facility:
+    direction_id: 1
+    end_time: 09:00
+    route_id: 452-111
+    start_time: 06:00
+  properties:
+  - property: headway_secs
+    set: 1800
+- category: Transit Service Property Change
+  facility:
+    direction_id: 1
+    end_time: 09:00
+    route_id: 134-111
+    start_time: 06:00
+  properties:
+  - property: headway_secs
+    set: 3000
+- category: Transit Service Property Change
+  facility:
+    direction_id: 0
+    end_time: 09:00
+    route_id: 921-111
+    start_time: 06:00
+  properties:
+  - property: headway_secs
+    set: 300
+- category: Delete Transit Service
+  facility:
+    direction_id: 0
+    end_time: 09:00
+    route_id: 63-111
+    start_time: 06:00
+- category: Delete Transit Service
+  facility:
+    direction_id: 1
+    end_time: '16:00'
+    route_id: 63-111
+    start_time: 09:00
+- category: New Transit Service
+  facility:
+    agency_id: 0
+    direction_id: 1
+    end_time: 09:00
+    route_id: RachelExpress
+    start_time: 06:00
+  properties:
+  - property: NAME
+    set: '"0_RachelExpress_pk1"'
+  - property: OPERATOR
+    set: 1
+  - property: ONEWAY
+    set: T
+  - property: headway_secs
+    set: 1800
+  - property: MODE
+    set: 7
+  - property: routing
+    set:
+    - 48580
+    - -74734
+    - -44157
+    - -74272
+    - -271037
+    - -239446
+    - 65939
+    - -65938
+    - -271194
+    - -65937
+    - -271141
+    - -65935
+    - -52222
+    - -56819
+    - -281476
+    - -280005
+    - -280008
+    - 52671
+    - -52485
+    - -43692
+    - -47614
+    - -47615
+    - -234287
+    - -286257
+    - -234289
+    - -47616
+    - -234302
+    - -47618
+    - -47620
+    - -47622
+    - 47624
+    - -10639
+    - -10641
+    - -10645
+    - -10644
+    - -333054
+    - 10647
+    - -36877
+    - -10652
+    - -107881
+    - -74210
+    - -74212
+    - -46119
+    - -109912
+    - -46144
+    - -9894
+    - -129445
+    - -125854
+    - -125944
+    - -53870
+    - -150028
+    - -161929
+    - -4729
+    - -4732
+    - -112330
+    - -133330
+    - -126401
+    - -126072
+    - -126303
+    - 88974
+    - -126303
+    - -88982
+    - -77814
+    - -77742
+    - -13171
+    - 170044
+    - -80487
+    - -85406
+    - -26082
+    - -121313
+    - -342738
+    - -90129
+    - -125394
+    - -90478
+    - -90522
+    - -13929
+    - 51928
+    - -121115
+    - -121080
+    - -92574
+    - -87379
+    - -87564
+    - -288316
+    - -311975
+    - -251707
+    - 84250
+project: USER TO define
+valid: false
