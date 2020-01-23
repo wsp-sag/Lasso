@@ -174,7 +174,7 @@ class CubeTransit(object):
 
         return tn
 
-    def evaluate_differences(self, base_transit):
+    def evaluate_differences(self, base_transit) :
         """
         1. Identifies what routes need to be updated, deleted, or added
         2. For routes being added or updated, identify if the time periods
@@ -298,9 +298,7 @@ class CubeTransit(object):
 
         return project_card_changes
 
-    def add_additional_time_periods(
-        self, new_time_period_number: int, orig_line_name: str
-    ) -> str:
+    def add_additional_time_periods(self, new_time_period_number:int, orig_line_name:str)->str:
         """
         Copies a route to another cube time period with appropriate
         values for time-period-specific properties.
@@ -451,7 +449,7 @@ class CubeTransit(object):
 
         return delete_card_dict
 
-    def create_add_route_card_dict(self, line: str):
+    def create_add_route_card_dict(self, line:str):
         """
         Creates a project card change formatted dictionary for adding
         a route based on the information in self.route_properties for
@@ -515,12 +513,7 @@ class CubeTransit(object):
         return time_periods_list
 
     @staticmethod
-    def build_route_name(
-        route_id: str = "",
-        time_period: str = "",
-        agency_id: str = 0,
-        direction_id: str = 1,
-    ) -> str:
+    def build_route_name(route_id: str = "", time_period: str = "", agency_id: str = 0, direction_id: str = 1) -> str:
         """
         Create a route name by contatenating route, time period, agency, and direction
 
@@ -546,7 +539,7 @@ class CubeTransit(object):
         )
 
     @staticmethod
-    def unpack_route_name(line_name: str):
+    def unpack_route_name(line_name:str):
         """
         Unpacks route name into direction, route, agency, and time period info
 
@@ -568,7 +561,7 @@ class CubeTransit(object):
 
         return route_id, time_period, agency_id, direction_id
 
-    def calculate_start_end_times(self, line_properties_dict: dict):
+    def calculate_start_end_times(self, line_properties_dict:dict):
         """
         Calculate the start and end times of the property change
         WARNING: Doesn't take care of discongruous time periods!!!!
@@ -639,9 +632,8 @@ class CubeTransit(object):
             cube_properties_dict: <cube style property name> : <property value>
 
         Returns:
-            A list of dictionaries with values for
-              "property": <standard style property name>
-              "set" : <property value with correct units>
+            A list of dictionaries with values for `"property": <standard
+                style property name>, "set" : <property value with correct units>`
 
         """
         standard_properties_list = []
@@ -678,12 +670,12 @@ class CubeTransit(object):
 
         Returns:
             transit_change_list (list): a list of dictionary values suitable for writing to a project card
-                {
+                `{
                 'property': <property_name>,
                 'set': <set value>,
                 'change': <change from existing value>,
                 'existing': <existing value to check>,
-                }
+                }`
 
         """
 
@@ -943,24 +935,23 @@ class StandardTransit(object):
         For rail, uses GTFS route_type variable:
         https://developers.google.com/transit/gtfs/reference
 
-        ```
-        #                 route_type : cube_mode
-        route_type_to_cube_mode = {0: 8, # Tram, Streetcar, Light rail
-                                   3: 0, # Bus; further disaggregated for cube
-                                   2: 9} # Rail
-        ```
+        ::
+            #             route_type : cube_mode
+            route_type_to_cube_mode = {0: 8, # Tram, Streetcar, Light rail
+                                       3: 0, # Bus; further disaggregated for cube
+                                       2: 9} # Rail
+
         For buses, uses route id numbers and route name to find
         express and suburban buses  as follows:
 
-        ```
-        if not cube_mode:
-            if 'express' in row['LONGNAME'].lower():
-                cube_mode = 7  # Express
-            elif int(row['route_id'].split("-")[0]) > 99:
-                cube_mode = 6  # Suburban Local
-            else:
-                cube_mode = 5  # Urban Local
-        ```
+        ::
+            if not cube_mode:
+                if 'express' in row['LONGNAME'].lower():
+                    cube_mode = 7  # Express
+                elif int(row['route_id'].split("-")[0]) > 99:
+                    cube_mode = 6  # Suburban Local
+                else:
+                    cube_mode = 5  # Urban Local
 
         Args:
             row: A DataFrame row with route_type, route_long_name, and route_id
@@ -1131,7 +1122,6 @@ class CubeTransformer(Transformer):
             a route shape
         lines_list (list): a list of the line names
     """
-
     def __init__(self):
         self.line_order = 0
         self.lines_list = []
