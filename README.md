@@ -1,4 +1,4 @@
-# Lasso (or whatever we decide to call it)
+# Lasso
 This package of utilities is a wrapper around the [network_wrangler](http://github.com/wsp-sag/network_wrangler) package for MetCouncil.  It aims to have the following functionality:
 
  1. parse Cube log files and base highway networks and create ProjectCards for Network Wrangler  
@@ -23,6 +23,7 @@ conda install shapely
 conda install fiona
 pip install git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install git+https://github.com/wsp-sag/Lasso@master#egg=lasso
+
 ```
 
 #### From GitHub
@@ -33,6 +34,7 @@ conda install rtree
 conda install shapely
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e git+https://github.com/wsp-sag/Lasso@master#egg=lasso
+
 ```
 
 Note: if you wanted to install from a specific tag/version number or branch, replace `@master` with `@<branchname>`  or `@tag`
@@ -43,7 +45,9 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 **if you plan to do development on both network wrangler and lasso locally, consider installing network wrangler from a clone as well!**
 
 ```bash
+
 git clone https://github.com/wsp-sag/Lasso
+
 cd lasso
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e .
