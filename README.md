@@ -45,18 +45,29 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 **if you plan to do development on both network wrangler and lasso locally, consider installing network wrangler from a clone as well!**
 
 ```bash
+conda create python=3.7 -n <my_lasso_environment>
+source activate <my_lasso_environment>
+conda install rtree
+conda install shapely
+conda install fiona
+conda install folium
+conda install osmnx
 
 git clone https://github.com/wsp-sag/Lasso
+git clone https://github.com/wsp-sag/network_wrangler
+
+cd network_wrangler
+pip install -e .
+cd ..
 
 cd lasso
-pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e .
 ```
 
 Note: if you are not part of the project team and want to contribute code bxack to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
 
 ## Documentation
-Not currently up and running, but when it is...
+https://wsp-sag.github.io/Lasso/
 
 Documentation requires the sphinx package and can be built from the `/docs` folder using the command: `make html`
 
@@ -76,10 +87,91 @@ jupyter notebook
 
 A few other very basic API tips:
 
+#### Transit
+
+**Parse a cube line file**
 ```python
 import lasso
-##TODO
+
+# read in the transit route information in cube line file format
+# this will either read in a string or a filename containing the text
+base_transit_lines = CubeTransit.create_from_cube(test_lin)
+
+# Explore the base transit lines
+print("Read {} LINES:\n{}".format(len(base_transit_lines.lines), "\n - ".join(base_transit_lines.lines)))
+ex_line_name = base_transit_lines.lines[1]
+print("Line: {}".format(ex_line_name))
+print("Properties: ", base_transit_lines.line_properties[ex_line_name])
+print("Nodes: ", base_transit_lines.shapes[ex_line_name])
 ```
+**Compare two lines to create a project card describing their differences**
+
+```python
+import lasso
+
+test_project = Project.create_project(
+        base_transit_source=my_file_with_base_lines,
+        build_transit_source=my_file_with_build_lines,
+        project_name="My awesome project that will save the koalas.",
+    )
+
+test_project.write_project_card(os.path.join("project_card_transit.yml"))
+```
+
+**Read a Network Wrangler TransitNetwork standard and write it to Cube**
+
+```python
+from network_wrangler import TransitNetwork
+
+wrangler_transit_network = TransitNetwork.read(feed_path=BASE_TRANSIT_DIR_WITH_GTFS)
+cube_transit_net = StandardTransit.fromTransitNetwork(wrangler_transit_network)
+
+cube_transit_net.write_as_cube_lin(os.path.join(SCRATCH_DIR, "t_transit_test.lin"))
+```
+**Read a GTFS (frequency only, not schedule-based) network and write it to Cube**
+```python
+from Lasso import StandardTransit
+from network_wrangler import TransitNetwork
+
+cube_transit_net = StandardTransit.read_gtfs(BASE_TRANSIT_DIR)
+
+cube_transit_net.write_as_cube_lin(os.path.join(SCRATCH_DIR, "t_transit_test.lin"))
+```
+#### Roadway
+
+**Read a wrangler roadway network standard network from file and write it to fixed width format that cube can read**
+
+Note that this calculates MetCouncil specific variables and also by default will create a "model-ready" network which 
+separates out managed lanes as parallel links.
+
+```python
+from Lasso import ModelRoadwayNetwork
+
+net = ModelRoadwayNetwork.read(
+        link_file=STPAUL_LINK_FILE,
+        node_file=STPAUL_NODE_FILE,
+        shape_file=STPAUL_SHAPE_FILE,
+        fast=True,
+    )
+
+net.write_roadway_as_fixedwidth()
+```
+
+**Read a Cube Log File of changes and produce project cards**
+
+```python
+
+from Lasso import Project
+
+lf = Project.read_logfile(logfilename)
+
+my_project = Project.create_project(
+    roadway_log_file=logfilename, base_roadway_dir=directory_with_roadway_files
+    )
+
+my_project .write_project_card("my_awesome_project.yml",
+```
+
 
 ## Client Contact and Relationship
 Repository created in support of Met Council Network Rebuild project. Project lead on the client side is [Rachel Wiken](Rachel.Wiken@metc.state.mn.us). WSP team member responsible for this repository is [David Ory](david.ory@wsp.com).
