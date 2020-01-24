@@ -1,14 +1,25 @@
 # Compiled Source
 *.pyc
 
+network_wrangler-master/
+master.tar.gz
+
 # Temp and test cache
+t_*
+tests/scratch/*
+!tests/scratch/readme.md
 tests/temp/
+tests/nodes*
+tests/links*
 scratch/*
 .temp
 .pytest_cache
 *.bak
 .cache
 .hubstorinfo
+
+#Docs
+docs/_generated/*
 
 # Logs
 *.log

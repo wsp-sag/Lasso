@@ -8,27 +8,29 @@ changes:
   links:
   - A: 3230
     B: 3262
-    HOV_access: 0
+    OPERATION_final: A
     bike_access: 1
+    bike_facility: 3
     distance: 0.10462
     drive_access: 1
     lanes: 1
     model_link_id: 999998
     transit_access: 0
-    transit_priority: 0
-    traveltime_assert: 0.0
+    trn_priority: 0.0
+    ttime_assert: 0.0
     walk_access: 1
   - A: 3262
     B: 3230
-    HOV_access: 0
+    OPERATION_final: A
     bike_access: 1
+    bike_facility: 3
     distance: 0.10462
     drive_access: 1
     lanes: 1
     model_link_id: 999997
     transit_access: 0
-    transit_priority: 0
-    traveltime_assert: 0.0
+    trn_priority: 0.0
+    ttime_assert: 0.0
     walk_access: 1
   nodes:
   - bike_node: 0
@@ -41,23 +43,29 @@ changes:
   facility:
     link:
       model_link_id:
-      - 224
-  properties:
-  - existing: 0.0503218951
-    property: distance
-    set: 0.10462
-- category: Roadway Attribute Change
-  facility:
-    link:
-      model_link_id:
       - 280
       - 282
   properties:
+  - existing: 0
+    property: bike_facility
+    set: 3
   - existing: 0
     property: walk_access
     set: 1
   - existing: 0
     property: bike_access
     set: 1
+- category: Roadway Attribute Change
+  facility:
+    link:
+      model_link_id:
+      - 224
+  properties:
+  - existing: 0
+    property: drive_access
+    set: 1
+  - existing: 0.0503218951
+    property: distance
+    set: 0.10462
 project: USER TO define
 valid: false

@@ -9,12 +9,42 @@ from pandas import DataFrame
 from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
 
-from .TransitNetwork import TransitNetworkLasso
-from .transit import CubeTransit
-from .Logger import WranglerLogger
+from .transit import CubeTransit, StandardTransit
+from .logger import WranglerLogger
 
 
 class Project(object):
+    """A single or set of changes to the roadway or transit system.
+
+    Compares a base and a build transit network or a base and build
+    highway network and produces project cards.
+
+    .. highlight:: python
+
+    Typical usage example:
+    ::
+        test_project = Project.create_project(
+            base_transit_source=os.path.join(CUBE_DIR, "transit.LIN"),
+            build_transit_source=os.path.join(CUBE_DIR, "transit_route_shape_change"),
+        )
+        test_project.evaluate_changes()
+        test_project.write_project_card(
+            os.path.join(SCRATCH_DIR, "t_transit_shape_test.yml")
+        )
+
+    Attributes:
+        DEFAULT_PROJECT_NAME: a class-level constant that defines what
+            the project name will be if none is set.
+        STATIC_VALUES: a class-level constant which defines values that
+            are not evaluated when assessing changes.
+        card_data (dict):  {"project": <project_name>, "changes": <list of change dicts>}
+        roadway_changes (DataFrame):  pandas dataframe of CUBE roadway changes.
+        transit_changes (CubeTransit):
+        base_roadway_network (RoadwayNetwork):
+        base_transit_network (CubeTransit):
+        build_transit_network (CubeTransit):
+        project_name (str): name of the project, set to DEFAULT_PROJECT_NAME if not provided
+    """
 
     DEFAULT_PROJECT_NAME = "USER TO define"
 
@@ -23,7 +53,7 @@ class Project(object):
         "area_type",
         "county",
         "asgngrp",
-        "centroid_connector",
+        "centroidconnect",
     ]
 
     def __init__(
@@ -37,7 +67,7 @@ class Project(object):
         evaluate: bool = False,
     ):
         """
-
+        constructor
         """
         self.card_data = Dict[str, Dict[str, Any]]
 
@@ -58,12 +88,13 @@ class Project(object):
 
     def write_project_card(self, filename):
         """
+        Writes project cards.
 
-        Parameters
-        -----------
-        filename
-        Returns
-        -------
+        Args:
+            filename (str): File path to output .yml
+
+        Returns:
+            None
         """
         ProjectCard(self.card_data).write(filename)
         WranglerLogger.info("Wrote project card to: {}".format(filename))
@@ -72,34 +103,67 @@ class Project(object):
     def create_project(
         roadway_log_file: Optional[str] = None,
         base_roadway_dir: Optional[str] = None,
-        base_transit_dir: Optional[str] = None,
-        build_transit_dir: Optional[str] = None,
+        base_transit_source: Optional[str] = None,
+        build_transit_source: Optional[str] = None,
         roadway_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
         build_transit_network: Optional[CubeTransit] = None,
+        project_name=None,
     ):
         """
+        Constructor for a Project instance.
 
-        Parameters
-        -----------
-        roadway_log_file : str
-            filename for consuming logfile
+        Args:
+            roadway_log_file (str): File path to consuming logfile.
+            base_roadway_dir (str): Folder path to base roadway network.
+            base_transit_dir (str): Folder path to base transit network.
+            base_transit_file (str): File path to base transit network.
+            build_transit_dir (str): Folder path to build transit network.
+            build_transit_file (str): File path to build transit network.
+            roadway_changes (DataFrame): pandas dataframe of CUBE roadway changes.
+            transit_changes (CubeTransit): build transit changes.
+            base_roadway_network (RoadwayNetwork): Base roadway network object.
+            base_transit_network (CubeTransit): Base transit network object.
+            build_transit_network (CubeTransit): Build transit network object.
 
-        Returns
-        -------
-        Project object
+        Returns:
+            A Project instance.
         """
 
-        if build_transit_dir and transit_changes:
-            msg = "Method takes only one of 'build_transit_dir' and 'transit_changes' but both given"
+        if base_transit_source:
+            base_transit_network = CubeTransit.create_from_cube(base_transit_source)
+            WranglerLogger.debug(
+                "Base network has {} lines".format(len(base_transit_network.lines))
+            )
+            if len(base_transit_network.lines) <= 10:
+                WranglerLogger.debug(
+                    "Base network lines: {}".format(
+                        "\n - ".join(base_transit_network.lines)
+                    )
+                )
+        else:
+            msg = "No base transit network."
+            WranglerLogger.info(msg)
+            base_transit_network = None
+
+        if build_transit_source and transit_changes:
+            msg = "Method takes only one of 'build_transit_source' and 'transit_changes' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
-        if build_transit_dir:
-            build_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=build_transit_dir
+        if build_transit_source:
+            WranglerLogger.debug("build")
+            build_transit_network = CubeTransit.create_from_cube(build_transit_source)
+            WranglerLogger.debug(
+                "Build network has {} lines".format(len(build_transit_network.lines))
             )
+            if len(build_transit_network.lines) <= 10:
+                WranglerLogger.debug(
+                    "Build network lines: {}".format(
+                        "\n - ".join(build_transit_network.lines)
+                    )
+                )
         else:
             msg = "No transit changes given or processed."
             WranglerLogger.info(msg)
@@ -132,19 +196,6 @@ class Project(object):
             WranglerLogger.info(msg)
             base_roadway_network = None
 
-        if base_transit_dir and base_transit_network:
-            msg = "Method takes only one of 'base_transit_dir' and 'base_transit_network' but both given"
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
-        if base_transit_dir:
-            base_transit_network = CubeTransit.create_cubetransit(
-                cube_transit_dir=base_transit_dir
-            )
-        else:
-            msg = "No base transit network."
-            WranglerLogger.info(msg)
-            base_transit_network = None
-
         project = Project(
             roadway_changes=roadway_changes,
             transit_changes=transit_changes,
@@ -152,6 +203,7 @@ class Project(object):
             base_transit_network=base_transit_network,
             build_transit_network=build_transit_network,
             evaluate=True,
+            project_name=project_name,
         )
 
         return project
@@ -160,13 +212,12 @@ class Project(object):
     def read_logfile(logfilename: str) -> DataFrame:
         """
         Reads a Cube log file and returns a dataframe of roadway_changes
-        Parameters
-        -----------
-        logfilename : str
-            filename for consuming logfile
 
-        Returns
-        -------
+        Args:
+            logfilename (str): File path to CUBE logfile.
+
+        Returns:
+            A DataFrame reprsentation of the log file.
         """
         WranglerLogger.info("Reading logfile: {}".format(logfilename))
         with open(logfilename) as f:
@@ -244,7 +295,8 @@ class Project(object):
 
     def evaluate_changes(self):
         """
-        Determines which changes should be evaluated.
+        Determines which changes should be evaluated, initiates
+        self.card_data to be an aggregation of transit and highway changes.
         """
         highway_change_list = []
         transit_change_list = []
@@ -277,14 +329,16 @@ class Project(object):
 
         return transit_change_list
 
-    def add_highway_changes(self):
+    def add_highway_changes(self, limit_variables_to_existing_network=False):
         """
         Evaluates changes from the log file based on the base highway object and
         adds entries into the self.card_data dictionary.
+
+        Args:
+            limit_variables_to_existing_network (bool): True if no ad-hoc variables.  Default to False.
         """
 
         ## if worth it, could also add some functionality  to network wrangler itself.
-
         node_changes_df = self.roadway_changes[
             self.roadway_changes.OBJECT == "N"
         ].copy()
@@ -312,7 +366,7 @@ class Project(object):
 
         def _consolidate_actions(log, base, key_list):
             log_df = log.copy()
-
+            # will be changed if to allow new variables being added/changed that are not in base network
             changeable_col = [x for x in log_df.columns if x in base.columns]
 
             for x in changeable_col:
@@ -371,13 +425,15 @@ class Project(object):
         WranglerLogger.debug("Processing link additions")
         cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
         if cube_add_df.shape[1] > 0:
-            # check if property is in existing roadway network
-            ## Sijia - don't we want to add the attribute even if it isn't in the existing roadway network?
-            add_col = [
-                c
-                for c in cube_add_df.columns
-                if c in self.base_roadway_network.links_df.columns
-            ]
+            if limit_variables_to_existing_network:
+                add_col = [
+                    c
+                    for c in cube_add_df.columns
+                    if c in self.base_roadway_network.links_df.columns
+                ]
+            else:
+                add_col = cube_add_df.columns
+                # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
             add_link_properties = cube_add_df[add_col].to_dict("records")
 

@@ -37,11 +37,11 @@ output:
 #
 # dictionary of properties to split by time of day or category
 #    variables_to_split:
-#        transit_priority:
-#            v: 'transit_priority'
+#        trn_priority:
+#            v: 'trn_priority'
 #            time_periods': Parameters.DEFAULT_TIME_PERIOD_TO_TIME
-#        traveltime_assert:
-#            v: 'traveltime_assert'
+#        ttime_assert:
+#            v: 'ttime_assert'
 #            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
 #        lanes:
 #            v: 'lanes'
@@ -78,10 +78,10 @@ output:
 #    calculated_variables_roadway:
 #        - 'self.calculate_area_type(network_variable = "area")'
 #          'self.calculate_county(network_variable = "county")'
-#          'self.calculate_centroid_connector(network_variable = "centroid_connector")'
+#          'self.calculate_centroidconnect(network_variable = "centroidconnect")'
 #          'self.calculate_mpo(network_variable = "mpo")'
-#          'self.calculate_roadway_class_index(network_variable="roadway_class_index")'
-#          'self.calculate_assignment_group(network_variable="assignment_group")'
+#          'self.calculate_road_class_idx(network_variable="road_class_idx")'
+#          'self.calculate_assign_group(network_variable="assign_group")'
 #
 # list of variables to keep in final output
 #    output_variables:

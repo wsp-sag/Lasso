@@ -22,7 +22,8 @@ conda install rtree
 conda install shapely
 conda install fiona
 pip install git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
-pip install git+https://github.com/wsp-sag/lasso@master#egg=lasso
+pip install git+https://github.com/wsp-sag/Lasso@master#egg=lasso
+
 ```
 
 #### From GitHub
@@ -32,7 +33,8 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install Lasso f
 conda install rtree
 conda install shapely
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
-pip install -e git+https://github.com/wsp-sag/lasso@master#egg=lasso
+pip install -e git+https://github.com/wsp-sag/Lasso@master#egg=lasso
+
 ```
 
 Note: if you wanted to install from a specific tag/version number or branch, replace `@master` with `@<branchname>`  or `@tag`
@@ -43,13 +45,15 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 **if you plan to do development on both network wrangler and lasso locally, consider installing network wrangler from a clone as well!**
 
 ```bash
-git clone https://github.com/wsp-sag/lasso
+
+git clone https://github.com/wsp-sag/Lasso
+
 cd lasso
 pip install -e git+https://github.com/wsp-sag/network_wrangler.git@master#egg=network_wrangler
 pip install -e .
 ```
 
-Note: if you are not part of the project team and want to contribute code back to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
+Note: if you are not part of the project team and want to contribute code bxack to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
 
 ## Documentation
 Not currently up and running, but when it is...
