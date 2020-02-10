@@ -175,6 +175,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         county_shape=None,
         county_shape_variable=None,
         network_variable="county",
+        county_codes_dict=None,
         overwrite=False,
     ):
         """
@@ -225,6 +226,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             )
         )
 
+        county_codes_dict = (
+            county_codes_dict
+            if county_codes_dict
+            else self.parameters.county_code_dict
+        )
+        if not county_codes_dict:
+            msg = "No county codes dictionary specified"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
         """
         Start actual process
         """
@@ -235,6 +246,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         county_gdf = gpd.read_file(county_shape)
         county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.EPSG)
         joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
+
+        joined_gdf[county_shape_variable] = (
+            joined_gdf[county_shape_variable]
+            .map(county_codes_dict)
+            .fillna(10)
+            .astype(int)
+        )
 
         self.links_df[network_variable] = joined_gdf[county_shape_variable]
 

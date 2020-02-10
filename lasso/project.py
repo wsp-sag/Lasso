@@ -11,6 +11,8 @@ from network_wrangler import RoadwayNetwork
 
 from .transit import CubeTransit, StandardTransit
 from .logger import WranglerLogger
+from .parameters import Parameters
+from .roadway import ModelRoadwayNetwork
 
 
 class Project(object):
@@ -52,7 +54,7 @@ class Project(object):
         "model_link_id",
         "area_type",
         "county",
-        "asgngrp",
+        "assign_group",
         "centroidconnect",
     ]
 
@@ -65,6 +67,7 @@ class Project(object):
         build_transit_network: Optional[CubeTransit] = None,
         project_name: Optional[str] = "",
         evaluate: bool = False,
+        parameters={},
     ):
         """
         constructor
@@ -79,6 +82,7 @@ class Project(object):
         self.project_name = (
             project_name if project_name else Project.DEFAULT_PROJECT_NAME
         )
+        self.parameters = Parameters(**parameters)
 
         if base_roadway_network != None:
             self.determine_roadway_network_changes_compatability()
@@ -111,6 +115,7 @@ class Project(object):
         base_transit_network: Optional[CubeTransit] = None,
         build_transit_network: Optional[CubeTransit] = None,
         project_name=None,
+        parameters={},
     ):
         """
         Constructor for a Project instance.
@@ -185,12 +190,14 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_roadway_dir:
-            base_roadway_network = RoadwayNetwork.read(
+            base_roadway_network = ModelRoadwayNetwork.read(
                 os.path.join(base_roadway_dir, "link.json"),
                 os.path.join(base_roadway_dir, "node.geojson"),
                 os.path.join(base_roadway_dir, "shape.geojson"),
                 True,
             )
+            base_roadway_network.create_calculated_variables()
+            base_roadway_network.split_properties_by_time_period_and_category()
         else:
             msg = "No base roadway network."
             WranglerLogger.info(msg)
@@ -204,6 +211,7 @@ class Project(object):
             build_transit_network=build_transit_network,
             evaluate=True,
             project_name=project_name,
+            parameters=parameters,
         )
 
         return project
@@ -260,6 +268,16 @@ class Project(object):
         WranglerLogger.info(
             "Evaluating compatibility between roadway network changes and base network. Not evaluating deletions."
         )
+
+        # CUBE log file saves all varilable names in upper cases, need to convert them to be same as network
+        log_to_net_df = pd.read_csv(self.parameters.log_to_net)
+        log_to_net_dict = dict(zip(log_to_net_df["log"], log_to_net_df["net"]))
+        for c in self.roadway_changes.columns:
+            if c in list(log_to_net_dict.keys()):
+                self.roadway_changes.rename(columns = {c : log_to_net_dict[c]},
+                                            inplace = True)
+            else:
+                continue
 
         link_changes_df = self.roadway_changes[
             (self.roadway_changes.OBJECT == "L")
@@ -466,99 +484,107 @@ class Project(object):
 
         change_link_dict_df = pd.DataFrame()
 
-        for index, change_row in link_changes_df[
+        if len(link_changes_df[
             link_changes_df.OPERATION_final == "C"
-        ].iterrows():
+            ]) > 0:
 
-            base_df = self.base_roadway_network.links_df[
-                (self.base_roadway_network.links_df["A"] == change_row.A)
-                & (self.base_roadway_network.links_df["B"] == change_row.B)
-            ]
+            for index, change_row in link_changes_df[
+                link_changes_df.OPERATION_final == "C"
+            ].iterrows():
 
-            if not base_df.shape[0]:
-                msg = "No match found in network for AB combination: ({},{}). Incompatible base network.".format(
-                    change_row.A, change_row.B
-                )
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
+                base_df = self.base_roadway_network.links_df[
+                    (self.base_roadway_network.links_df["A"] == change_row.A)
+                    & (self.base_roadway_network.links_df["B"] == change_row.B)
+                ]
 
-            if base_df.shape[0] > 1:
-                WranglerLogger.warning(
-                    "Found more than one match in base network for AB combination: ({},{}). Selecting first one to operate on but AB should be unique to network.".format(
-                        row.A, row.B
+                if not base_df.shape[0]:
+                    msg = "No match found in network for AB combination: ({},{}). Incompatible base network.".format(
+                        change_row.A, change_row.B
                     )
-                )
-            base_row = base_df.iloc[0]
+                    WranglerLogger.error(msg)
+                    raise ValueError(msg)
 
-            out_col = []
-            for col in changeable_col:
-                # if it is the same as before, or a static value, don't process as a change
-                if (str(change_row[col]) == base_row[col].astype(str)) | (
-                    col in Project.STATIC_VALUES
-                ):
-                    continue
-                # only look at distance if it has significantly changed
-                if col == "distance":
-                    if (
-                        abs(
-                            (change_row[col] - base_row[col].astype(float))
-                            / base_row[col].astype(float)
+                if base_df.shape[0] > 1:
+                    WranglerLogger.warning(
+                            "Found more than one match in base network for AB combination: ({},{}). Selecting first one to operate on but AB should be unique to network.".format(
+                            row.A, row.B
                         )
-                        > 0.01
+                    )
+                base_row = base_df.iloc[0]
+
+                out_col = []
+                for col in changeable_col:
+                # if it is the same as before, or a static value, don't process as a change
+                    if (str(change_row[col]) == base_row[col].astype(str)) | (
+                        col in Project.STATIC_VALUES
                     ):
-                        out_col.append(col)
-                    else:
                         continue
-                else:
-                    out_col.append(col)
+                    # only look at distance if it has significantly changed
+                    if col == "distance":
+                        if (
+                            abs(
+                                (change_row[col] - base_row[col].astype(float))
+                                / base_row[col].astype(float)
+                            )
+                                > 0.01
+                        ):
+                            out_col.append(col)
+                        else:
+                            continue
+                    else:
+                        out_col.append(col)
 
-            property_dict_list = []
-            for c in out_col:
-                property_dict = {}
-                property_dict["property"] = c
-                property_dict["existing"] = base_row[c]
-                property_dict["set"] = change_row[c]
-                property_dict_list.append(property_dict)
-            # WranglerLogger.debug("property_dict_list: {}".format(property_dict_list))
-            # WranglerLogger.debug("base_df.model_link_id: {}".format(base_row['model_link_id']))
-            card_df = pd.DataFrame(
-                {
-                    "properties": pd.Series([property_dict_list]),
-                    "model_link_id": pd.Series(base_row["model_link_id"]),
-                }
+                property_dict_list = []
+                for c in out_col:
+                    property_dict = {}
+                    property_dict["property"] = c
+                    property_dict["existing"] = base_row[c]
+                    property_dict["set"] = change_row[c]
+                    property_dict_list.append(property_dict)
+                # WranglerLogger.debug("property_dict_list: {}".format(property_dict_list))
+                # WranglerLogger.debug("base_df.model_link_id: {}".format(base_row['model_link_id']))
+                card_df = pd.DataFrame(
+                        {
+                            "properties": pd.Series([property_dict_list]),
+                            "model_link_id": pd.Series(base_row["model_link_id"]),
+                        }
+                )
+                # WranglerLogger.debug('card_df: {}'.format(card_df))
+                change_link_dict_df = pd.concat(
+                    [change_link_dict_df, card_df], ignore_index=True, sort=False
+                    )
+
+            change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(
+                    str
+                )
+            # WranglerLogger.debug('change_link_dict_df 1: {}'.format(change_link_dict_df))
+            change_link_dict_df = (
+                change_link_dict_df.groupby("properties")[["model_link_id"]]
+                .agg(lambda x: list(x))
+                .reset_index()
             )
-            # WranglerLogger.debug('card_df: {}'.format(card_df))
-            change_link_dict_df = pd.concat(
-                [change_link_dict_df, card_df], ignore_index=True, sort=False
+            # WranglerLogger.debug('change_link_dict_df 2: {}'.format(change_link_dict_df))
+            change_link_dict_df["facility"] = change_link_dict_df.apply(
+                lambda x: {"link": {"model_link_id": x.model_link_id}}, axis=1
             )
 
-        change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(
-            str
-        )
-        # WranglerLogger.debug('change_link_dict_df 1: {}'.format(change_link_dict_df))
-        change_link_dict_df = (
-            change_link_dict_df.groupby("properties")[["model_link_id"]]
-            .agg(lambda x: list(x))
-            .reset_index()
-        )
-        # WranglerLogger.debug('change_link_dict_df 2: {}'.format(change_link_dict_df))
-        change_link_dict_df["facility"] = change_link_dict_df.apply(
-            lambda x: {"link": {"model_link_id": x.model_link_id}}, axis=1
-        )
+            # WranglerLogger.debug('change_link_dict_df 3: {}'.format(change_link_dict_df))
+            change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(
+                lambda x: json.loads(x.replace("'", '"'))
+            )
 
-        # WranglerLogger.debug('change_link_dict_df 3: {}'.format(change_link_dict_df))
-        change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(
-            lambda x: json.loads(x.replace("'", '"'))
-        )
+            change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict(
+                "record"
+            )
 
-        change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict(
-            "record"
-        )
+            for change in change_link_dict_list:
+                change["category"] = "Roadway Attribute Change"
 
-        for change in change_link_dict_list:
-            change["category"] = "Roadway Attribute Change"
+            WranglerLogger.debug("{} Changes Processed".format(len(change_link_dict_list)))
 
-        WranglerLogger.debug("{} Changes Processed".format(len(change_link_dict_list)))
+        else:
+            WranglerLogger.debug("No link changes processed")
+            change_link_dict_list = []
 
         highway_change_list = list(
             filter(None, [delete_link_dict] + [add_link_dict] + change_link_dict_list)

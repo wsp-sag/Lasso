@@ -372,6 +372,29 @@ class Parameters:
     )
     DEFAULT_COUNTY_VARIABLE_SHP = "NAME"
 
+    DEFAULT_COUNTY_CODE_DICT = {
+        'Anoka':1,
+        'Carver':2,
+        'Dakota':3,
+        'Hennepin':4,
+        'Ramsey':5,
+        'Scott':6,
+        'Washington':7,
+        'external':10,
+        'Chisago':11,
+        'Goodhue':12,
+        'Isanti':13,
+        'Le Sueur':14,
+        'McLeod':15,
+        'Pierce':16,
+        'Polk':17,
+        'Rice':18,
+        'Sherburne':19,
+        'Sibley':20,
+        'St. Croix':21,
+        'Wright':22
+        }
+
     DEFAULT_MPO_COUNTIES = [
         "ANOKA",
         "DAKOTA",
@@ -476,6 +499,8 @@ class Parameters:
     DEFAULT_WIDOT_COUNT_VARIABLE_SHP = "AADT_wi"
 
     DEFAULT_NET_TO_DBF_CROSSWALK = os.path.join(SETTINGS_LOCATION, "net_to_dbf.csv")
+
+    DEFAULT_LOG_TO_NET_CROSSWALK = os.path.join(SETTINGS_LOCATION, "log_to_net.csv")
 
     DEFAULT_OUTPUT_VARIABLES = [
         "model_link_id",
@@ -593,6 +618,8 @@ class Parameters:
             self.county_shape = Parameters.DEFAULT_COUNTY_SHAPE
         if "county_variable_shp" not in kwargs:
             self.county_variable_shp = Parameters.DEFAULT_COUNTY_VARIABLE_SHP
+        if "county_code_dict" not in kwargs:
+            self.county_code_dict = Parameters.DEFAULT_COUNTY_CODE_DICT
         if "mpo_counties" not in kwargs:
             self.mpo_counties = Parameters.DEFAULT_MPO_COUNTIES
         if "taz_shape" not in kwargs:
@@ -649,6 +676,8 @@ class Parameters:
             self.widot_count_variable_shp = Parameters.DEFAULT_WIDOT_COUNT_VARIABLE_SHP
         if "net_to_dbf" not in kwargs:
             self.net_to_dbf = Parameters.DEFAULT_NET_TO_DBF_CROSSWALK
+        if "log_to_net" not in kwargs:
+            self.log_to_net = Parameters.DEFAULT_LOG_TO_NET_CROSSWALK
         if "output_link_shp" not in kwargs:
             self.output_link_shp = Parameters.DEFAULT_OUTPUT_LINK_SHP
         if "output_node_shp" not in kwargs:
