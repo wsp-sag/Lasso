@@ -205,11 +205,11 @@ class Project(object):
             raise ValueError(msg)
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
-        if roadway_shp_file:
+        elif roadway_shp_file:
             roadway_changes = gpd.read_file(roadway_shp_file)
             roadway_changes = DataFrame(roadway_changes.drop("geometry", axis = 1))
             roadway_changes["model_node_id"] = 0
-        if roadway_csv_file:
+        elif roadway_csv_file:
             roadway_changes = pd.read_csv(roadway_csv_file)
             roadway_changes["model_node_id"] = 0
         else:
