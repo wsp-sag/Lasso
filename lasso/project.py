@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 from pandas import DataFrame
+import geopandas as gpd
 
 from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
@@ -54,7 +55,7 @@ class Project(object):
         "model_link_id",
         "area_type",
         "county",
-        "assign_group",
+        #"assign_group",
         "centroidconnect",
     ]
 
@@ -106,6 +107,8 @@ class Project(object):
     @staticmethod
     def create_project(
         roadway_log_file: Optional[str] = None,
+        roadway_shp_file: Optional[str] = None,
+        roadway_csv_file: Optional[str] = None,
         base_roadway_dir: Optional[str] = None,
         base_transit_source: Optional[str] = None,
         build_transit_source: Optional[str] = None,
@@ -122,6 +125,8 @@ class Project(object):
 
         Args:
             roadway_log_file (str): File path to consuming logfile.
+            roadway_shp_file (str): File path to consuming shape file for roadway changes.
+            roadway_csv_file (str): File path to consuming csv file for roadway changes.
             base_roadway_dir (str): Folder path to base roadway network.
             base_transit_dir (str): Folder path to base transit network.
             base_transit_file (str): File path to base transit network.
@@ -178,8 +183,35 @@ class Project(object):
             msg = "Method takes only one of 'roadway_log_file' and 'roadway_changes' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
+        if roadway_shp_file and roadway_changes:
+            msg = "Method takes only one of 'roadway_shp_file' and 'roadway_changes' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if roadway_csv_file and roadway_changes:
+            msg = "Method takes only one of 'roadway_csv_file' and 'roadway_changes' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if roadway_log_file and roadway_csv_file:
+            msg = "Method takes only one of 'roadway_log_file' and 'roadway_csv_file' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if roadway_shp_file and roadway_csv_file:
+            msg = "Method takes only one of 'roadway_shp_file' and 'roadway_csv_file' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if roadway_log_file and roadway_shp_file:
+            msg = "Method takes only one of 'roadway_log_file' and 'roadway_shp_file' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
+        if roadway_shp_file:
+            roadway_changes = gpd.read_file(roadway_shp_file)
+            roadway_changes = DataFrame(roadway_changes.drop("geometry", axis = 1))
+            roadway_changes["model_node_id"] = 0
+        if roadway_csv_file:
+            roadway_changes = pd.read_csv(roadway_csv_file)
+            roadway_changes["model_node_id"] = 0
         else:
             msg = "No roadway changes given or processed."
             WranglerLogger.info(msg)
@@ -272,9 +304,16 @@ class Project(object):
         # CUBE log file saves all varilable names in upper cases, need to convert them to be same as network
         log_to_net_df = pd.read_csv(self.parameters.log_to_net)
         log_to_net_dict = dict(zip(log_to_net_df["log"], log_to_net_df["net"]))
+
+        dbf_to_net_df = pd.read_csv(self.parameters.net_to_dbf)
+        dbf_to_net_dict = dict(zip(dbf_to_net_df["dbf"], dbf_to_net_df["net"]))
+
         for c in self.roadway_changes.columns:
             if c in list(log_to_net_dict.keys()):
                 self.roadway_changes.rename(columns = {c : log_to_net_dict[c]},
+                                            inplace = True)
+            if c in list(dbf_to_net_dict.keys()):
+                self.roadway_changes.rename(columns = {c : dbf_to_net_dict[c]},
                                             inplace = True)
             else:
                 continue
@@ -518,6 +557,8 @@ class Project(object):
                     if (str(change_row[col]) == base_row[col].astype(str)) | (
                         col in Project.STATIC_VALUES
                     ):
+                        continue
+                    if ((col == "roadway_class") & (change_row[col] == 0)):
                         continue
                     # only look at distance if it has significantly changed
                     if col == "distance":
