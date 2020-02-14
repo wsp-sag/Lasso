@@ -314,7 +314,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         area_type_shape = (
             area_type_shape if area_type_shape else self.parameters.area_type_shape
         )
-        print(area_type_shape)
+
         if not area_type_shape:
             msg = "No area type shape specified"
             WranglerLogger.error(msg)
