@@ -841,7 +841,7 @@ class StandardTransit(object):
         return StandardTransit(transit_network_object.feed, parameters={})
 
     @staticmethod
-    def read_gtfs(gtfs_feed_dir: str, parameters: Parameters = None):
+    def read_gtfs(gtfs_feed_dir: str, parameters: Parameters = {}):
         """
         Reads GTFS files from a directory and returns a StandardTransit
         instance.

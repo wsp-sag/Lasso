@@ -428,7 +428,7 @@ class Parameters:
         ###  TAZS
 
         self.taz_shape = os.path.join(
-            data_file_location, "TAZ", "TAZOfficialWCurrentForecasts.shp"
+            self.data_file_location, "TAZ", "TAZOfficialWCurrentForecasts.shp"
         )
         self.taz_data = None
         self.highest_taz_number = 3100
