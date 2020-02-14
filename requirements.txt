@@ -1,4 +1,4 @@
 lark-parser
-pandas
+pandas < 0.26
 jupyter
 notebook

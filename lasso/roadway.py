@@ -98,11 +98,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 dictionary of output variable prefix mapped to the source variable and what to stratify it by
                 e.g.
                 {
-                    'trn_priority' : {'v':'trn_priority', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                    'ttime_assert' : {'v':'ttime_assert', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                    'lanes' : {'v':'lanes', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME },
-                    'price' : {'v':'price', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME ,'categories': DEFAULT_CATEGORIES},
-                    'access' : {'v':'access', 'times_periods':DEFAULT_TIME_PERIOD_TO_TIME},
+                    'trn_priority' : {'v':'trn_priority', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'ttime_assert' : {'v':'ttime_assert', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'lanes' : {'v':'lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'price' : {'v':'price', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},'categories': {"sov": ["sov", "default"],"hov2": ["hov2", "default", "sov"]}},
+                    'access' : {'v':'access', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
                 }
 
         """

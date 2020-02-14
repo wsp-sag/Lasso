@@ -71,23 +71,7 @@ def test_network_split_variables_by_time(request):
         fast=True,
     )
 
-    net.split_properties_by_time_period_and_category(
-        {
-            "trn_priority": {
-                "v": "trn_priority",
-                "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-                #'categories': Parameters.DEFAULT_CATEGORIES
-            },
-            "ttime_assert": {
-                "v": "ttime_assert",
-                "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-            },
-            "lanes": {
-                "v": "lanes",
-                "time_periods": Parameters.DEFAULT_TIME_PERIOD_TO_TIME,
-            },
-        }
-    )
+    net.split_properties_by_time_period_and_category()
     assert "trn_priority_AM" in net.links_df.columns
     print(net.links_df.info())
     ## todo write an assert that actually tests something
