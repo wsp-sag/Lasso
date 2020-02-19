@@ -826,35 +826,34 @@ class StandardTransit(object):
         self.parameters = Parameters(**parameters)
 
     @staticmethod
-    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: Parameters = {}):
+    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: dict = {}):
         """
         RoadwayNetwork to ModelRoadwayNetwork
 
         Args:
             transit_network_object: Reference to an instance of TransitNetwork.
-            parameters : Parameters instance for lasso.
+            parameters (Optional): Dictionary of parameter settings. If not provided will
+                use default parameters.
 
         Returns:
             StandardTransit
         """
-        parameters = Parameters(**parameters)
-        return StandardTransit(transit_network_object.feed, parameters={})
+        return StandardTransit(transit_network_object.feed, parameters=parameters)
 
     @staticmethod
-    def read_gtfs(gtfs_feed_dir: str, parameters: Parameters = {}):
+    def read_gtfs(gtfs_feed_dir: str, parameters: dict = {}):
         """
         Reads GTFS files from a directory and returns a StandardTransit
         instance.
 
         Args:
             gtfs_feed_dir: location of the GTFS files
-            parameters (Optional): Parameters instance, if not provided will
+            parameters (Optional): Dictionary of parameter settings. Of not provided will
                 use default parameters.
 
         Returns:
             StandardTransit instance
         """
-        parameters = Parameters(**parameters)
         return StandardTransit(ptg.load_feed(gtfs_feed_dir), parameters=parameters)
 
     def write_as_cube_lin(self, outpath: str  = None):

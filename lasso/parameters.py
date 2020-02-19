@@ -518,7 +518,7 @@ class Parameters:
             "wi_count_ShSt_API_match.csv",
         )
 
-        self.widot_county_variable_shp = "AADT_wi"
+        self.widot_count_variable_shp = "AADT_wi"
 
         self.net_to_dbf_crosswalk = os.path.join(self.settings_location, "net_to_dbf.csv")
 
@@ -602,7 +602,7 @@ class Parameters:
         self.output_node_csv = os.path.join(self.scratch_location, "nodes.csv")
         self.output_link_txt = os.path.join(self.scratch_location, "links.txt")
         self.output_node_txt = os.path.join(self.scratch_location, "nodes.txt")
-        self.output_link_header_widtch_csv = os.path.join(
+        self.output_link_header_width_csv = os.path.join(
             self.scratch_location, "links_header_width.csv"
         )
         self.output_node_header_width_csv = os.path.join(

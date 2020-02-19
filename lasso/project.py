@@ -302,10 +302,10 @@ class Project(object):
         )
 
         # CUBE log file saves all varilable names in upper cases, need to convert them to be same as network
-        log_to_net_df = pd.read_csv(self.parameters.log_to_net)
+        log_to_net_df = pd.read_csv(self.parameters.log_to_net_crosswalk)
         log_to_net_dict = dict(zip(log_to_net_df["log"], log_to_net_df["net"]))
 
-        dbf_to_net_df = pd.read_csv(self.parameters.net_to_dbf)
+        dbf_to_net_df = pd.read_csv(self.parameters.net_to_dbf_crosswalk)
         dbf_to_net_dict = dict(zip(dbf_to_net_df["dbf"], dbf_to_net_df["net"]))
 
         for c in self.roadway_changes.columns:
