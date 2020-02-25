@@ -575,25 +575,28 @@ class Project(object):
                     else:
                         out_col.append(col)
 
-                property_dict_list = []
-                for c in out_col:
-                    property_dict = {}
-                    property_dict["property"] = c
-                    property_dict["existing"] = base_row[c]
-                    property_dict["set"] = change_row[c]
-                    property_dict_list.append(property_dict)
-                # WranglerLogger.debug("property_dict_list: {}".format(property_dict_list))
-                # WranglerLogger.debug("base_df.model_link_id: {}".format(base_row['model_link_id']))
-                card_df = pd.DataFrame(
-                        {
+                if len(out_col) > 0:
+                    property_dict_list = []
+                    for c in out_col:
+                        property_dict = {}
+                        property_dict["property"] = c
+                        property_dict["existing"] = base_row[c]
+                        property_dict["set"] = change_row[c]
+                        property_dict_list.append(property_dict)
+                        # WranglerLogger.debug("property_dict_list: {}".format(property_dict_list))
+                        # WranglerLogger.debug("base_df.model_link_id: {}".format(base_row['model_link_id']))
+                    card_df = pd.DataFrame(
+                            {
                             "properties": pd.Series([property_dict_list]),
                             "model_link_id": pd.Series(base_row["model_link_id"]),
-                        }
-                )
+                            }
+                        )
+                else:
+                    card_df = pd.DataFrame()
                 # WranglerLogger.debug('card_df: {}'.format(card_df))
                 change_link_dict_df = pd.concat(
-                    [change_link_dict_df, card_df], ignore_index=True, sort=False
-                    )
+                            [change_link_dict_df, card_df], ignore_index=True, sort=False
+                        )
 
             change_link_dict_df["properties"] = change_link_dict_df["properties"].astype(
                     str
