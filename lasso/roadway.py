@@ -1119,6 +1119,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             on="source_link_id",
         )
 
+        # drop duplicated records with same field value
+
+        join_refId_df.drop_duplicates(
+            subset = ["model_link_id", "shstReferenceId", field_name],
+            inplace = True
+        )
+
         # more than one match, take the best score
 
         join_refId_df.sort_values(
