@@ -526,6 +526,7 @@ class Parameters:
 
         self.output_variables = [
             "model_link_id",
+            "link_id",
             "A",
             "B",
             "shstGeometryId",
@@ -584,6 +585,7 @@ class Parameters:
             "count_PM",
             "count_NT",
             "count_daily",
+            "HOV",
             "model_node_id",
             "N",
             "osm_node_id",
@@ -603,10 +605,10 @@ class Parameters:
         self.output_link_txt = os.path.join(self.scratch_location, "links.txt")
         self.output_node_txt = os.path.join(self.scratch_location, "nodes.txt")
         self.output_link_header_width_csv = os.path.join(
-            self.scratch_location, "links_header_width.csv"
+            self.scratch_location, "links_header_width.txt"
         )
         self.output_node_header_width_csv = os.path.join(
-            self.scratch_location, "nodes_header_width.csv"
+            self.scratch_location, "nodes_header_width.txt"
         )
         self.output_cube_network_script = os.path.join(
             self.scratch_location, "make_complete_network_from_fixed_width_file.s"

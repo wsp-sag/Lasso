@@ -1,5 +1,5 @@
 log,net
-MODEL_LINK_ID,model_link_id
+LINK_ID,model_link_id
 SHSTGEOMETRYID,shstGeometryId
 DISTANCE,distance
 ROADWAY,roadway
@@ -55,7 +55,7 @@ COUNT_NT,count_NT
 COUNTY,county
 CENTROIDCONNECT,centroidconnect
 COUNT_DAILY,count_daily
-MODEL_NODE_ID,model_node_id
+N,model_node_id
 OSM_NODE_ID,osm_node_id
 TRANSIT_NODE,transit_node
 BIKE_NODE,bike_node

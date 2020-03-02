@@ -134,7 +134,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     params["time_periods"], params["categories"]
                 ):
                     self.links_df[
-                        out_var + "_" + time_suffix + "_" + category_suffix
+                        out_var + "_" + category_suffix + "_" + time_suffix
                     ] = self.get_property_by_time_period_and_group(
                         params["v"],
                         category=params["categories"][category_suffix],
@@ -169,6 +169,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_assign_group()
         self.calculate_roadway_class()
         self.add_counts()
+        self.calculate_hov()
 
     def calculate_county(
         self,
@@ -1143,6 +1144,74 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return join_refId_df[links_df.columns.tolist() + [field_name]]
 
+    def calculate_hov(
+        self,
+        network_variable="HOV",
+        as_integer=True,
+        overwrite=False,
+    ):
+        """
+        Calculates hov variable.
+
+        Args:
+            network_variable (str): Variable that should be written to in the network. Default to "HOV"
+            as_integer (bool): If True, will convert true/false to 1/0s.  Defauly to True.
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+
+        Returns:
+            None
+        """
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing hov Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "hov Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        WranglerLogger.info(
+            "Calculating hov and adding as roadway network variable: {}".format(
+                network_variable
+            )
+        )
+        """
+        Verify inputs
+        """
+
+        if not network_variable:
+            msg = "No network variable specified for centroid connector"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        """
+        Start actual process
+        """
+        self.links_df[network_variable] = 0
+
+        self.links_df.loc[
+            (self.links_df["assign_group"] == 8)
+            | (self.links_df["access"] == "hov"),
+            network_variable,
+        ] = 100
+
+        if as_integer:
+            self.links_df[network_variable] = self.links_df[network_variable].astype(
+                int
+            )
+        WranglerLogger.info(
+            "Finished calculating hov variable: {}".format(
+                network_variable
+            )
+        )
+
     def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
         Rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
@@ -1173,6 +1242,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
         self.create_calculated_variables()
+        # no method to calculate price yet, will be hard coded in project card
+        self.links_df["price"] = 0
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
 
@@ -1198,8 +1269,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             lambda g: g.y
         )
 
+        self.links_metcouncil_df["count_AM"] = self.links_metcouncil_df["AADT"]/4
+        self.links_metcouncil_df["count_MD"] = self.links_metcouncil_df["AADT"]/4
+        self.links_metcouncil_df["count_PM"] = self.links_metcouncil_df["AADT"]/4
+        self.links_metcouncil_df["count_NT"] = self.links_metcouncil_df["AADT"]/4
+        self.links_metcouncil_df["count_daily"] = self.links_metcouncil_df["AADT"]
+        self.links_metcouncil_df["count_year"] = 2017
+
         # CUBE expect node id to be N
         self.nodes_metcouncil_df.rename(columns={"model_node_id": "N"}, inplace=True)
+        self.links_metcouncil_df.rename(columns={"model_link_id": "link_id"}, inplace=True)
 
     def rename_variables_for_dbf(
         self,
