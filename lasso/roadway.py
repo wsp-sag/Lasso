@@ -1303,7 +1303,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         variable_crosswalk = (
-            variable_crosswalk if variable_crosswalk else self.parameters.net_to_dbf
+            variable_crosswalk if variable_crosswalk else self.parameters.net_to_dbf_crosswalk
         )
 
         output_variables = (
