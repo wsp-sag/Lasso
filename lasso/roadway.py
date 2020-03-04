@@ -1258,9 +1258,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
         self.shapes_metcouncil_df = self.shapes_metcouncil_df.to_crs(epsg=26915)
 
-        self.nodes_metcouncil_df = self.nodes_metcouncil_df.reset_index()
-        self.nodes_metcouncil_df.rename(columns={"index": "osm_node_id"}, inplace=True)
-
         self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(
             lambda g: g.x
         )
