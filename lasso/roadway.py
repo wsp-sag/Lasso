@@ -1243,7 +1243,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.info("Didn't detect managed lanes in network.")
         self.create_calculated_variables()
         # no method to calculate price yet, will be hard coded in project card
-        self.links_df["price"] = 0
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
 

@@ -578,11 +578,48 @@ class Project(object):
                 if len(out_col) > 0:
                     property_dict_list = []
                     for c in out_col:
-                        property_dict = {}
-                        property_dict["property"] = c
-                        property_dict["existing"] = base_row[c]
-                        property_dict["set"] = change_row[c]
-                        property_dict_list.append(property_dict)
+                        if (c[:-3] in list(self.parameters.properties_to_split.keys())) | (
+                                c.split("_")[0] == "price"
+                            ) :
+                            split_existing = 0
+                            for property in property_dict_list:
+                                if (property["property"] == c.split("_")[0]) & (property["existing"] == base_row[c]):
+                                    if (c.split("_")[0] == "price") :
+                                        property["timeofday"] = property["timeofday"] + [{
+                                            "time" : list(self.parameters.time_period_to_time[c.split("_")[-1]]),
+                                            "category" : c.split("_")[-2],
+                                            "set" : change_row[c]
+                                        }]
+                                    else:
+                                        property["timeofday"] = property["timeofday"] + [{
+                                            "time" : list(self.parameters.time_period_to_time[c.split("_")[-1]]),
+                                            "set" : change_row[c]
+                                        }]
+                                    split_existing = 1
+                                else:
+                                    continue
+                            if split_existing == 0:
+                                property_dict = {}
+                                property_dict["property"] = c.split("_")[0]
+                                property_dict["existing"] = base_row[c]
+                                if (c.split("_")[0] == "price") :
+                                    property_dict["timeofday"] = [{
+                                        "time" : list(self.parameters.time_period_to_time[c.split("_")[-1]]),
+                                        "category" : c.split("_")[-2],
+                                        "set" : change_row[c]
+                                    }]
+                                else:
+                                    property_dict["timeofday"] = [{
+                                        "time" : list(self.parameters.time_period_to_time[c.split("_")[-1]]),
+                                        "set" : change_row[c]
+                                    }]
+                                property_dict_list.append(property_dict)
+                        else:
+                            property_dict = {}
+                            property_dict["property"] = c
+                            property_dict["existing"] = base_row[c]
+                            property_dict["set"] = change_row[c]
+                            property_dict_list.append(property_dict)
                         # WranglerLogger.debug("property_dict_list: {}".format(property_dict_list))
                         # WranglerLogger.debug("base_df.model_link_id: {}".format(base_row['model_link_id']))
                     card_df = pd.DataFrame(
