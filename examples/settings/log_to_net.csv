@@ -61,3 +61,8 @@ TRANSIT_NODE,transit_node
 BIKE_NODE,bike_node
 DRIVE_NODE,drive_node
 WALK_NODE,walk_node
+SEGMENT_ID,segment_id
+ML_LANES_AM,ML_lanes_AM
+ML_LANES_MD,ML_lanes_MD
+ML_LANES_PM,ML_lanes_PM
+ML_LANES_NT,ML_lanes_NT
