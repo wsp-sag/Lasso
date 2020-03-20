@@ -1274,7 +1274,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # CUBE expect node id to be N
         self.nodes_metcouncil_df.rename(columns={"model_node_id": "N"}, inplace=True)
-        self.links_metcouncil_df.rename(columns={"model_link_id": "link_id"}, inplace=True)
 
     def rename_variables_for_dbf(
         self,
