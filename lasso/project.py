@@ -600,7 +600,10 @@ class Project(object):
                                     continue
                             if split_existing == 0:
                                 property_dict = {}
-                                property_dict["property"] = c.split("_")[0]
+                                if c.split("_")[0] == "ML":
+                                    property_dict["property"] = c[:-3]
+                                else:
+                                    property_dict["property"] = c.split("_")[0]
                                 property_dict["existing"] = base_row[c]
                                 if (c.split("_")[0] == "price") :
                                     property_dict["timeofday"] = [{
