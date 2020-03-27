@@ -353,6 +353,7 @@ class Parameters:
                 "time_periods": self.time_period_to_time,
             },
             "lanes": {"v": "lanes", "time_periods": self.time_period_to_time},
+            "ML_lanes": {"v": "ML_lanes", "time_periods": self.time_period_to_time},
             "price": {
                 "v": "price",
                 "time_periods": self.time_period_to_time,
@@ -585,7 +586,6 @@ class Parameters:
             "count_PM",
             "count_NT",
             "count_daily",
-            "HOV",
             "model_node_id",
             "N",
             "osm_node_id",
@@ -596,6 +596,11 @@ class Parameters:
             "geometry",
             "X",
             "Y",
+            "ML_lanes_AM",
+            "ML_lanes_MD",
+            "ML_lanes_PM",
+            "ML_lanes_NT",
+            "segment_id"
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")

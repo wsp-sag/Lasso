@@ -101,6 +101,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     'trn_priority' : {'v':'trn_priority', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
                     'ttime_assert' : {'v':'ttime_assert', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
                     'lanes' : {'v':'lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'ML_lanes' : {'v':'ML_lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
                     'price' : {'v':'price', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},'categories': {"sov": ["sov", "default"],"hov2": ["hov2", "default", "sov"]}},
                     'access' : {'v':'access', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
                 }
@@ -169,7 +170,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_assign_group()
         self.calculate_roadway_class()
         self.add_counts()
-        self.calculate_hov()
+        self.create_ML_variable()
+        self.create_hov_corridor_variable()
 
     def calculate_county(
         self,
@@ -1210,6 +1212,88 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Finished calculating hov variable: {}".format(
                 network_variable
             )
+        )
+
+    def create_ML_variable(
+        self,
+        network_variable="ML_lanes",
+        overwrite=False,
+    ):
+        """
+        Created ML lanes placeholder for project to write out ML changes
+
+        ML lanes default to 0, ML info comes from cube LOG file and store in project cards
+
+        Args:
+            overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+        Returns:
+            None
+        """
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing ML Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "ML Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        """
+        Verify inputs
+        """
+
+        self.links_df[network_variable] = int(0)
+
+        WranglerLogger.info(
+            "Finished creatnig ML lanes variable: {}".format(network_variable)
+        )
+
+    def create_hov_corridor_variable(
+        self,
+        network_variable="segment_id",
+        overwrite=False,
+    ):
+        """
+        Created hov corridor placeholder for project to write out corridor changes
+
+        hov corridor id default to 0, its info comes from cube LOG file and store in project cards
+
+        Args:
+            overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+        Returns:
+            None
+        """
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing hov corridor Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "Hov corridor Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        """
+        Verify inputs
+        """
+
+        self.links_df[network_variable] = int(0)
+
+        WranglerLogger.info(
+            "Finished creatnig hov corridor variable: {}".format(network_variable)
         )
 
     def roadway_standard_to_met_council_network(self, output_epsg=None):
