@@ -295,12 +295,12 @@ class Parameters:
         output_node_txt (str): Output fixed format txt for roadway nodes. Default:
             ::
                 r"tests/scratch/nodes.txt"
-        output_link_header_width_csv (str): Header for csv roadway links. Default:
+        output_link_header_width_txt (str): Header for txt roadway links. Default:
             ::
-                r"tests/scratch/links_header_width.csv"
-        output_node_header_width_csv (str): Header for csv for roadway Nodes. Default:
+                r"tests/scratch/links_header_width.txt"
+        output_node_header_width_txt (str): Header for txt for roadway Nodes. Default:
             ::
-                r"tests/scratch/nodes_header_width.csv"
+                r"tests/scratch/nodes_header_width.txt"
         output_cube_network_script (str): Cube script for importing
             fixed-format roadway network. Default:
             ::
@@ -609,10 +609,10 @@ class Parameters:
         self.output_node_csv = os.path.join(self.scratch_location, "nodes.csv")
         self.output_link_txt = os.path.join(self.scratch_location, "links.txt")
         self.output_node_txt = os.path.join(self.scratch_location, "nodes.txt")
-        self.output_link_header_width_csv = os.path.join(
+        self.output_link_header_width_txt = os.path.join(
             self.scratch_location, "links_header_width.txt"
         )
-        self.output_node_header_width_csv = os.path.join(
+        self.output_node_header_width_txt = os.path.join(
             self.scratch_location, "nodes_header_width.txt"
         )
         self.output_cube_network_script = os.path.join(
@@ -628,6 +628,46 @@ class Parameters:
             p + "[" + str(t) + "]"
             for p in ["HEADWAY", "FREQ"]
             for t in self.cube_time_periods.keys()
+        ]
+
+        self.int_col = [
+            "model_link_id",
+            "model_node_id",
+            "A",
+            "B",
+            "lanes",
+            "roadway_class",
+            "assign_group",
+            "county",
+            "area_type",
+            "trn_priority",
+            "AADT",
+            'count_AM',
+            'count_MD',
+            'count_PM',
+            'count_NT',
+            "count_daily",
+            "centroidconnect",
+            "bike_facility",
+            "drive_access",
+            "walk_access",
+            "bike_access",
+            "transit_access",
+            "truck_access",
+            "drive_node",
+            "walk_node",
+            "bike_node",
+            "transit_node",
+            "ML_lanes",
+            "segment_id"
+        ]
+
+        self.float_col = [
+            "distance",
+            "ttime_assert",
+            "price",
+            "X",
+            "Y"
         ]
 
         self.__dict__.update(kwargs)

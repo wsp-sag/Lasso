@@ -7,6 +7,7 @@ import pandas as pd
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame
+import numpy as np
 
 from network_wrangler import RoadwayNetwork
 from .parameters import Parameters
@@ -1252,7 +1253,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df[network_variable] = int(0)
 
         WranglerLogger.info(
-            "Finished creatnig ML lanes variable: {}".format(network_variable)
+            "Finished creating ML lanes variable: {}".format(network_variable)
         )
 
     def create_hov_corridor_variable(
@@ -1293,8 +1294,57 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df[network_variable] = int(0)
 
         WranglerLogger.info(
-            "Finished creatnig hov corridor variable: {}".format(network_variable)
+            "Finished creating hov corridor variable: {}".format(network_variable)
         )
+
+    def convert_int(self):
+        """
+        convert integer columns
+        """
+
+        WranglerLogger.info(
+            "Converting variable type to MetCouncil standard"
+        )
+
+        int_col_names = self.parameters.int_col
+        int_col_names.remove("lanes")
+
+        for c in list(self.links_df.columns):
+            if c in int_col_names:
+                try:
+                    self.links_df[c] = self.links_df[c].astype(int)
+                except:
+                    self.links_df[c] = self.links_df[c].astype(float)
+                    self.links_df[c] = self.links_df[c].astype(int)
+
+        for c in list(self.nodes_df.columns):
+            if c in int_col_names:
+                self.nodes_df[c] = self.nodes_df[c].astype(int)
+
+    def fill_na(self):
+        """
+        Fill na values from create_managed_lane_network()
+        """
+
+        WranglerLogger.info(
+            "Filling nan for network from network wrangler"
+        )
+
+        num_col = self.parameters.int_col + self.parameters.float_col
+
+        for x in list(self.links_df.columns):
+            if x in num_col:
+                self.links_df[x].fillna(0, inplace = True)
+                self.links_df[x] = self.links_df[x].apply(lambda k:
+                    0 if k in [np.nan,''] else k)
+            else:
+                self.links_df[x].fillna("", inplace = True)
+
+        for x in list(self.nodes_df.columns):
+            if x in num_col:
+                self.nodes_df[x].fillna(0, inplace = True)
+            else:
+                self.nodes_df[x].fillna("", inplace = True)
 
     def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
@@ -1325,6 +1375,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.create_managed_lane_network(in_place=True)
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
+
+        self.fill_na()
+
+        self.convert_int()
         self.create_calculated_variables()
         # no method to calculate price yet, will be hard coded in project card
         WranglerLogger.info("Splitting variables by time period and category")
@@ -1590,8 +1644,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         link_output_variables: list = None,
         output_link_txt: str = None,
         output_node_txt: str = None,
-        output_link_header_width_csv: str = None,
-        output_node_header_width_csv: str = None,
+        output_link_header_width_txt: str = None,
+        output_node_header_width_txt: str = None,
         output_cube_network_script: str = None,
     ):
         """
@@ -1607,8 +1661,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             link_output_variables (list): list of node variable names.
             output_link_txt (str): File path to output link database.
             output_node_txt (str): File path to output node database.
-            output_link_header_width_csv (str): File path to link column width records.
-            output_link_header_width_csv (str): File path to node column width records.
+            output_link_header_width_txt (str): File path to link column width records.
+            output_link_header_width_txt (str): File path to node column width records.
             output_cube_network_script (str): File path to CUBE network building script.
 
         Returns:
@@ -1664,16 +1718,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             output_node_txt if output_node_txt else self.parameters.output_node_txt
         )
 
-        output_link_header_width_csv = (
-            output_link_header_width_csv
-            if output_link_header_width_csv
-            else self.parameters.output_link_header_width_csv
+        output_link_header_width_txt = (
+            output_link_header_width_txt
+            if output_link_header_width_txt
+            else self.parameters.output_link_header_width_txt
         )
 
-        output_node_header_width_csv = (
-            output_node_header_width_csv
-            if output_node_header_width_csv
-            else self.parameters.output_node_header_width_csv
+        output_node_header_width_txt = (
+            output_node_header_width_txt
+            if output_node_header_width_txt
+            else self.parameters.output_node_header_width_txt
         )
 
         output_cube_network_script = (
@@ -1697,7 +1751,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         link_max_width_df = DataFrame(
             list(link_max_width_dict.items()), columns=["header", "width"]
         )
-        link_max_width_df.to_csv(output_link_header_width_csv, index=False)
+        link_max_width_df.to_csv(output_link_header_width_txt, index=False)
 
         node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(
             self.nodes_metcouncil_df[node_output_variables]
@@ -1711,7 +1765,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         node_max_width_df = DataFrame(
             list(node_max_width_dict.items()), columns=["header", "width"]
         )
-        node_max_width_df.to_csv(output_node_header_width_csv, index=False)
+        node_max_width_df.to_csv(output_node_header_width_txt, index=False)
 
         # write out cube script
         s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
