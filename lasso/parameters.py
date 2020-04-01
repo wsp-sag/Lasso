@@ -600,7 +600,8 @@ class Parameters:
             "ML_lanes_MD",
             "ML_lanes_PM",
             "ML_lanes_NT",
-            "segment_id"
+            "segment_id",
+            "managed"
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -659,7 +660,8 @@ class Parameters:
             "bike_node",
             "transit_node",
             "ML_lanes",
-            "segment_id"
+            "segment_id",
+            "managed"
         ]
 
         self.float_col = [

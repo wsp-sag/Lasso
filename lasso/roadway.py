@@ -1379,7 +1379,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
-        if "ML" in self.links_df.columns:
+        if "managed" in self.links_df.columns:
             WranglerLogger.info("Creating managed lane network.")
             self.create_managed_lane_network(in_place=True)
         else:
@@ -1659,12 +1659,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         3. write out cube network building script with header and width specification.
 
         Args:
-            node_output_variables (list): list of link variable names.
-            link_output_variables (list): list of node variable names.
+            node_output_variables (list): list of node variable names.
+            link_output_variables (list): list of link variable names.
             output_link_txt (str): File path to output link database.
             output_node_txt (str): File path to output node database.
             output_link_header_width_txt (str): File path to link column width records.
-            output_link_header_width_txt (str): File path to node column width records.
+            output_node_header_width_txt (str): File path to node column width records.
             output_cube_network_script (str): File path to CUBE network building script.
 
         Returns:
