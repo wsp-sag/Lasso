@@ -1042,6 +1042,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             overwrite=False,
         )
 
+        self.links_df["count_AM"] = self.links_df[network_variable]/4
+        self.links_df["count_MD"] = self.links_df[network_variable]/4
+        self.links_df["count_PM"] = self.links_df[network_variable]/4
+        self.links_df["count_NT"] = self.links_df[network_variable]/4
+
+        self.links_df["count_daily"] = self.links_df[network_variable]
+        self.links_df["count_year"] = 2017
+
         WranglerLogger.info(
             "Finished adding counts variable: {}".format(network_variable)
         )
@@ -1336,7 +1344,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if x in num_col:
                 self.links_df[x].fillna(0, inplace = True)
                 self.links_df[x] = self.links_df[x].apply(lambda k:
-                    0 if k in [np.nan,''] else k)
+                    0 if k in [np.nan, '', float('nan'), 'NaN'] else k)
+
             else:
                 self.links_df[x].fillna("", inplace = True)
 
@@ -1376,10 +1385,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
 
-        self.fill_na()
-
-        self.convert_int()
         self.create_calculated_variables()
+
+        self.fill_na()
+        self.convert_int()
         # no method to calculate price yet, will be hard coded in project card
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
@@ -1402,13 +1411,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df["Y"] = self.nodes_metcouncil_df.geometry.apply(
             lambda g: g.y
         )
-
-        self.links_metcouncil_df["count_AM"] = self.links_metcouncil_df["AADT"]/4
-        self.links_metcouncil_df["count_MD"] = self.links_metcouncil_df["AADT"]/4
-        self.links_metcouncil_df["count_PM"] = self.links_metcouncil_df["AADT"]/4
-        self.links_metcouncil_df["count_NT"] = self.links_metcouncil_df["AADT"]/4
-        self.links_metcouncil_df["count_daily"] = self.links_metcouncil_df["AADT"]
-        self.links_metcouncil_df["count_year"] = 2017
 
         # CUBE expect node id to be N
         self.nodes_metcouncil_df.rename(columns={"model_node_id": "N"}, inplace=True)
