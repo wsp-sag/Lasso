@@ -366,7 +366,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         joined_gdf[area_type_shape_variable] = (
             joined_gdf[area_type_shape_variable]
             .map(area_type_codes_dict)
-            .fillna(10)
+            .fillna(1)
             .astype(int)
         )
 
