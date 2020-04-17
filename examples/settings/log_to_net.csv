@@ -66,3 +66,6 @@ ML_LANES_AM,ML_lanes_AM
 ML_LANES_MD,ML_lanes_MD
 ML_LANES_PM,ML_lanes_PM
 ML_LANES_NT,ML_lanes_NT
+MANAGED,managed
+BUS_ONLY,bus_only
+RAIL_ONLY,rail_only

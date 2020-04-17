@@ -417,13 +417,13 @@ class Parameters:
             }
 
         self.mpo_counties = [
-            "ANOKA",
-            "DAKOTA",
-            "HENNEPIN",
-            "RAMSEY",
-            "SCOTT",
-            "WASHINGTON",
-            "CARVER",
+            1,
+            3,
+            4,
+            5,
+            6,
+            7,
+            2,
         ]
 
         ###  TAZS
@@ -536,7 +536,6 @@ class Parameters:
             "name",
             "roadway_class",
             "bike_access",
-            "transit_access",
             "walk_access",
             "drive_access",
             "truck_access",
@@ -601,7 +600,9 @@ class Parameters:
             "ML_lanes_PM",
             "ML_lanes_NT",
             "segment_id",
-            "managed"
+            "managed",
+            "bus_only",
+            "rail_only"
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -653,7 +654,6 @@ class Parameters:
             "drive_access",
             "walk_access",
             "bike_access",
-            "transit_access",
             "truck_access",
             "drive_node",
             "walk_node",
@@ -661,7 +661,9 @@ class Parameters:
             "transit_node",
             "ML_lanes",
             "segment_id",
-            "managed"
+            "managed",
+            "bus_only",
+            "rail_only"
         ]
 
         self.float_col = [

@@ -531,7 +531,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        WranglerLogger.debug("MPO Counties: {}".format(",".join(mpo_counties)))
+        WranglerLogger.debug("MPO Counties: {}".format(",".join(str(mpo_counties))))
 
         """
         Start actual process
@@ -805,6 +805,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             try:
                 if x.centroidconnect == 1:
                     return 9
+                elif x.bus_only == 1:
+                    return 98
+                elif x.rail_only == 1:
+                    return 100
                 elif x.assignment_group_mrcc > 0:
                     return int(x.assignment_group_mrcc)
                 elif x.assignment_group_widot > 0:

@@ -229,6 +229,8 @@ class Project(object):
                 True,
             )
             base_roadway_network.create_calculated_variables()
+            base_roadway_network.fill_na()
+            base_roadway_network.convert_int()
             base_roadway_network.split_properties_by_time_period_and_category()
         else:
             msg = "No base roadway network."
