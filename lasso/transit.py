@@ -866,7 +866,7 @@ class StandardTransit(object):
 
         """
         if not outpath:
-            outpath  = os.path.join(parameters.outpath,"outtransit.lin")
+            outpath  = os.path.join(self.parameters.scratch_location,"outtransit.lin")
         trip_cube_df = self.route_properties_gtfs_to_cube(self)
 
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
