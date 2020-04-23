@@ -1309,6 +1309,75 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Finished creating hov corridor variable: {}".format(network_variable)
         )
 
+    def calculate_distance(
+            self,
+            network_variable = "distance",
+            centroidconnect_only = True,
+            overwrite = False):
+        """
+        calculate link distance in miles
+
+        Args:
+            centroidconnect_only (Bool):  True if calculating distance for centroidconnectors only.  Default to True.
+            overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+        Returns:
+            None
+
+        """
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing distance Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "Distance Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        """
+        Verify inputs
+        """
+
+        if "centroidconnect" not in self.links_df:
+            msg = "No variable specified for centroid connector, calculating centroidconnect first"
+            WranglerLogger.info(msg)
+            self.calculate_centroidconnect()
+
+        """
+        Start actual process
+        """
+
+        temp_links_gdf = self.links_df.copy()
+        temp_links_gdf = temp_links_gdf.to_crs(epsg=26915)
+
+        if centroidconnect_only:
+            WranglerLogger.info(
+                "Calculating {} for centroid connectors".format(
+                    network_variable
+                )
+            )
+            temp_links_gdf[network_variable] = np.where(
+                temp_links_gdf.centroidconnect == 1,
+                temp_links_gdf.geometry.length/1609.34,
+                temp_links_gdf[network_variable]
+            )
+        else:
+            WranglerLogger.info(
+                "Calculating distance for all links".format(
+                    network_variable
+                )
+            )
+            temp_links_gdf[network_variable] = temp_links_gdf.geometry.length/1609.34
+
+        self.links_df[network_variable] = temp_links_gdf[network_variable]
+
     def convert_int(self):
         """
         convert integer columns
@@ -1390,6 +1459,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.info("Didn't detect managed lanes in network.")
 
         self.create_calculated_variables()
+        self.calculate_distance(overwrite = True)
 
         self.fill_na()
         self.convert_int()
