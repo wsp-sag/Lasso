@@ -25,12 +25,12 @@ install_requires_dev = [r.strip() for r in dev_requirements]
 install_requires = install_requires + install_requires_dev
 
 setup(
-    name="lasso",
+    name="wrangler-lasso",
     version="0.0.1",
     description="",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/wsp-sag/client_met_council_wrangler_utilities",
+    url="https://github.com/wsp-sag/Lasso",
     license="Apache 2",
     platforms="any",
     packages=["lasso"],

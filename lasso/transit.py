@@ -64,13 +64,14 @@ class CubeTransit(object):
         diff_dict (dict):
     """
 
-    def __init__(self, parameters=Parameters()):
+    def __init__(self, parameters={}):
         """
         line_properties_dict (dict[line names]: line level attributes)
         line_shapes_dict (dict[line names]: line shape df)
 
 
         """
+        print("HI THERE")
         WranglerLogger.debug("Creating a new Cube Transit instance")
 
         self.lines = []
@@ -79,7 +80,8 @@ class CubeTransit(object):
         self.shapes = {}
 
         self.program_type = None
-        self.parameters = parameters
+
+        self.parameters = Parameters(**parameters)
 
         self.source_list = []
 
@@ -818,18 +820,20 @@ class StandardTransit(object):
             about time periods and variables.
     """
 
-    def __init__(self, ptg_feed, parameters=Parameters()):
+    def __init__(self, ptg_feed, parameters={}):
         self.feed = ptg_feed
-        self.parameters = parameters
+
+        self.parameters = Parameters(**parameters)
 
     @staticmethod
-    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: Parameters = Parameters()):
+    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: dict = {}):
         """
         RoadwayNetwork to ModelRoadwayNetwork
 
         Args:
             transit_network_object: Reference to an instance of TransitNetwork.
-            parameters : Parameters instance for lasso.
+            parameters (Optional): Dictionary of parameter settings. If not provided will
+                use default parameters.
 
         Returns:
             StandardTransit
@@ -837,14 +841,14 @@ class StandardTransit(object):
         return StandardTransit(transit_network_object.feed, parameters=parameters)
 
     @staticmethod
-    def read_gtfs(gtfs_feed_dir: str, parameters: Parameters = Parameters()):
+    def read_gtfs(gtfs_feed_dir: str, parameters: dict = {}):
         """
         Reads GTFS files from a directory and returns a StandardTransit
         instance.
 
         Args:
             gtfs_feed_dir: location of the GTFS files
-            parameters (Optional): Parameters instance, if not provided will
+            parameters (Optional): Dictionary of parameter settings. Of not provided will
                 use default parameters.
 
         Returns:
@@ -862,7 +866,7 @@ class StandardTransit(object):
 
         """
         if not outpath:
-            outpath  = os.path.join(parameters.outpath,"outtransit.lin")
+            outpath  = os.path.join(self.parameters.scratch_location,"outtransit.lin")
         trip_cube_df = self.route_properties_gtfs_to_cube(self)
 
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)

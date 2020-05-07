@@ -13,7 +13,7 @@ assign_group,asgngrp_def,roadway_class,rc_num_def
 13,metered system ramp,60,ramp
 14,unmetered system ramp,60,ramp
 15,expressway,20,trunk highway
-98,bus only,40,major road
+98,bus only,50,residential
 100,railroad,100,rail
 101,bike link,101,bikes
 0,na,0,na

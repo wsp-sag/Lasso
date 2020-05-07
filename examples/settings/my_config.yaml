@@ -39,20 +39,20 @@ output:
 #    variables_to_split:
 #        trn_priority:
 #            v: 'trn_priority'
-#            time_periods': Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#            time_periods': time_period_to_time
 #        ttime_assert:
 #            v: 'ttime_assert'
-#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#            time_periods: time_period_to_time
 #        lanes:
 #            v: 'lanes'
-#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#            time_periods: time_period_to_time
 #        price:
 #            v:'price'
-#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
-#            categories: Parameters.DEFAULT_CATEGORIES},
+#            time_periods: time_period_to_time
+#            categories: categories},
 #        access:
 #            v: 'access'
-#            time_periods: Parameters.DEFAULT_TIME_PERIOD_TO_TIME
+#            time_periods: time_period_to_time
 #
 # location of county shapefile
 #    county_shape:
