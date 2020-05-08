@@ -171,7 +171,9 @@ my_project = Project.create_project(
 
 my_project .write_project_card("my_awesome_project.yml",
 ```
+## Troubleshooting
 
+If a package throws an error after using `conda install *package*`, try force updating using conda-forge, `conda install -c conda-forge *package*`.
 
 ## Client Contact and Relationship
 Repository created in support of Met Council Network Rebuild project. Project lead on the client side is [Rachel Wiken](Rachel.Wiken@metc.state.mn.us). WSP team member responsible for this repository is [David Ory](david.ory@wsp.com).
