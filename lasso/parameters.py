@@ -330,6 +330,7 @@ class Parameters:
         self.route_type_mode_dict = {0: 8, 2: 9}
 
         self.cube_time_periods = {"1": "AM", "2": "MD"}
+        self.cube_time_periods_name = {"AM" : "pk", "MD" : "op"}
 
         if 'categories' in kwargs:
             self.categories = categories

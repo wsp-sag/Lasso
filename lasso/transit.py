@@ -927,7 +927,10 @@ class StandardTransit(object):
         trip_df = pd.merge(trip_df, self.feed.routes, how="left", on="route_id")
         trip_df = pd.merge(trip_df, self.feed.frequencies, how="left", on="trip_id")
 
-        trip_df["tod"] = trip_df.start_time.apply(self.time_to_cube_time_period)
+        trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
+        inv_cube_time_periods_map = {v: k for k, v in self.parameters.cube_time_periods.items()}
+        trip_df["tod_num"] = trip_df.tod_name.map(inv_cube_time_periods_map)
+        trip_df["tod_name"] = trip_df.tod_name.map(self.parameters.cube_time_periods_name)
 
         trip_df["NAME"] = trip_df.apply(
             lambda x: x.agency_id
@@ -936,7 +939,7 @@ class StandardTransit(object):
             + "_"
             + x.route_short_name
             + "_"
-            + x.tod
+            + x.tod_name
             + str(x.direction_id),
             axis=1,
         )
@@ -1120,7 +1123,7 @@ class StandardTransit(object):
 
         s = '\nLINE NAME="{}",'.format(row.NAME)
         s += '\n LONGNAME="{}",'.format(row.LONGNAME)
-        s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
+        s += "\n HEADWAY[{}]={},".format(row.tod_num, row.HEADWAY)
         s += "\n MODE={},".format(row.MODE)
         s += "\n ONEWAY={},".format(row.ONEWAY)
         s += "\n OPERATOR={},".format(row.OPERATOR)
@@ -1242,6 +1245,8 @@ TIME_PERIOD       : "1".."5"
                     | "longname"i
                     | "shortname"i
                     | ("usera"i TIME_PERIOD)
+                    | ("usern2"i)
+                    | "circular"i
                     | "vehicletype"i
                     | "operator"i
                     | "faresystem"i
