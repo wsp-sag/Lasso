@@ -25,6 +25,7 @@ pip install git+https://github.com/wsp-sag/network_wrangler.git@master#egg=netwo
 pip install git+https://github.com/wsp-sag/Lasso@master#egg=lasso
 
 ```
+Lasso can be installed in several ways depending on the user's needs. The above installation is the simplest method and is appropriate when the user does not anticipate needing to update lasso. An update will require rebuilding the network wrangler environment. Installing from clone is slightly more involved and requires the user to have a git manager on their machine, but permits the user to install lasso with the -e, edit, option so that their lasso installation can be updated through pulling new commits from the lasso repo without a full reinstallation.
 
 #### From GitHub
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install Lasso from the source on GitHub.
@@ -173,7 +174,15 @@ my_project .write_project_card("my_awesome_project.yml",
 ```
 ## Troubleshooting
 
-If a package throws an error after using `conda install *package*`, try force updating using conda-forge, `conda install -c conda-forge *package*`.
+**Issue: Conda is unable to install a library or to update to a specific library version**
+Try installing libraries from conda-forge
+
+```bash
+conda install -c conda-forge *library*
+```
+
+**Issue: User does not have permission to install in directories**
+Try running Anaconda Prompt as an administrator.
 
 ## Client Contact and Relationship
 Repository created in support of Met Council Network Rebuild project. Project lead on the client side is [Rachel Wiken](Rachel.Wiken@metc.state.mn.us). WSP team member responsible for this repository is [David Ory](david.ory@wsp.com).
