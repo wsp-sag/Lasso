@@ -1548,7 +1548,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     dbf_name_list += [c]
 
         if "geometry" in dbf_df.columns:
-            if str(dbf_df["geometry"].geom_type[0]) == "Point":
+            if str(dbf_df["geometry"].iloc[0].geom_type) == "Point":
                 dbf_df["X"] = dbf_df.geometry.apply(lambda g: g.x)
                 dbf_df["Y"] = dbf_df.geometry.apply(lambda g: g.y)
                 dbf_name_list += ["X", "Y"]
@@ -1663,6 +1663,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         links_dbf_df = self.rename_variables_for_dbf(
             self.links_metcouncil_df, output_variables=dbf_link_output_variables
         )
+
+        # network object does not store true shape in the links_df
+        links_dbf_df["geometry"] = self.shapes_metcouncil_df["geometry"]
 
         WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
         nodes_dbf_df.to_file(output_node_shp)
