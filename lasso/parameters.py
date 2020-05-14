@@ -675,4 +675,15 @@ class Parameters:
             "Y"
         ]
 
+        self.string_col = [
+            "osm_node_id",
+            "name",
+            "roadway",
+            "shstGeometryId",
+            "access_AM",
+            "access_MD",
+            "access_PM",
+            "access_NT"
+        ]
+
         self.__dict__.update(kwargs)

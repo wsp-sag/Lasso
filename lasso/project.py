@@ -280,17 +280,21 @@ class Project(object):
         nodecol_names = ["OBJECT", "OPERATION", "GROUP"] + NodeLines[0].split(",")[1:]
 
         link_df = DataFrame(
-            data=[re.split(",|;", x) for x in LinkLines[1:]], columns=linkcol_names
+            data=[re.split(",|;", x.replace("\"", "")) for x in LinkLines[1:]], columns=linkcol_names
         )
 
         node_df = DataFrame(
-            data=[re.split(",|;", x) for x in NodeLines[1:]], columns=nodecol_names
+            data=[re.split(",|;", x.replace("\"", "")) for x in NodeLines[1:]], columns=nodecol_names
         )
 
         log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
+
+        # CUBE logfile headers for string fields: NAME[111] instead of NAME, need to shorten that
+        log_df.columns = [c.split("[")[0] for c in log_df.columns]
+
         WranglerLogger.info(
             "Processed {} Node lines and {} Link lines".format(
-                link_df.shape[0], node_df.shape[0]
+                node_df.shape[0], link_df.shape[0]
             )
         )
 
@@ -397,6 +401,10 @@ class Project(object):
         Args:
             limit_variables_to_existing_network (bool): True if no ad-hoc variables.  Default to False.
         """
+
+        for c in self.parameters.string_col:
+            if c in self.roadway_changes.columns:
+                self.roadway_changes[c] = self.roadway_changes[c].str.lstrip(" ")
 
         ## if worth it, could also add some functionality  to network wrangler itself.
         node_changes_df = self.roadway_changes[
@@ -557,7 +565,7 @@ class Project(object):
                 out_col = []
                 for col in changeable_col:
                 # if it is the same as before, or a static value, don't process as a change
-                    if (str(change_row[col]) == base_row[col].astype(str)) | (
+                    if (str(change_row[col]) == str(base_row[col])) | (
                         col in Project.STATIC_VALUES
                     ):
                         continue
@@ -567,7 +575,7 @@ class Project(object):
                     if col == "distance":
                         if (
                             abs(
-                                (change_row[col] - base_row[col].astype(float))
+                                (change_row[col] - float(base_row[col]))
                                 / base_row[col].astype(float)
                             )
                                 > 0.01
@@ -657,7 +665,7 @@ class Project(object):
 
             # WranglerLogger.debug('change_link_dict_df 3: {}'.format(change_link_dict_df))
             change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(
-                lambda x: json.loads(x.replace("'", '"'))
+                lambda x: json.loads(x.replace("'\"", "'").replace("\"'", "'").replace("'", '"'))
             )
 
             change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict(
