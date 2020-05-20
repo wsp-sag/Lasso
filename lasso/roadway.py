@@ -173,6 +173,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.add_counts()
         self.create_ML_variable()
         self.create_hov_corridor_variable()
+        self.create_managed_variable()
 
     def calculate_county(
         self,
@@ -1307,6 +1308,47 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.info(
             "Finished creating hov corridor variable: {}".format(network_variable)
+        )
+
+    def create_managed_variable(
+        self,
+        network_variable="managed",
+        overwrite=False,
+    ):
+        """
+        Created placeholder for project to write out managed
+
+        managed default to 0, its info comes from cube LOG file and store in project cards
+
+        Args:
+            overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+        Returns:
+            None
+        """
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing managed Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "Managed Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        """
+        Verify inputs
+        """
+
+        self.links_df[network_variable] = int(0)
+
+        WranglerLogger.info(
+            "Finished creating managed variable: {}".format(network_variable)
         )
 
     def calculate_distance(
