@@ -508,7 +508,7 @@ class Project(object):
             # WranglerLogger.debug("Add Link Properties: {}".format(add_link_properties))
             WranglerLogger.debug("{} Links Added".format(len(add_link_properties)))
 
-            add_link_dict = {"category": "New Roadway", "links": add_link_properties}
+            add_link_dict = {"category": "Add New Roadway", "links": add_link_properties}
         else:
             WranglerLogger.debug("No link additions processed")
             add_link_dict = {}
@@ -660,7 +660,7 @@ class Project(object):
             )
             # WranglerLogger.debug('change_link_dict_df 2: {}'.format(change_link_dict_df))
             change_link_dict_df["facility"] = change_link_dict_df.apply(
-                lambda x: {"link": {"model_link_id": x.model_link_id}}, axis=1
+                lambda x: {"link": [{"model_link_id": x.model_link_id}]}, axis=1
             )
 
             # WranglerLogger.debug('change_link_dict_df 3: {}'.format(change_link_dict_df))
@@ -673,7 +673,7 @@ class Project(object):
             )
 
             for change in change_link_dict_list:
-                change["category"] = "Roadway Attribute Change"
+                change["category"] = "Roadway Property Change"
 
             WranglerLogger.debug("{} Changes Processed".format(len(change_link_dict_list)))
 
