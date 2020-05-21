@@ -8,9 +8,22 @@ Example using a conda environment (recommended) and using the package manager [p
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 -n <my_lasso_environment> rtree geopandas
+conda create python=3.7 rtree geopandas -n <my_lasso_environment>
 source activate <my_lasso_environment>
-pip install git+https://github.com/wsp-sag/Lasso@master#egg=lasso
+pip install git+https://github.com/wsp-sag/Lasso@master
+```
+
+Lasso will install `network_wrangler` from the [PyPi](https://pypi.org/project/network-wrangler/) repository because it is included in Lasso's `requirements.txt`.
+
+#### Bleeding Edge
+If you want to install a more up-to-date or development version of network wrangler and lasso , you can do so by installing it from the `develop` branch of
+
+```bash
+conda config --add channels conda-forge
+conda create python=3.7 rtree geopandas -n <my_lasso_environment>
+source activate <my_lasso_environment>
+pip install git+https://github.com/wsp-sag/network_wrangler@develop
+pip install git+https://github.com/wsp-sag/Lasso@develop
 ```
 
 #### From Clone
@@ -20,7 +33,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 -n <my_lasso_environment> rtree geopandas
+conda create python=3.7 rtree geopandas-n <my_lasso_environment>
 source activate <my_lasso_environment>
 git clone https://github.com/wsp-sag/Lasso
 git clone https://github.com/wsp-sag/network_wrangler
