@@ -26,6 +26,9 @@ docs/_generated/*
 # except logs in the cube example
 !examples/cube/*.log
 
+# Created  yml
+notebooks/*.yml
+notebooks/*.yaml
 # Jupyter
 .ipynb_checkpoints/
 profile_default/

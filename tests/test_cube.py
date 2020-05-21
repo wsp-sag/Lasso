@@ -121,6 +121,18 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
     test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_roadway_pc_test.yml"))
     ## todo write an assert that actually tests something
 
+@pytest.mark.travis
+@pytest.mark.roadway
+@pytest.mark.menow
+def test_write_ml_roadway_project_card_from_logfile(request):
+    print("\n--Starting:", request.node.name)
+
+    test_project = Project.create_project(
+        roadway_log_file=os.path.join(CUBE_DIR,"ML_log.log"), base_roadway_dir=BASE_ROADWAY_DIR
+    )
+    test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_roadway_pc_test.yml"))
+    ## todo write an assert that actually tests something
+
 
 @pytest.mark.travis
 @pytest.mark.transit
