@@ -249,7 +249,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
         county_gdf = gpd.read_file(county_shape)
-        county_gdf = county_gdf.to_crs(epsg=ROADWAYNETWORK.CRS)
+        county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.CRS)
         joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
 
         joined_gdf[county_shape_variable] = (
@@ -358,7 +358,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Reading Area Type Shapefile {}".format(area_type_shape))
         area_type_gdf = gpd.read_file(area_type_shape)
-        area_type_gdf = area_type_gdf.to_crs(epsg=ROADWAYNETWORK.CRS)
+        area_type_gdf = area_type_gdf.to_crs(epsg=RoadwayNetwork.CRS)
 
         joined_gdf = gpd.sjoin(
             centroids_gdf, area_type_gdf, how="left", op="intersects"
