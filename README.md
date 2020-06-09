@@ -21,7 +21,7 @@ Example using a conda environment (recommended) and using the package manager [p
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 rtree geopandas -n <my_lasso_environment>
+conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
 source activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/Lasso@master
 ```
@@ -34,7 +34,7 @@ If you want to install a more up-to-date or development version of network wrang
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 rtree geopandas -n <my_lasso_environment>
+conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
 source activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/network_wrangler@develop
 pip install git+https://github.com/wsp-sag/Lasso@develop
@@ -49,7 +49,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 rtree geopandas -n <my_lasso_environment>
+conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
 source activate <my_lasso_environment>
 git clone https://github.com/wsp-sag/Lasso
 git clone https://github.com/wsp-sag/network_wrangler
@@ -154,7 +154,7 @@ cube_transit_net.write_as_cube_lin(os.path.join(SCRATCH_DIR, "t_transit_test.lin
 
 **Read a wrangler roadway network standard network from file and write it to fixed width format that cube can read**
 
-Note that this calculates MetCouncil specific variables and also by default will create a "model-ready" network which 
+Note that this calculates MetCouncil specific variables and also by default will create a "model-ready" network which
 separates out managed lanes as parallel links.
 
 ```python
