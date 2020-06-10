@@ -128,9 +128,9 @@ class Project(object):
             roadway_shp_file (str): File path to consuming shape file for roadway changes.
             roadway_csv_file (str): File path to consuming csv file for roadway changes.
             base_roadway_dir (str): Folder path to base roadway network.
-            base_transit_source (str): Folder path to base transit network or a Cube line file string.
+            base_transit_dir (str): Folder path to base transit network.
             base_transit_file (str): File path to base transit network.
-            build_transit_source (str): Folder path to build transit network or a Cube line file string.
+            build_transit_dir (str): Folder path to build transit network.
             build_transit_file (str): File path to build transit network.
             roadway_changes (DataFrame): pandas dataframe of CUBE roadway changes.
             transit_changes (CubeTransit): build transit changes.
@@ -179,8 +179,6 @@ class Project(object):
             WranglerLogger.info(msg)
             transit_changes = None
 
-        # Process Build Roadway network or changes
-
         if roadway_log_file and roadway_changes:
             msg = "Method takes only one of 'roadway_log_file' and 'roadway_changes' but both given"
             WranglerLogger.error(msg)
@@ -205,7 +203,6 @@ class Project(object):
             msg = "Method takes only one of 'roadway_log_file' and 'roadway_shp_file' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
-
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
         elif roadway_shp_file:
@@ -220,7 +217,6 @@ class Project(object):
             WranglerLogger.info(msg)
             roadway_changes = pd.DataFrame({})
 
-        # Process base Roadway network
         if base_roadway_network and base_roadway_dir:
             msg = "Method takes only one of 'base_roadway_network' and 'base_roadway_dir' but both given"
             WranglerLogger.error(msg)
@@ -232,16 +228,15 @@ class Project(object):
                 os.path.join(base_roadway_dir, "shape.geojson"),
                 True,
             )
-        elif not base_roadway_network:
+            base_roadway_network.create_calculated_variables()
+            base_roadway_network.calculate_distance(overwrite = True)
+            base_roadway_network.fill_na()
+            base_roadway_network.convert_int()
+            base_roadway_network.split_properties_by_time_period_and_category()
+        else:
             msg = "No base roadway network."
             WranglerLogger.info(msg)
             base_roadway_network = None
-
-        base_roadway_network.create_calculated_variables()
-        base_roadway_network.calculate_distance(overwrite = True)
-        base_roadway_network.fill_na()
-        base_roadway_network.convert_int()
-        base_roadway_network.split_properties_by_time_period_and_category()
 
         project = Project(
             roadway_changes=roadway_changes,
