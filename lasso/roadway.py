@@ -930,6 +930,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if network_variable in self.links_df.columns and not overwrite:
             join_gdf.loc[join_gdf[network_variable] > 0][network_variable] = join_gdf[
+            join_gdf.loc[join_gdf[network_variable] > 0,network_variable] = join_gdf[
                 shst_csv_variable
             ].astype(network_var_type)
         else:
