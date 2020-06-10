@@ -142,6 +142,10 @@ class Project(object):
             A Project instance.
         """
 
+        if base_transit_source and base_transit_network:
+            msg = "Method takes only one of 'base_transit_source' and 'base_transit_network' but both given"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
         if base_transit_source:
             base_transit_network = CubeTransit.create_from_cube(base_transit_source)
             WranglerLogger.debug(
@@ -153,6 +157,8 @@ class Project(object):
                         "\n - ".join(base_transit_network.lines)
                     )
                 )
+        elif base_transit_network:
+            pass
         else:
             msg = "No base transit network."
             WranglerLogger.info(msg)
@@ -174,6 +180,8 @@ class Project(object):
                         "\n - ".join(build_transit_network.lines)
                     )
                 )
+        elif transit_changes:
+            pass
         else:
             msg = "No transit changes given or processed."
             WranglerLogger.info(msg)
@@ -212,6 +220,8 @@ class Project(object):
         elif roadway_csv_file:
             roadway_changes = pd.read_csv(roadway_csv_file)
             roadway_changes["model_node_id"] = 0
+        elif roadway_changes:
+            pass
         else:
             msg = "No roadway changes given or processed."
             WranglerLogger.info(msg)
@@ -233,6 +243,8 @@ class Project(object):
             base_roadway_network.fill_na()
             base_roadway_network.convert_int()
             base_roadway_network.split_properties_by_time_period_and_category()
+        elif base_roadway_network:
+            pass
         else:
             msg = "No base roadway network."
             WranglerLogger.info(msg)
