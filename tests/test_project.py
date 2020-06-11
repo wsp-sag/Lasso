@@ -63,6 +63,37 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
+@pytest.mark.travis
+def test_shp_changes(request):
+    """
+    Tests that the shp can be read in as a set changes with which to
+    create a valid project card.
+    """
+    print("\n--Starting:", request.node.name)
+
+    test_project = Project.create_project(
+            roadway_csv_file=os.path.join(CUBE_DIR,"example_shapefile_roadway_change.shp"),
+            base_roadway_dir=ROADWAY_DIR
+        )
+    assert type(test_project.roadway_changes) == DataFrame
+    assert type(test_project.card_data) == dict
+    print(test_roadway_project)
+
+@pytest.mark.travis
+def test_csv_changes(request):
+    """
+    Tests that the csv can be read in as a set changes with which to
+    create a valid project card.
+    """
+    print("\n--Starting:", request.node.name)
+
+    test_project = Project.create_project(
+            roadway_csv_file=os.path.join(CUBE_DIR,"example_csv_roadway_change.csv"),
+            base_roadway_dir=ROADWAY_DIR
+        )
+    assert type(test_project.roadway_changes) == DataFrame
+    assert type(test_project.card_data) == dict
+    print(test_roadway_project)
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 @pytest.mark.skip("Need to update project card schema")
