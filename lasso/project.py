@@ -246,6 +246,7 @@ class Project(object):
                 recalculate_distance = False,
                 parameters = parameters,
             )
+            base_roadway_network.split_properties_by_time_period_and_category()
         elif base_roadway_network:
             pass
         else:
@@ -588,14 +589,14 @@ class Project(object):
                     "set" : change_row[c],
                     }
                 if p_time_period:
-                    d["time"] =  list(self.parameters.time_period_to_time[p_time_period])
+                    _d["time"] =  list(self.parameters.time_period_to_time[p_time_period])
                     if p_category:
-                        d["category"] = p_category
+                        _d["category"] = p_category
 
                 # iterate through existing properties that have been changed and see if you should just add
                 if p_base_name in processed_properties:
                     for processed_p in property_dict_list:
-                        if processed_p["property"] == property_base_name:
+                        if processed_p["property"] == p_base_name:
                             processed_p["timeofday"] += [_d]
                 elif p_time_period:
                     property_dict = {
