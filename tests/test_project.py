@@ -72,12 +72,19 @@ def test_shp_changes(request):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-            roadway_csv_file=os.path.join(CUBE_DIR,"example_shapefile_roadway_change.shp"),
+            roadway_shp_file=os.path.join(CUBE_DIR,"example_shapefile_roadway_change.shp"),
             base_roadway_dir=ROADWAY_DIR
         )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
-    print(test_roadway_project)
+    print(test_project)
+
+    test_project.write_project_card(
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_shapefile_roadway_change" + ".yml",
+        )
+    )
 
 @pytest.mark.travis
 def test_csv_changes(request):
@@ -93,7 +100,14 @@ def test_csv_changes(request):
         )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
-    print(test_roadway_project)
+    print(test_project)
+
+    test_project.write_project_card(
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_csv_roadway_change" + ".yml",
+        )
+    )
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 @pytest.mark.skip("Need to update project card schema")

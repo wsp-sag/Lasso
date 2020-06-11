@@ -461,7 +461,7 @@ class Project(object):
             WranglerLogger.debug("Processing link deletions")
 
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
-            if cube_delete_df.shape[1] > 0:
+            if len(cube_delete_df) > 0:
                 links_to_delete = cube_delete_df["model_link_id"].tolist()
                 delete_link_dict = {
                     "category": "Roadway Deletion",
