@@ -71,7 +71,7 @@ class CubeTransit(object):
 
 
         """
-        print("HI THERE")
+        print("Creating a new Cube Transit instance")
         WranglerLogger.debug("Creating a new Cube Transit instance")
 
         self.lines = []

@@ -44,6 +44,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         node_file: str,
         shape_file: str,
         fast: bool = False,
+        recalculate_calculated_variables = False,
+        recalculate_distance = False,
         parameters={},
     ):
         """
@@ -54,6 +56,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             node_file (str): File path to node geojson.
             shape_file (str): File path to link true shape geojson
             fast (bool): boolean that will skip validation to speed up read time.
+            recalculate_calculated_variables (bool): calculates fields from spatial joins, etc.
+            recalculate_distance (bool):  re-calculates distance.
             parameters : parameters for lasso.
 
         Returns:
@@ -67,7 +71,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             road_net.links_df,
             road_net.shapes_df,
             parameters=parameters,
+
         )
+
+        if recalculate_calculated_variables:
+            m_road_net.create_calculated_variables()
+        if recalculate_distance:
+            m_road_net.calculate_distance(overwrite = True)
+
+        m_road_net.fill_na()
+        m_road_net.convert_int()
+        m_road_net.split_properties_by_time_period_and_category()
 
         return m_road_net
 
@@ -929,7 +943,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
         if network_variable in self.links_df.columns and not overwrite:
-            join_gdf.loc[join_gdf[network_variable] > 0][network_variable] = join_gdf[
+            join_gdf.loc[join_gdf[network_variable] > 0,network_variable] = join_gdf[
                 shst_csv_variable
             ].astype(network_var_type)
         else:
@@ -1420,29 +1434,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_df[network_variable] = temp_links_gdf[network_variable]
 
-    def convert_int(self):
+    def convert_int(self, int_col_names=[]):
         """
-        convert integer columns
+        Convert integer columns
         """
 
         WranglerLogger.info(
             "Converting variable type to MetCouncil standard"
         )
 
-        int_col_names = self.parameters.int_col
-        int_col_names.remove("lanes")
+        if not int_col_names: int_col_names = self.parameters.int_col
 
-        for c in list(self.links_df.columns):
-            if c in int_col_names:
-                try:
-                    self.links_df[c] = self.links_df[c].astype(int)
-                except:
-                    self.links_df[c] = self.links_df[c].astype(float)
-                    self.links_df[c] = self.links_df[c].astype(int)
+        ##Why are we doing this?
+        # int_col_names.remove("lanes")
 
-        for c in list(self.nodes_df.columns):
-            if c in int_col_names:
-                self.nodes_df[c] = self.nodes_df[c].astype(int)
+        for c in list(set(self.links_df.columns) & set(int_col_names)):
+            try:
+                self.links_df[c] = self.links_df[c].astype(int)
+            except:
+                self.links_df[c] = self.links_df[c].astype(float)
+                self.links_df[c] = self.links_df[c].astype(int)
+
+        for c in list(set(self.nodes_df.columns) & set(int_col_names)):
+            self.nodes_df[c] = self.nodes_df[c].astype(int)
 
     def fill_na(self):
         """

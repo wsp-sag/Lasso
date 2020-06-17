@@ -123,7 +123,7 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
 
 @pytest.mark.travis
 @pytest.mark.roadway
-@pytest.mark.menow
+@pytest.mark.skip(reason="Not currently able to automagically create a managed lane project card")
 def test_write_ml_roadway_project_card_from_logfile(request):
     print("\n--Starting:", request.node.name)
 
