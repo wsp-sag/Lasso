@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, List
 
 import pandas as pd
 from pandas import DataFrame
@@ -107,7 +107,7 @@ class Project(object):
 
     @staticmethod
     def create_project(
-        roadway_log_file: Optional[str] = None,
+        roadway_log_file: Optional[Union[str,List[str]]] = None,
         roadway_shp_file: Optional[str] = None,
         roadway_csv_file: Optional[str] = None,
         base_roadway_dir: Optional[str] = None,
@@ -127,7 +127,7 @@ class Project(object):
         Constructor for a Project instance.
 
         Args:
-            roadway_log_file: File path to consuming logfile.
+            roadway_log_file: File path to consuming logfile or a list of logfile paths.
             roadway_shp_file: File path to consuming shape file for roadway changes.
             roadway_csv_file: File path to consuming csv file for roadway changes.
             base_roadway_dir: Folder path to base roadway network.
@@ -268,19 +268,23 @@ class Project(object):
         return project
 
     @staticmethod
-    def read_logfile(logfilename: str) -> DataFrame:
+    def read_logfile(logfilename: Union[str,List[str]]) -> DataFrame:
         """
         Reads a Cube log file and returns a dataframe of roadway_changes
 
         Args:
-            logfilename (str): File path to CUBE logfile.
+            logfilename (str or list[str]): File path to CUBE logfile or list of logfile paths.
 
         Returns:
             A DataFrame reprsentation of the log file.
         """
-        WranglerLogger.info("Reading logfile: {}".format(logfilename))
-        with open(logfilename) as f:
-            content = f.readlines()
+        if type(logfilename) ==  str:
+            logfilename = [logfilename]
+        content = []
+        for file in logfilename:
+            WranglerLogger.info("Reading logfile: {}".format(file))
+            with open(file) as f:
+                content += f.readlines()
 
         # (content[0].startswith("HighwayLayerLogX")):
         if not content[0].startswith("HighwayLayerLogX"):

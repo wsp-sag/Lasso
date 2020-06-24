@@ -64,6 +64,38 @@ def test_highway_project_card(request, logfilename):
     )
 
 @pytest.mark.travis
+@pytest.mark.elo
+def test_project_card_concatenate(request):
+    """
+    Tests that you can add multiple log files together.
+    """
+    print("\n--Starting:", request.node.name)
+    whole_logfile =  os.path.join(CUBE_DIR, "st_paul_test.log")
+
+    split_logfile_list = [
+        os.path.join(CUBE_DIR, "st_paul_test-A.log"),
+        os.path.join(CUBE_DIR, "st_paul_test-B.log")
+        ]
+
+    print("Reading Whole Logfile: {}".format(whole_logfile))
+    lf = Project.read_logfile(whole_logfile)
+    whole_logfile_project = Project.create_project(
+        roadway_log_file=whole_logfile, base_roadway_dir=ROADWAY_DIR
+    )
+    print("\nWHOLE  Card Dict:\n  {}".format(whole_logfile_project.card_data['changes']))
+
+    print("Reading Split Logfiles: {}".format(split_logfile_list))
+    lf = Project.read_logfile(split_logfile_list)
+    split_logfile_project = Project.create_project(
+        roadway_log_file=split_logfile_list, base_roadway_dir=ROADWAY_DIR
+    )
+
+    print("\nSPLIT  Card Dict:\n  {}".format(split_logfile_project.card_data['changes']))
+
+    assert whole_logfile_project.card_data['changes'] == split_logfile_project.card_data['changes']
+
+
+@pytest.mark.travis
 def test_shp_changes(request):
     """
     Tests that the shp can be read in as a set changes with which to
