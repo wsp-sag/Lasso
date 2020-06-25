@@ -532,6 +532,7 @@ class Parameters:
             "A",
             "B",
             "shstGeometryId",
+            "shape_id",
             "distance",
             "roadway",
             "name",
