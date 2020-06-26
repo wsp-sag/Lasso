@@ -80,8 +80,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             m_road_net.calculate_distance(overwrite = True)
 
         m_road_net.fill_na()
-        m_road_net.convert_int()
         m_road_net.split_properties_by_time_period_and_category()
+        m_road_net.convert_int()
 
         return m_road_net
 
@@ -1265,6 +1265,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                         network_variable
                     )
                 )
+                self.links_df[network_variable] = int(0)
             else:
                 WranglerLogger.info(
                     "ML Variable '{}' already in network. Returning without overwriting.".format(
@@ -1276,8 +1277,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Verify inputs
         """
-
-        self.links_df[network_variable] = int(0)
 
         WranglerLogger.info(
             "Finished creating ML lanes variable: {}".format(network_variable)
@@ -1518,10 +1517,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_distance(overwrite = True)
 
         self.fill_na()
-        self.convert_int()
         # no method to calculate price yet, will be hard coded in project card
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
+        self.convert_int()
 
         self.links_metcouncil_df = self.links_df.copy()
         self.nodes_metcouncil_df = self.nodes_df.copy()
