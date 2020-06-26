@@ -1410,6 +1410,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         temp_links_gdf = self.links_df.copy()
+        temp_links_gdf.crs = "EPSG:4326"
         temp_links_gdf = temp_links_gdf.to_crs(epsg=26915)
 
         if centroidconnect_only:
@@ -1526,9 +1527,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df = self.nodes_df.copy()
         self.shapes_metcouncil_df = self.shapes_df.dropna().copy()
 
-        self.links_metcouncil_df.crs = RoadwayNetwork.CRS
-        self.nodes_metcouncil_df.crs = RoadwayNetwork.CRS
-        self.shapes_metcouncil_df.crs = RoadwayNetwork.CRS
+        self.links_metcouncil_df.crs = "EPSG:4326"
+        self.nodes_metcouncil_df.crs = "EPSG:4326"
+        self.shapes_metcouncil_df.crs = "EPSG:4326"
         WranglerLogger.info("Setting Coordinate Reference System to EPSG 26915")
         self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
