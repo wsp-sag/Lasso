@@ -616,8 +616,8 @@ class Project(object):
 
             card_df = pd.DataFrame(
                     {
-                    "properties": property_dict_list,
-                    "model_link_id": [base_row["model_link_id"]]*len(property_dict_list),
+                    "properties": pd.Series([property_dict_list]),
+                    "model_link_id": pd.Series(base_row["model_link_id"]),
                     }
                 )
 
