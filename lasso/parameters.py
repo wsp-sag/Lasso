@@ -30,17 +30,18 @@ class Parameters:
             Default:
             ::
                 {
-                    "AM": ("6:00", "9:00"),
-                    "MD": ("9:00", "16:00"),
-                    "PM": ("16:00", "19:00"),
-                    "NT": ("19:00", "6:00"),
+                    "EA": ("3:00", "6:00"),
+                    "AM": ("6:00, "10:00"),
+                    "MD": ("10:00", "15:00"),
+                    "PM": ("15:00", "19:00"),
+                    "NT": ("19:00", "3:00"),
                 }
         cube_time_periods (dict):  Maps cube time period numbers used in
             transit line files to the time period abbreviations in time_period_to_time
             dictionary.
             Default:
             ::
-                {"1": "AM", "2": "MD"}
+                {"1": "EA", "2": "AM", "3": "MD", "4": "PM", "5": "EV"}
         categories (dict): Maps demand category abbreviations to a list of
             network categories they are allowed to use.
             Default:
@@ -66,20 +67,26 @@ class Parameters:
                         "v": "ttime_assert",
                         "time_periods": self.time_periods_to_time,
                     },
-                    "lanes": {"v": "lanes", "time_periods": self.time_periods_to_time},
+                    "lanes": {
+                        "v": "lanes",
+                        "time_periods": self.time_periods_to_time
+                    },
                     "price": {
                         "v": "price",
                         "time_periods": self.time_periods_to_time,
                         "categories": self.categories,
                     },
-                    "access": {"v": "access", "time_periods": self.time_periods_to_time},
+                    "access": {
+                        "v": "access",
+                        "time_periods": self.time_periods_to_time
+                    },
                 }
         county_shape (str): File location of shapefile defining counties.
             Default:
             ::
-                r"metcouncil_data/county/cb_2017_us_county_5m.shp"
+                r"mtc_data/county/county.shp"
 
-        county_variable_shp (str): Property defining the county n ame in
+        county_variable_shp (str): Property defining the county name in
             the county_shape file.
             Default:
             ::
@@ -88,13 +95,15 @@ class Parameters:
             Default:
             ::
                 [
-                    "ANOKA",
-                    "DAKOTA",
-                    "HENNEPIN",
-                    "RAMSEY",
-                    "SCOTT",
-                    "WASHINGTON",
-                    "CARVER",
+                    "San Francisco",
+                    "San Mateo",
+                    "Santa Clara",
+                    "Alameda",
+                    "Contra Costa",
+                    "Solano",
+                    "Napa",
+                    "Sonoma",
+                    "Marin"
                 ]
 
         taz_shape (str):
@@ -272,7 +281,7 @@ class Parameters:
         output_epsg (int): EPSG type of geographic projection for output
             shapefiles. Default:
             ::
-                26915
+                102646
         net_to_dbf (str): Lookup of network variables to DBF compliant
             lengths. Default:
             ::
@@ -621,7 +630,7 @@ class Parameters:
             self.scratch_location, "make_complete_network_from_fixed_width_file.s"
         )
         self.output_dir = os.path.join(self.scratch_location)
-        self.output_epsg = 26915
+        self.output_epsg = 102646
 
         """
         Create all the possible headway variable combinations based on the cube time periods setting
