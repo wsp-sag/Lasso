@@ -575,6 +575,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         widot_roadway_class_variable_shp=None,
         widot_assgngrp_dict=None,
         osm_assgngrp_dict=None,
+        overwrite = False,
     ):
         """
         Calculates assignment group variable.
@@ -603,11 +604,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             None
         """
 
+        update_assign_group = False
+
         WranglerLogger.info(
             "Calculating Assignment Group as network variable: {}".format(
                 network_variable
             )
         )
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing MPO Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "MPO Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                        network_variable
+                    )
+                )
+                update_assign_group = True
+
 
         """
         Verify inputs
@@ -835,7 +854,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         join_gdf[network_variable] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
 
-        self.links_df[network_variable] = join_gdf[network_variable]
+        if update_assign_group:
+            self.links_df[network_variable+"_cal"] = join_gdf[network_variable]
+            self.links_df[network_variable] = np.where(
+                self.links_df[network_variable] > 0,
+                self.links_df[network_variable],
+                self.links_df[network_variable+"_cal"]
+            )
+            self.links_df.drop(network_variable+"_cal", axis = 1, inplace = True)
+        else:
+            self.links_df[network_variable] = join_gdf[network_variable]
 
         WranglerLogger.info(
             "Finished calculating assignment group variable: {}".format(
