@@ -59,6 +59,12 @@ class Project(object):
         #"assign_group",
         "centroidconnect",
     ]
+    CALCULATED_VALUES = [
+        "area_type",
+        "county",
+        "assign_group",
+        "centroidconnect",
+    ]
 
     def __init__(
         self,
@@ -242,8 +248,8 @@ class Project(object):
                 os.path.join(base_roadway_dir, "node.geojson"),
                 os.path.join(base_roadway_dir, "shape.geojson"),
                 fast = True,
-                recalculate_calculated_variables = False,
-                recalculate_distance = False,
+                recalculate_calculated_variables = recalculate_calculated_variables,
+                recalculate_distance = recalculate_distance,
                 parameters = parameters,
             )
             base_roadway_network.split_properties_by_time_period_and_category()
@@ -592,6 +598,10 @@ class Project(object):
                     "existing" : base_row[c],
                     "set" : change_row[c],
                     }
+                if c in Project.CALCULATED_VALUES:
+                    _d = {
+                        "set" : change_row[c],
+                        }
                 if p_time_period:
                     _d["time"] =  list(self.parameters.time_period_to_time[p_time_period])
                     if p_category:
