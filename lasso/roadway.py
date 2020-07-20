@@ -855,7 +855,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[network_variable] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
 
         if update_assign_group:
-            self.links_df[network_variable+"_cal"] = join_gdf[network_variable]
+            join_gdf.rename(columns = {network_variable : network_variable+"_cal"},
+                            inplace = True)
+            self.links_df = pd.merge(self.links_df,
+                                    join_gdf[["model_link_id", network_variable+"_cal"]],
+                                    how = "left",
+                                    on = "model_link_id")
             self.links_df[network_variable] = np.where(
                 self.links_df[network_variable] > 0,
                 self.links_df[network_variable],
@@ -863,7 +868,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             )
             self.links_df.drop(network_variable+"_cal", axis = 1, inplace = True)
         else:
-            self.links_df[network_variable] = join_gdf[network_variable]
+            self.links_df = pd.merge(self.links_df,
+                                    join_gdf[["model_link_id", network_variable]],
+                                    how = "left",
+                                    on = "model_link_id")
 
         WranglerLogger.info(
             "Finished calculating assignment group variable: {}".format(
@@ -888,6 +896,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         WranglerLogger.info("Calculating Roadway Class")
+
+        if network_variable in self.links_df:
+            WranglerLogger.info(
+                    "MPO Variable '{}' is calculated based on assign_group, it cannot be changed directly".format(
+                        network_variable
+                    )
+                )
+            self.links_df.drop(network_variable, axis = 1, inplace = True)
 
         """
         Verify inputs
