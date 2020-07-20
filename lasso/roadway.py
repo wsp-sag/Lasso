@@ -80,7 +80,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             m_road_net.calculate_distance(overwrite = True)
 
         m_road_net.fill_na()
+        # this method is making period values as string "NaN", need to revise.
         m_road_net.split_properties_by_time_period_and_category()
+        for c in m_road_net.links_df.columns:
+            m_road_net.links_df[c] = m_road_net.links_df[c].replace("NaN",np.nan)
         m_road_net.convert_int()
 
         return m_road_net
@@ -1494,6 +1497,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         for c in list(set(self.links_df.columns) & set(int_col_names)):
             try:
+                self.links_df[c] = self.links_df[c].replace(np.nan,0)
                 self.links_df[c] = self.links_df[c].astype(int)
             except:
                 self.links_df[c] = self.links_df[c].astype(float)
