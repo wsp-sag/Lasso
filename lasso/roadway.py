@@ -21,6 +21,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     A representation of the physical roadway network and its properties.
     """
 
+    CALCULATED_VALUES = [
+        "area_type",
+        "county",
+        "assign_group",
+        "centroidconnect",
+    ]
+
     def __init__(
         self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
     ):
@@ -1559,6 +1566,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         if "managed" in self.links_df.columns:
             WranglerLogger.info("Creating managed lane network.")
             self.create_managed_lane_network(in_place=True)
+
+            # when ML and assign_group projects are applied together, assign_group is filled as "" by wrangler for ML links
+            for c in ModelRoadwayNetwork.CALCULATED_VALUES:
+                if c in self.links_df.columns and c in self.parameters.int_col:
+                    self.links_df[c]  = self.links_df[c].replace("", 0)
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
 
