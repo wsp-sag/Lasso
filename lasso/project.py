@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import Any, Dict, Optional, Union, List
+from csv import reader
 
 import pandas as pd
 from pandas import DataFrame
@@ -298,20 +299,25 @@ class Project(object):
             return DataFrame()
 
         NodeLines = [x.strip() for x in content if x.startswith("N")]
+        NodeLines = [x.replace(";",",") for x in NodeLines]
 
         LinkLines = [x.strip() for x in content if x.startswith("L")]
+        LinkLines = [x.replace(";",",") for x in LinkLines]
 
         linkcol_names = ["OBJECT", "OPERATION", "GROUP"] + LinkLines[0].split(",")[1:]
 
         nodecol_names = ["OBJECT", "OPERATION", "GROUP"] + NodeLines[0].split(",")[1:]
 
-        link_df = DataFrame(
-            data=[re.split(",|;", x.replace("\"", "")) for x in LinkLines[1:]], columns=linkcol_names
-        )
+        link_df = DataFrame(columns = linkcol_names)
+        node_df = DataFrame(columns = nodecol_names)
 
-        node_df = DataFrame(
-            data=[re.split(",|;", x.replace("\"", "")) for x in NodeLines[1:]], columns=nodecol_names
-        )
+        for row in reader(LinkLines[1:], delimiter = ','):
+            link_df_length = len(link_df)
+            link_df.loc[link_df_length] = row
+
+        for row in reader(NodeLines[1:], delimiter = ','):
+            node_df_length = len(node_df)
+            node_df.loc[node_df_length] = row
 
         log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
 
@@ -521,7 +527,7 @@ class Project(object):
 
             if not node_add_df.shape[1]:
                 WranglerLogger.debug("No node additions processed")
-                return None
+                return []
 
             add_nodes_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
                 "records"
@@ -684,12 +690,11 @@ class Project(object):
                 lambda x: json.loads(x.replace("'\"", "'").replace("\"'", "'").replace("'", '"'))
             )
 
-            change_link_dict_list = change_link_dict_df[["facility", "properties"]].to_dict(
+            change_link_dict_df["category"] = "Roadway Property Change"
+
+            change_link_dict_list = change_link_dict_df[["category", "facility", "properties"]].to_dict(
                 "record"
             )
-
-            for change in change_link_dict_list:
-                change["category"] = "Roadway Property Change"
 
             WranglerLogger.debug("{} Changes Processed".format(len(change_link_dict_list)))
             return change_link_dict_list
