@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 import pytest
 from pandas import DataFrame
 
-from lasso import Project
+from lasso import Project, Parameters
 
 """
 Run tests from bash/shell
@@ -17,8 +17,11 @@ CUBE_DIR = os.path.join(os.getcwd(), "examples", "cube")
 ROADWAY_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
 BUILD_TRANSIT_DIR = os.path.join(CUBE_DIR, "single_transit_route_attribute_change")
 SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
+
 ## create list of example logfiles to use as input
-logfile_list = [os.path.join(CUBE_DIR, "st_paul_test.log")]
+logfile_list = [
+    os.path.join(CUBE_DIR, "st_paul_test.log"),
+    ]
 
 
 @pytest.mark.parametrize("logfilename", logfile_list)
@@ -64,7 +67,19 @@ def test_highway_project_card(request, logfilename):
     )
 
 @pytest.mark.travis
+@pytest.mark.parametrize("logfilename", [logfile_list[0]])
 @pytest.mark.elo
+def test_project_card_create_with_parameters_kw(request, logfilename):
+    print("\n--Starting:", request.node.name)
+    print("Reading: {}".format(logfilename))
+
+    test_roadway_project = Project.create_project(
+      base_roadway_dir=ROADWAY_DIR,
+      roadway_log_file=os.path.join(CUBE_DIR,logfilename),
+      parameters = {'lasso_base_dir': os.getcwd()}
+    )
+
+@pytest.mark.travis
 def test_project_card_concatenate(request):
     """
     Tests that you can add multiple log files together.

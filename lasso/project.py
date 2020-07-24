@@ -149,7 +149,7 @@ class Project(object):
             build_transit_network: Build transit network object.
             recalculate_calculated_variables: if reading in a base network, if this is true it will recalculate variables such as area type, etc. This only needs to be true if you are creating project cards that are changing the calculated variables.
             recalculate_distance:  recalculate the distance variable. This only needs to be true if you are creating project cards that change the distance.
-            parameters: dionary of parameters
+            parameters: dictionary of parameters
         Returns:
             A Project instance.
         """
