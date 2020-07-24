@@ -37,7 +37,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         super().__init__(nodes, links, shapes)
 
         # will have to change if want to alter them
-        self.parameters = Parameters(**parameters)
+        if type(parameters) is dict:
+            self.parameters = Parameters(**parameters)
+        else:
+            self.parameters = Parameters(**parameters.__dict__)
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None

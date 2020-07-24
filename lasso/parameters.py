@@ -373,7 +373,7 @@ class Parameters:
             self.base_dir = get_base_dir()
 
         if 'data_file_location' in kwargs:
-            self.data_files_location =  kwargs.get("data_file_location")
+            self.data_file_location =  kwargs.get("data_file_location")
         else:
             self.data_file_location = os.path.join(self.base_dir,  "metcouncil_data")
 
