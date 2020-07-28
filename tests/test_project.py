@@ -79,6 +79,8 @@ def test_project_card_create_with_parameters_kw(request, logfilename):
       parameters = {'lasso_base_dir': os.getcwd()}
     )
 
+    test_roadway_project.write_project_card()
+
 @pytest.mark.travis
 def test_project_card_concatenate(request):
     """

@@ -99,7 +99,7 @@ class Project(object):
         if evaluate:
             self.evaluate_changes()
 
-    def write_project_card(self, filename):
+    def write_project_card(self, filename: str = None):
         """
         Writes project cards.
 
@@ -109,8 +109,7 @@ class Project(object):
         Returns:
             None
         """
-        ProjectCard(self.card_data).write(filename)
-        WranglerLogger.info("Wrote project card to: {}".format(filename))
+        ProjectCard(self.card_data).write(filename = filename)
 
     @staticmethod
     def create_project(
@@ -147,6 +146,7 @@ class Project(object):
             base_roadway_network: Base roadway network object.
             base_transit_network: Base transit network object.
             build_transit_network: Build transit network object.
+            project_name:  If not provided, will default to the roadway_log_file filename if provided (or the first filename if a list is provided)
             recalculate_calculated_variables: if reading in a base network, if this is true it will recalculate variables such as area type, etc. This only needs to be true if you are creating project cards that are changing the calculated variables.
             recalculate_distance:  recalculate the distance variable. This only needs to be true if you are creating project cards that change the distance.
             parameters: dictionary of parameters
@@ -223,6 +223,12 @@ class Project(object):
             msg = "Method takes only one of 'roadway_log_file' and 'roadway_shp_file' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
+        if roadway_log_file  and not project_name:
+            if type(roadway_log_file)=='list':
+                logfilename =  roadway_log_file[0]
+            else:
+                logfilename = roadway_log_file
+            project_name = os.path.splitext(os.path.basename(logfilename))[0]
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
         elif roadway_shp_file:
