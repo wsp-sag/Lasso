@@ -604,7 +604,8 @@ class Parameters:
             "segment_id",
             "managed",
             "bus_only",
-            "rail_only"
+            "rail_only",
+            "bike_facility",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
