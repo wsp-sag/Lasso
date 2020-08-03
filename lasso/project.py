@@ -91,7 +91,11 @@ class Project(object):
         self.project_name = (
             project_name if project_name else Project.DEFAULT_PROJECT_NAME
         )
-        self.parameters = Parameters(**parameters)
+
+        if type(parameters) is dict:
+            self.parameters = Parameters(**parameters)
+        else:
+            self.parameters = Parameters(**parameters.__dict__)
 
         if base_roadway_network != None:
             self.determine_roadway_network_changes_compatability(self.base_roadway_network,self.roadway_changes, self.parameters)
