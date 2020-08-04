@@ -856,6 +856,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     return 98
                 elif x.rail_only == 1:
                     return 100
+                elif x.drive_access == 0:
+                    return 101
                 elif x.assignment_group_mrcc > 0:
                     return int(x.assignment_group_mrcc)
                 elif x.assignment_group_widot > 0:
@@ -1845,6 +1847,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_link_header_width_txt: str = None,
         output_node_header_width_txt: str = None,
         output_cube_network_script: str = None,
+        drive_only: bool = False,
     ):
         """
         Writes out fixed width file.
@@ -1862,6 +1865,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             output_link_header_width_txt (str): File path to link column width records.
             output_node_header_width_txt (str): File path to node column width records.
             output_cube_network_script (str): File path to CUBE network building script.
+            drive_only (bool): If True, only writes drive nodes and links
 
         Returns:
             None
@@ -1906,8 +1910,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             ]
         )
 
-        # unless specified that all the data goes to the DBF, only output A and B
-
         output_link_txt = (
             output_link_txt if output_link_txt else self.parameters.output_link_txt
         )
@@ -1940,6 +1942,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(
             self.links_metcouncil_df[link_output_variables]
         )
+
+        if drive_only:
+            link_ff_df.loc[link_ff_df['drive_access'] == 1]
+
         WranglerLogger.info("Writing out link database")
 
         link_ff_df.to_csv(output_link_txt, sep=";", index=False, header=False)
@@ -1955,6 +1961,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.nodes_metcouncil_df[node_output_variables]
         )
         WranglerLogger.info("Writing out node database")
+
+        if drive_only:
+            node_ff_df.loc[node_ff_df['drive_node'] == 0]
 
         node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
 
