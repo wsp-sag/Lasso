@@ -1963,7 +1963,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info("Writing out node database")
 
         if drive_only:
-            node_ff_df.loc[node_ff_df['drive_node'] == 0]
+            node_ff_df.loc[node_ff_df['drive_node'] == 1]
 
         node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
 
