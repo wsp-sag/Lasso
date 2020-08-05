@@ -1944,7 +1944,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         if drive_only:
-            link_ff_df.loc[link_ff_df['drive_access'] == 1]
+            link_ff_df = link_ff_df.loc[link_ff_df['drive_access'] == 1]
 
         WranglerLogger.info("Writing out link database")
 
@@ -1963,7 +1963,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info("Writing out node database")
 
         if drive_only:
-            node_ff_df.loc[node_ff_df['drive_node'] == 1]
+            node_ff_df = node_ff_df.loc[node_ff_df['drive_node'] == 1]
 
         node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
 
