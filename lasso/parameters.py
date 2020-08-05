@@ -4,7 +4,7 @@ from .logger import WranglerLogger
 def get_base_dir(lasso_base_dir = os.getcwd()):
     d = lasso_base_dir
     for i in range(3):
-        if 'metcouncil_data' in os.listdir(d):
+        if 'mtc_data' in os.listdir(d):
             WranglerLogger.info("Lasso base directory set as: {}".format(d))
             return d
         d = os.path.dirname(d)
@@ -22,7 +22,6 @@ class Parameters:
     with a keyword argument setting the attribute.  Parameters that are
     not explicitly set will use default parameters listed in this class.
     .. highlight:: python
-    ##TODO potentially split this between several classes.
 
     Attr:
         time_period_to_time (dict): Maps time period abbreviations used in
@@ -34,7 +33,7 @@ class Parameters:
                     "AM": ("6:00, "10:00"),
                     "MD": ("10:00", "15:00"),
                     "PM": ("15:00", "19:00"),
-                    "NT": ("19:00", "3:00"),
+                    "EV": ("19:00", "3:00"),
                 }
         cube_time_periods (dict):  Maps cube time period numbers used in
             transit line files to the time period abbreviations in time_period_to_time
@@ -109,22 +108,24 @@ class Parameters:
         taz_shape (str):
             Default:
             ::
-                r"metcouncil_data/TAZ/TAZOfficialWCurrentForecasts.shp"
-        taz_data (str):
-            Default:
-            ::
-                ??
+                r"mtc_data/mtc/mazs_TM2_v2_2.shp"
         highest_taz_number (int): highest TAZ number in order to define
             centroid connectors.
             Default:
             ::
-                3100
+                999999
+        highest_maz_number (int): highest MAZ number in order to define
+            centroid connectors.
+            Default:
+            ::
+                889999
         output_variables (list): list of variables to output in final model
             network.
             Default:
             ::
                 [
                     "model_link_id",
+                    "link_id",
                     "A",
                     "B",
                     "shstGeometryId",
@@ -133,22 +134,28 @@ class Parameters:
                     "name",
                     "roadway_class",
                     "bike_access",
-                    "transit_access",
                     "walk_access",
                     "drive_access",
                     "truck_access",
+                    "trn_priority_EA",
                     "trn_priority_AM",
                     "trn_priority_MD",
                     "trn_priority_PM",
-                    "trn_priority_NT",
+                    "trn_priority_EV",
+                    "ttime_assert_EA",
                     "ttime_assert_AM",
                     "ttime_assert_MD",
                     "ttime_assert_PM",
-                    "ttime_assert_NT",
+                    "ttime_assert_EV",
+                    "lanes_EA",
                     "lanes_AM",
                     "lanes_MD",
                     "lanes_PM",
-                    "lanes_NT",
+                    "lanes_EV",
+                    "price_sov_EA",
+                    "price_hov2_EA",
+                    "price_hov3_EA",
+                    "price_truck_EA",
                     "price_sov_AM",
                     "price_hov2_AM",
                     "price_hov3_AM",
@@ -161,27 +168,14 @@ class Parameters:
                     "price_hov2_PM",
                     "price_hov3_PM",
                     "price_truck_PM",
-                    "price_sov_NT",
-                    "price_hov2_NT",
-                    "price_hov3_NT",
-                    "price_truck_NT",
+                    "price_sov_EV",
+                    "price_hov2_EV",
+                    "price_hov3_EV",
+                    "price_truck_EV",
                     "roadway_class_idx",
-                    "assign_group",
-                    "access_AM",
-                    "access_MD",
-                    "access_PM",
-                    "access_NT",
-                    "mpo",
-                    "area_type",
+                    "facility_type",
                     "county",
                     "centroidconnect",
-                    "AADT",
-                    "count_year",
-                    "count_AM",
-                    "count_MD",
-                    "count_PM",
-                    "count_NT",
-                    "count_daily",
                     "model_node_id",
                     "N",
                     "osm_node_id",
@@ -192,100 +186,24 @@ class Parameters:
                     "geometry",
                     "X",
                     "Y",
+                    "ML_lanes_EA",
+                    "ML_lanes_AM",
+                    "ML_lanes_MD",
+                    "ML_lanes_PM",
+                    "ML_lanes_EV",
+                    "segment_id",
+                    "managed",
+                    "bus_only",
+                    "rail_only"
                 ]
-        area_type_shape (str):   Location of shapefile defining area type.
-            Default:
+        osm_facility_type_dict (dict): Mapping between OSM Roadway variable
+            and facility type. Default:
             ::
-                r"metcouncil_data/area_type/ThriveMSP2040CommunityDesignation.shp"
-        area_type_variable_shp (str): property in area_type_shape with area
-            type in it.
-            Default:
-            ::
-                "COMDES2040"
-        area_type_code_dict (dict): Mapping of the area_type_variable_shp to
-            the area type code used in the MetCouncil cube network.
-            Default:
-            ::
-                {
-                    23: 4,  # urban center
-                    24: 3,
-                    25: 2,
-                    35: 2,
-                    36: 1,
-                    41: 1,
-                    51: 1,
-                    52: 1,
-                    53: 1,
-                    60: 1,
-                }
-        mrcc_roadway_class_shape (str): Shapefile of MRCC links with a property
-            associated with roadway class. Default:
-            ::
-                r"metcouncil_data/mrcc/trans_mrcc_centerlines.shp"
-        mrcc_roadway_class_variable_shp (str): The property in mrcc_roadway_class_shp
-            associated with roadway class. Default:
-            ::
-                "ROUTE_SYS"
-        widot_roadway_class_shape (str): Shapefile of Wisconsin links with a property
-            associated with roadway class. Default:
-            ::
-                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/WISLR.shp"
-        widot_roadway_class_variable_shp (str):  The property in widot_roadway_class_shape
-            associated with roadway class.Default:
-            ::
-                "RDWY_CTGY_"
-        mndot_count_shape (str):  Shapefile of MnDOT links with a property
-            associated with counts. Default:
-            ::
-                r"metcouncil_data/count_mn/AADT_2017_Count_Locations.shp"
-        mndot_count_variable_shp (str): The property in mndot_count_shape
-            associated with counts. Default:
-            ::
-                "AADT_mn"
-        widot_count_shape (str): Shapefile of Wisconsin DOT links with a property
-            associated with counts. Default:Default:
-            ::
-                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/TRADAS_(counts).shp"
-        widot_count_variable_shp (str): The property in widot_count_shape
-            associated with counts. Default:
-            ::
-                "AADT_wi"
-        mrcc_shst_data (str): MnDOT MRCC to Shared Streets crosswalk. Default:
-            ::
-                r"metcouncil_data/mrcc/mrcc.out.matched.csv"
-        widot_shst_data (str): WisconsinDOT to Shared Streets crosswalk.Default:
-            ::
-                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/widot.out.matched.geojson"
-        mndot_count_shst_data (str): MetCouncil count data with ShST Default:
-            ::
-                r"metcouncil_data/count_mn/mn_count_ShSt_API_match.csv"
-        widot_count_shst_data (str): WisconsinDOT count data with ShST Default:
-            ::
-                r"metcouncil_data/Wisconsin_Lanes_Counts_Median/wi_count_ShSt_API_match.csv",
-        mrcc_assgngrp_dict (str): Mapping beetween MRCC ROUTE_SYS variable
-            and assignment group. Default:
-            ::
-                "lookups/mrcc_route_sys_asgngrp_crosswalk.csv"
-        widot_assgngrp_dict (dict): Mapping beetween Wisconsin DOT RDWY_CTGY_
-            variable and assignment group. Default:
-            ::
-                "lookups/widot_ctgy_asgngrp_crosswalk.csv"
-        osm_assgngrp_dict (dict): Mapping between OSM Roadway variable
-            and assignment group. Default:
-            ::
-                "lookups/osm_highway_asgngrp_crosswalk.csv"
-        roadway_class_dict (str):  Mapping between assignment group and
-            roadway class. Default:
-            ::
-                "lookups/asgngrp_rc_num_crosswalk.csv"
+                "lookups/osm_highway_facility_type_crosswalk.csv"
         output_epsg (int): EPSG type of geographic projection for output
             shapefiles. Default:
             ::
                 102646
-        net_to_dbf (str): Lookup of network variables to DBF compliant
-            lengths. Default:
-            ::
-                "examples/settings/net_to_dbf.csv"
         output_link_shp (str): Output shapefile for roadway links. Default:
             ::
                 r"tests/scratch/links.shp"
@@ -328,17 +246,20 @@ class Parameters:
             self.time_periods_to_time = time_periods_to_time
         else:
             self.time_period_to_time = {
-                "AM": ("6:00", "9:00"),  ##TODO FILL IN with real numbers
-                "MD": ("9:00", "16:00"),
-                "PM": ("16:00", "19:00"),
-                "NT": ("19:00", "6:00"),
+                "EA": ("3:00", "6:00"),
+                "AM": ("6:00", "10:00"),
+                "MD": ("10:00", "15:00"),
+                "PM": ("15:00", "19:00"),
+                "EV": ("19:00", "3:00"),
             }
 
-        self.route_type_bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
-
-        self.route_type_mode_dict = {0: 8, 2: 9}
-
-        self.cube_time_periods = {"1": "AM", "2": "MD"}
+        self.cube_time_periods = {
+            "1": "EA",
+            "2": "AM",
+            "3": "MD",
+            "4": "PM",
+            "5": "EV",
+        }
 
         if 'categories' in kwargs:
             self.categories = categories
@@ -361,19 +282,28 @@ class Parameters:
                 "v": "ttime_assert",
                 "time_periods": self.time_period_to_time,
             },
-            "lanes": {"v": "lanes", "time_periods": self.time_period_to_time},
-            "ML_lanes": {"v": "ML_lanes", "time_periods": self.time_period_to_time},
+            "lanes": {
+                "v": "lanes",
+                "time_periods": self.time_period_to_time,
+            },
+            "ML_lanes": {
+                "v": "ML_lanes",
+                "time_periods": self.time_period_to_time,
+            },
             "price": {
                 "v": "price",
                 "time_periods": self.time_period_to_time,
                 "categories": self.categories,
             },
-            "access": {"v": "access", "time_periods": self.time_period_to_time},
+            "access": {
+                "v": "access",
+                "time_periods": self.time_period_to_time,
+            },
         }
 
         """
         Details for calculating the county based on the centroid of the link.
-        The COUNTY_VARIABLE should be the name of a field in shapefile.
+        The NAME varible should be the name of a field in shapefile.
         """
         if 'lasso_base_dir' in kwargs:
             self.base_dir = get_base_dir(lasso_base_dir = base_dir)
@@ -383,7 +313,7 @@ class Parameters:
         if 'data_file_location' in kwargs:
             self.data_files_location =  data_file_location
         else:
-            self.data_file_location = os.path.join(self.base_dir,  "metcouncil_data")
+            self.data_file_location = os.path.join(self.base_dir,  "mtc_data")
 
         if 'settings_location' in kwargs:
             self.settings_location = settings_location
@@ -398,31 +328,20 @@ class Parameters:
         ### COUNTIES
 
         self.county_shape = os.path.join(
-            self.data_file_location, "county", "cb_2017_us_county_5m.shp"
+            self.data_file_location, "county", "county.shp"
         )
         self.county_variable_shp = "NAME"
 
         self.county_code_dict = {
-            'Anoka':1,
-            'Carver':2,
-            'Dakota':3,
-            'Hennepin':4,
-            'Ramsey':5,
-            'Scott':6,
-            'Washington':7,
-            'external':10,
-            'Chisago':11,
-            'Goodhue':12,
-            'Isanti':13,
-            'Le Sueur':14,
-            'McLeod':15,
-            'Pierce':16,
-            'Polk':17,
-            'Rice':18,
-            'Sherburne':19,
-            'Sibley':20,
-            'St. Croix':21,
-            'Wright':22
+            'San Francisco':1,
+            'San Mateo':2,
+            'Santa Clara':3,
+            'Alameda':4,
+            'Contra Costa':5,
+            'Solano':6,
+            'Napa':7,
+            'Sonoma':8,
+            'Marin':9,
             }
 
         self.mpo_counties = [
@@ -432,105 +351,25 @@ class Parameters:
             5,
             6,
             7,
-            2,
+            8,
+            9
         ]
 
         ###  TAZS
 
         self.taz_shape = os.path.join(
-            self.data_file_location, "TAZ", "TAZOfficialWCurrentForecasts.shp"
+            self.data_file_location, "maz", "mazs_TM2_v2_2.shp"
         )
-        self.taz_data = None
-        self.highest_taz_number = 3100
+        self.highest_taz_number = 999999
 
-        ### AREA TYPE
-        self.area_type_shape = os.path.join(
-            self.data_file_location, "area_type", "ThriveMSP2040CommunityDesignation.shp"
+        self.maz_shape = os.path.join(
+            self.data_file_location, "maz", "mazs_TM2_v2_2.shp"
         )
-        self.area_type_variable_shp = "COMDES2040"
-        # area type map from raw data to model category
-
-        # source https://metrocouncil.org/Planning/Publications-And-Resources/Thrive-MSP-2040-Plan-(1)/7_ThriveMSP2040_LandUsePoliciesbyCD.aspx
-        # urban center
-        # urban
-        # suburban
-        # suburban edge
-        # emerging suburban edge
-        # rural center
-        # diversified rural
-        # rural residential
-        # agricultural
-        self.area_type_code_dict  = {
-            23: 4,  # urban center
-            24: 3,
-            25: 2,
-            35: 2,
-            36: 1,
-            41: 1,
-            51: 1,
-            52: 1,
-            53: 1,
-            60: 1,
-        }
+        self.highest_maz_number = 899999
 
         self.osm_assgngrp_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"
         )
-        self.mrcc_roadway_class_shape = os.path.join(
-            self.data_file_location, "mrcc", "trans_mrcc_centerlines.shp"
-        )
-
-        self.mrcc_roadway_class_variable_shp = "ROUTE_SYS"
-
-        self.mrcc_assgngrp_dict = os.path.join(
-            self.data_file_location, "lookups", "mrcc_route_sys_asgngrp_crosswalk.csv"
-        )
-
-        self.mrcc_shst_data = os.path.join(
-            self.data_file_location, "mrcc", "mrcc.out.matched.csv"
-        )
-
-        self.widot_roadway_class_shape = os.path.join(
-            self.data_file_location, "Wisconsin_Lanes_Counts_Median", "WISLR.shp"
-        )
-
-        self.widot_roadway_class_variable_shp = "RDWY_CTGY_"
-
-        self.widot_assgngrp_dict = os.path.join(
-            self.data_file_location, "lookups", "widot_ctgy_asgngrp_crosswalk.csv"
-        )
-
-        self.widot_shst_data = os.path.join(
-            self.data_file_location, "Wisconsin_Lanes_Counts_Median", "widot.out.matched.geojson"
-        )
-
-        self.roadway_class_dict = os.path.join(
-            self.data_file_location, "lookups", "asgngrp_rc_num_crosswalk.csv"
-        )
-
-        self.mndot_count_shape = os.path.join(
-            self.data_file_location, "count_mn", "AADT_2017_Count_Locations.shp"
-        )
-
-        self.mndot_count_shst_data = os.path.join(
-            self.data_file_location, "count_mn", "mn_count_ShSt_API_match.csv"
-        )
-
-        self.mndot_count_variable_shp = "AADT_mn"
-
-        self.widot_county_shape = os.path.join(
-            self.data_file_location, "Wisconsin_Lanes_Counts_Median", "TRADAS_(counts).shp"
-        )
-
-        self.widot_count_shst_data = os.path.join(
-            self.data_file_location,
-            "Wisconsin_Lanes_Counts_Median",
-            "wi_count_ShSt_API_match.csv",
-        )
-
-        self.widot_count_variable_shp = "AADT_wi"
-
-        self.net_to_dbf_crosswalk = os.path.join(self.settings_location, "net_to_dbf.csv")
 
         self.log_to_net_crosswalk = os.path.join(self.settings_location, "log_to_net.csv")
 
@@ -548,18 +387,25 @@ class Parameters:
             "walk_access",
             "drive_access",
             "truck_access",
+            "trn_priority_EA",
             "trn_priority_AM",
             "trn_priority_MD",
             "trn_priority_PM",
-            "trn_priority_NT",
+            "trn_priority_EV",
+            "ttime_assert_EA",
             "ttime_assert_AM",
             "ttime_assert_MD",
             "ttime_assert_PM",
-            "ttime_assert_NT",
+            "ttime_assert_EV",
+            "lanes_EA",
             "lanes_AM",
             "lanes_MD",
             "lanes_PM",
-            "lanes_NT",
+            "lanes_EV",
+            "price_sov_EA",
+            "price_hov2_EA",
+            "price_hov3_EA",
+            "price_truck_EA",
             "price_sov_AM",
             "price_hov2_AM",
             "price_hov3_AM",
@@ -572,28 +418,14 @@ class Parameters:
             "price_hov2_PM",
             "price_hov3_PM",
             "price_truck_PM",
-            "price_sov_NT",
-            "price_hov2_NT",
-            "price_hov3_NT",
-            "price_truck_NT",
+            "price_sov_EV",
+            "price_hov2_EV",
+            "price_hov3_EV",
+            "price_truck_EV",
             "roadway_class_idx",
-            "assign_group",
-            "access_AM",
-            "access_MD",
-            "access_PM",
-            "access_NT",
-            "mpo",
-            "area_type",
+            "facility_type",
             "county",
             "centroidconnect",
-            #'mrcc_id',
-            "AADT",
-            "count_year",
-            "count_AM",
-            "count_MD",
-            "count_PM",
-            "count_NT",
-            "count_daily",
             "model_node_id",
             "N",
             "osm_node_id",
@@ -604,10 +436,11 @@ class Parameters:
             "geometry",
             "X",
             "Y",
+            "ML_lanes_EA",
             "ML_lanes_AM",
             "ML_lanes_MD",
             "ML_lanes_PM",
-            "ML_lanes_NT",
+            "ML_lanes_EV",
             "segment_id",
             "managed",
             "bus_only",
@@ -648,16 +481,10 @@ class Parameters:
             "B",
             "lanes",
             "roadway_class",
-            "assign_group",
+            "facility_type",
             "county",
             "area_type",
             "trn_priority",
-            "AADT",
-            'count_AM',
-            'count_MD',
-            'count_PM',
-            'count_NT',
-            "count_daily",
             "centroidconnect",
             "bike_facility",
             "drive_access",
