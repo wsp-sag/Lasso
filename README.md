@@ -22,7 +22,7 @@ Example using a conda environment (recommended) and using the package manager [p
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/Lasso@master
 ```
 Lasso can be installed in several ways depending on the user's needs. The above installation is the simplest method and is appropriate when the user does not anticipate needing to update lasso. An update will require rebuilding the network wrangler environment. Installing from clone is slightly more involved and requires the user to have a git manager on their machine, but permits the user to install lasso with the -e, edit, option so that their lasso installation can be updated through pulling new commits from the lasso repo without a full reinstallation.
@@ -35,7 +35,7 @@ If you want to install a more up-to-date or development version of network wrang
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/network_wrangler@develop
 pip install git+https://github.com/wsp-sag/Lasso@develop
 ```
@@ -50,7 +50,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas folium osmnx -n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 git clone https://github.com/wsp-sag/Lasso
 git clone https://github.com/wsp-sag/network_wrangler
 cd network_wrangler
@@ -73,7 +73,7 @@ To build the documentation locally requires additional packages found in the `de
 To install these into your conda python environment execute the following from the command line in the Lasso folder:
 
 ```bash
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 pip install -r dev-requirements.txt
 ```
 
