@@ -170,6 +170,7 @@ def test_write_cube_roadway(request):
     net.write_roadway_as_fixedwidth()
     ## todo write an assert that actually tests something
 
+
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_write_roadway_as_shape(request):

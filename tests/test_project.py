@@ -21,7 +21,7 @@ SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
 ## create list of example logfiles to use as input
 logfile_list = [
     os.path.join(CUBE_DIR, "st_paul_test.log"),
-    ]
+]
 
 
 @pytest.mark.parametrize("logfilename", logfile_list)
@@ -66,6 +66,7 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
+
 @pytest.mark.travis
 @pytest.mark.parametrize("logfilename", [logfile_list[0]])
 @pytest.mark.elo
@@ -74,12 +75,13 @@ def test_project_card_create_with_parameters_kw(request, logfilename):
     print("Reading: {}".format(logfilename))
 
     test_roadway_project = Project.create_project(
-      base_roadway_dir=ROADWAY_DIR,
-      roadway_log_file=os.path.join(CUBE_DIR,logfilename),
-      parameters = {'lasso_base_dir': os.getcwd()}
+        base_roadway_dir=ROADWAY_DIR,
+        roadway_log_file=os.path.join(CUBE_DIR, logfilename),
+        parameters={"lasso_base_dir": os.getcwd()},
     )
 
     test_roadway_project.write_project_card()
+
 
 @pytest.mark.travis
 def test_project_card_concatenate(request):
@@ -87,19 +89,21 @@ def test_project_card_concatenate(request):
     Tests that you can add multiple log files together.
     """
     print("\n--Starting:", request.node.name)
-    whole_logfile =  os.path.join(CUBE_DIR, "st_paul_test.log")
+    whole_logfile = os.path.join(CUBE_DIR, "st_paul_test.log")
 
     split_logfile_list = [
         os.path.join(CUBE_DIR, "st_paul_test-A.log"),
-        os.path.join(CUBE_DIR, "st_paul_test-B.log")
-        ]
+        os.path.join(CUBE_DIR, "st_paul_test-B.log"),
+    ]
 
     print("Reading Whole Logfile: {}".format(whole_logfile))
     lf = Project.read_logfile(whole_logfile)
     whole_logfile_project = Project.create_project(
         roadway_log_file=whole_logfile, base_roadway_dir=ROADWAY_DIR
     )
-    print("\nWHOLE  Card Dict:\n  {}".format(whole_logfile_project.card_data['changes']))
+    print(
+        "\nWHOLE  Card Dict:\n  {}".format(whole_logfile_project.card_data["changes"])
+    )
 
     print("Reading Split Logfiles: {}".format(split_logfile_list))
     lf = Project.read_logfile(split_logfile_list)
@@ -107,9 +111,14 @@ def test_project_card_concatenate(request):
         roadway_log_file=split_logfile_list, base_roadway_dir=ROADWAY_DIR
     )
 
-    print("\nSPLIT  Card Dict:\n  {}".format(split_logfile_project.card_data['changes']))
+    print(
+        "\nSPLIT  Card Dict:\n  {}".format(split_logfile_project.card_data["changes"])
+    )
 
-    assert whole_logfile_project.card_data['changes'] == split_logfile_project.card_data['changes']
+    assert (
+        whole_logfile_project.card_data["changes"]
+        == split_logfile_project.card_data["changes"]
+    )
 
 
 @pytest.mark.travis
@@ -121,19 +130,17 @@ def test_shp_changes(request):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-            roadway_shp_file=os.path.join(CUBE_DIR,"example_shapefile_roadway_change.shp"),
-            base_roadway_dir=ROADWAY_DIR
-        )
+        roadway_shp_file=os.path.join(CUBE_DIR, "example_shapefile_roadway_change.shp"),
+        base_roadway_dir=ROADWAY_DIR,
+    )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(
-            SCRATCH_DIR,
-            "t_" + "example_shapefile_roadway_change" + ".yml",
-        )
+        os.path.join(SCRATCH_DIR, "t_" + "example_shapefile_roadway_change" + ".yml",)
     )
+
 
 @pytest.mark.travis
 def test_csv_changes(request):
@@ -144,19 +151,17 @@ def test_csv_changes(request):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-            roadway_csv_file=os.path.join(CUBE_DIR,"example_csv_roadway_change.csv"),
-            base_roadway_dir=ROADWAY_DIR
-        )
+        roadway_csv_file=os.path.join(CUBE_DIR, "example_csv_roadway_change.csv"),
+        base_roadway_dir=ROADWAY_DIR,
+    )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(
-            SCRATCH_DIR,
-            "t_" + "example_csv_roadway_change" + ".yml",
-        )
+        os.path.join(SCRATCH_DIR, "t_" + "example_csv_roadway_change" + ".yml",)
     )
+
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 @pytest.mark.skip("Need to update project card schema")
