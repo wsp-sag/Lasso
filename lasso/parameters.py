@@ -58,67 +58,19 @@ class Parameters:
             Default:
             ::
                 {
-                    "trn_priority": {
-                        "v": "trn_priority",
-                        "time_periods": self.time_periods_to_time,
-                    },
-                    "ttime_assert": {
-                        "v": "ttime_assert",
-                        "time_periods": self.time_periods_to_time,
-                    },
                     "lanes": {
                         "v": "lanes",
                         "time_periods": self.time_periods_to_time
                     },
-                    "price": {
-                        "v": "price",
-                        "time_periods": self.time_periods_to_time,
-                        "categories": self.categories,
+                    "ML_lanes": {
+                        "v": "ML_lanes",
+                        "time_periods": self.time_periods_to_time
                     },
-                    "access": {
-                        "v": "access",
+                    "use": {
+                        "v": "use",
                         "time_periods": self.time_periods_to_time
                     },
                 }
-        county_shape (str): File location of shapefile defining counties.
-            Default:
-            ::
-                r"mtc_data/county/county.shp"
-
-        county_variable_shp (str): Property defining the county name in
-            the county_shape file.
-            Default:
-            ::
-                NAME
-        mpo_counties (list): list of county names within MPO boundary.
-            Default:
-            ::
-                [
-                    "San Francisco",
-                    "San Mateo",
-                    "Santa Clara",
-                    "Alameda",
-                    "Contra Costa",
-                    "Solano",
-                    "Napa",
-                    "Sonoma",
-                    "Marin"
-                ]
-
-        taz_shape (str):
-            Default:
-            ::
-                r"mtc_data/mtc/mazs_TM2_v2_2.shp"
-        highest_taz_number (int): highest TAZ number in order to define
-            centroid connectors.
-            Default:
-            ::
-                999999
-        highest_maz_number (int): highest MAZ number in order to define
-            centroid connectors.
-            Default:
-            ::
-                889999
         output_variables (list): list of variables to output in final model
             network.
             Default:
@@ -355,18 +307,6 @@ class Parameters:
             9
         ]
 
-        ###  TAZS
-
-        self.taz_shape = os.path.join(
-            self.data_file_location, "maz", "mazs_TM2_v2_2.shp"
-        )
-        self.highest_taz_number = 999999
-
-        self.maz_shape = os.path.join(
-            self.data_file_location, "maz", "mazs_TM2_v2_2.shp"
-        )
-        self.highest_maz_number = 899999
-
         self.osm_assgngrp_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"
         )
@@ -382,47 +322,15 @@ class Parameters:
             "distance",
             "roadway",
             "name",
-            "roadway_class",
             "bike_access",
             "walk_access",
             "drive_access",
             "truck_access",
-            "trn_priority_EA",
-            "trn_priority_AM",
-            "trn_priority_MD",
-            "trn_priority_PM",
-            "trn_priority_EV",
-            "ttime_assert_EA",
-            "ttime_assert_AM",
-            "ttime_assert_MD",
-            "ttime_assert_PM",
-            "ttime_assert_EV",
             "lanes_EA",
             "lanes_AM",
             "lanes_MD",
             "lanes_PM",
             "lanes_EV",
-            "price_sov_EA",
-            "price_hov2_EA",
-            "price_hov3_EA",
-            "price_truck_EA",
-            "price_sov_AM",
-            "price_hov2_AM",
-            "price_hov3_AM",
-            "price_truck_AM",
-            "price_sov_MD",
-            "price_hov2_MD",
-            "price_hov3_MD",
-            "price_truck_MD",
-            "price_sov_PM",
-            "price_hov2_PM",
-            "price_hov3_PM",
-            "price_truck_PM",
-            "price_sov_EV",
-            "price_hov2_EV",
-            "price_hov3_EV",
-            "price_truck_EV",
-            "roadway_class_idx",
             "facility_type",
             "county",
             "centroidconnect",
@@ -480,11 +388,9 @@ class Parameters:
             "A",
             "B",
             "lanes",
-            "roadway_class",
             "facility_type",
             "county",
             "area_type",
-            "trn_priority",
             "centroidconnect",
             "bike_facility",
             "drive_access",
@@ -504,7 +410,6 @@ class Parameters:
 
         self.float_col = [
             "distance",
-            "ttime_assert",
             "price",
             "X",
             "Y"
