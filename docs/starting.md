@@ -9,7 +9,7 @@ Example using a conda environment (recommended) and using the package manager [p
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas -n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/Lasso@master
 ```
 
@@ -21,7 +21,7 @@ If you want to install a more up-to-date or development version of network wrang
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas -n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 pip install git+https://github.com/wsp-sag/network_wrangler@develop
 pip install git+https://github.com/wsp-sag/Lasso@develop
 ```
@@ -34,7 +34,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 ```bash
 conda config --add channels conda-forge
 conda create python=3.7 rtree geopandas-n <my_lasso_environment>
-source activate <my_lasso_environment>
+conda activate <my_lasso_environment>
 git clone https://github.com/wsp-sag/Lasso
 git clone https://github.com/wsp-sag/network_wrangler
 cd network_wrangler

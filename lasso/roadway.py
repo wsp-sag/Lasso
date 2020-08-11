@@ -1,6 +1,7 @@
 import copy
 import glob
 import os
+from typing import Optional, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -29,18 +30,35 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     ]
 
     def __init__(
-        self, nodes: GeoDataFrame, links: DataFrame, shapes: GeoDataFrame, parameters={}
+        self,
+        nodes: GeoDataFrame,
+        links: DataFrame,
+        shapes: GeoDataFrame,
+        parameters: Union[Parameters, dict] = {},
     ):
         """
         Constructor
+
+        Args:
+            nodes: geodataframe of nodes
+            links: dataframe of links
+            shapes: geodataframe of shapes
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
+
         """
         super().__init__(nodes, links, shapes)
 
         # will have to change if want to alter them
         if type(parameters) is dict:
             self.parameters = Parameters(**parameters)
-        else:
+        elif isinstance(parameters, Parameters):
             self.parameters = Parameters(**parameters.__dict__)
+        else:
+            msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+                parameters, type(parameters)
+            )
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None
@@ -54,9 +72,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         node_file: str,
         shape_file: str,
         fast: bool = False,
-        recalculate_calculated_variables = False,
-        recalculate_distance = False,
-        parameters={},
+        recalculate_calculated_variables=False,
+        recalculate_distance=False,
+        parameters: Union[dict, Parameters] = {},
     ):
         """
         Reads in links and nodes network standard.
@@ -68,7 +86,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             fast (bool): boolean that will skip validation to speed up read time.
             recalculate_calculated_variables (bool): calculates fields from spatial joins, etc.
             recalculate_distance (bool):  re-calculates distance.
-            parameters : parameters for lasso.
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
 
         Returns:
             ModelRoadwayNetwork
@@ -81,31 +99,32 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             road_net.links_df,
             road_net.shapes_df,
             parameters=parameters,
-
         )
 
         if recalculate_calculated_variables:
             m_road_net.create_calculated_variables()
         if recalculate_distance:
-            m_road_net.calculate_distance(overwrite = True)
+            m_road_net.calculate_distance(overwrite=True)
 
         m_road_net.fill_na()
         # this method is making period values as string "NaN", need to revise.
         m_road_net.split_properties_by_time_period_and_category()
         for c in m_road_net.links_df.columns:
-            m_road_net.links_df[c] = m_road_net.links_df[c].replace("NaN",np.nan)
+            m_road_net.links_df[c] = m_road_net.links_df[c].replace("NaN", np.nan)
         m_road_net.convert_int()
 
         return m_road_net
 
     @staticmethod
-    def from_RoadwayNetwork(roadway_network_object, parameters={}):
+    def from_RoadwayNetwork(
+        roadway_network_object, parameters: Union[dict, Parameters] = {}
+    ):
         """
         RoadwayNetwork to ModelRoadwayNetwork
 
         Args:
             roadway_network_object (RoadwayNetwork).
-            parameters : parameters for lasso.
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
 
         Returns:
             ModelRoadwayNetwork
@@ -259,9 +278,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         county_codes_dict = (
-            county_codes_dict
-            if county_codes_dict
-            else self.parameters.county_code_dict
+            county_codes_dict if county_codes_dict else self.parameters.county_code_dict
         )
         if not county_codes_dict:
             msg = "No county codes dictionary specified"
@@ -588,7 +605,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         widot_roadway_class_variable_shp=None,
         widot_assgngrp_dict=None,
         osm_assgngrp_dict=None,
-        overwrite = False,
+        overwrite=False,
     ):
         """
         Calculates assignment group variable.
@@ -639,7 +656,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     )
                 )
                 update_assign_group = True
-
 
         """
         Verify inputs
@@ -868,23 +884,28 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[network_variable] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
 
         if update_assign_group:
-            join_gdf.rename(columns = {network_variable : network_variable+"_cal"},
-                            inplace = True)
-            self.links_df = pd.merge(self.links_df,
-                                    join_gdf[["model_link_id", network_variable+"_cal"]],
-                                    how = "left",
-                                    on = "model_link_id")
+            join_gdf.rename(
+                columns={network_variable: network_variable + "_cal"}, inplace=True
+            )
+            self.links_df = pd.merge(
+                self.links_df,
+                join_gdf[["model_link_id", network_variable + "_cal"]],
+                how="left",
+                on="model_link_id",
+            )
             self.links_df[network_variable] = np.where(
                 self.links_df[network_variable] > 0,
                 self.links_df[network_variable],
-                self.links_df[network_variable+"_cal"]
+                self.links_df[network_variable + "_cal"],
             )
-            self.links_df.drop(network_variable+"_cal", axis = 1, inplace = True)
+            self.links_df.drop(network_variable + "_cal", axis=1, inplace=True)
         else:
-            self.links_df = pd.merge(self.links_df,
-                                    join_gdf[["model_link_id", network_variable]],
-                                    how = "left",
-                                    on = "model_link_id")
+            self.links_df = pd.merge(
+                self.links_df,
+                join_gdf[["model_link_id", network_variable]],
+                how="left",
+                on="model_link_id",
+            )
 
         WranglerLogger.info(
             "Finished calculating assignment group variable: {}".format(
@@ -912,11 +933,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if network_variable in self.links_df:
             WranglerLogger.info(
-                    "MPO Variable '{}' is calculated based on assign_group, it cannot be changed directly".format(
-                        network_variable
-                    )
+                "MPO Variable '{}' is calculated based on assign_group, it cannot be changed directly".format(
+                    network_variable
                 )
-            self.links_df.drop(network_variable, axis = 1, inplace = True)
+            )
+            self.links_df.drop(network_variable, axis=1, inplace=True)
 
         """
         Verify inputs
@@ -1000,7 +1021,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
         if network_variable in self.links_df.columns and not overwrite:
-            join_gdf.loc[join_gdf[network_variable] > 0,network_variable] = join_gdf[
+            join_gdf.loc[join_gdf[network_variable] > 0, network_variable] = join_gdf[
                 shst_csv_variable
             ].astype(network_var_type)
         else:
@@ -1118,10 +1139,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             overwrite=False,
         )
 
-        self.links_df["count_AM"] = self.links_df[network_variable]/4
-        self.links_df["count_MD"] = self.links_df[network_variable]/4
-        self.links_df["count_PM"] = self.links_df[network_variable]/4
-        self.links_df["count_NT"] = self.links_df[network_variable]/4
+        self.links_df["count_AM"] = self.links_df[network_variable] / 4
+        self.links_df["count_MD"] = self.links_df[network_variable] / 4
+        self.links_df["count_PM"] = self.links_df[network_variable] / 4
+        self.links_df["count_NT"] = self.links_df[network_variable] / 4
 
         self.links_df["count_daily"] = self.links_df[network_variable]
         self.links_df["count_year"] = 2017
@@ -1210,8 +1231,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # drop duplicated records with same field value
 
         join_refId_df.drop_duplicates(
-            subset = ["model_link_id", "shstReferenceId", field_name],
-            inplace = True
+            subset=["model_link_id", "shstReferenceId", field_name], inplace=True
         )
 
         # more than one match, take the best score
@@ -1232,10 +1252,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         return join_refId_df[links_df.columns.tolist() + [field_name]]
 
     def calculate_hov(
-        self,
-        network_variable="HOV",
-        as_integer=True,
-        overwrite=False,
+        self, network_variable="HOV", as_integer=True, overwrite=False,
     ):
         """
         Calculates hov variable.
@@ -1284,8 +1301,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df[network_variable] = 0
 
         self.links_df.loc[
-            (self.links_df["assign_group"] == 8)
-            | (self.links_df["access"] == "hov"),
+            (self.links_df["assign_group"] == 8) | (self.links_df["access"] == "hov"),
             network_variable,
         ] = 100
 
@@ -1294,15 +1310,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 int
             )
         WranglerLogger.info(
-            "Finished calculating hov variable: {}".format(
-                network_variable
-            )
+            "Finished calculating hov variable: {}".format(network_variable)
         )
 
     def create_ML_variable(
-        self,
-        network_variable="ML_lanes",
-        overwrite=False,
+        self, network_variable="ML_lanes", overwrite=False,
     ):
         """
         Created ML lanes placeholder for project to write out ML changes
@@ -1340,9 +1352,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_hov_corridor_variable(
-        self,
-        network_variable="segment_id",
-        overwrite=False,
+        self, network_variable="segment_id", overwrite=False,
     ):
         """
         Created hov corridor placeholder for project to write out corridor changes
@@ -1381,9 +1391,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_managed_variable(
-        self,
-        network_variable="managed",
-        overwrite=False,
+        self, network_variable="managed", overwrite=False,
     ):
         """
         Created placeholder for project to write out managed
@@ -1422,10 +1430,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def calculate_distance(
-            self,
-            network_variable = "distance",
-            centroidconnect_only = True,
-            overwrite = False):
+        self, network_variable="distance", centroidconnect_only=True, overwrite=False
+    ):
         """
         calculate link distance in miles
 
@@ -1472,22 +1478,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if centroidconnect_only:
             WranglerLogger.info(
-                "Calculating {} for centroid connectors".format(
-                    network_variable
-                )
+                "Calculating {} for centroid connectors".format(network_variable)
             )
             temp_links_gdf[network_variable] = np.where(
                 temp_links_gdf.centroidconnect == 1,
-                temp_links_gdf.geometry.length/1609.34,
-                temp_links_gdf[network_variable]
+                temp_links_gdf.geometry.length / 1609.34,
+                temp_links_gdf[network_variable],
             )
         else:
             WranglerLogger.info(
-                "Calculating distance for all links".format(
-                    network_variable
-                )
+                "Calculating distance for all links".format(network_variable)
             )
-            temp_links_gdf[network_variable] = temp_links_gdf.geometry.length/1609.34
+            temp_links_gdf[network_variable] = temp_links_gdf.geometry.length / 1609.34
 
         self.links_df[network_variable] = temp_links_gdf[network_variable]
 
@@ -1496,18 +1498,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Convert integer columns
         """
 
-        WranglerLogger.info(
-            "Converting variable type to MetCouncil standard"
-        )
+        WranglerLogger.info("Converting variable type to MetCouncil standard")
 
-        if not int_col_names: int_col_names = self.parameters.int_col
+        if not int_col_names:
+            int_col_names = self.parameters.int_col
 
         ##Why are we doing this?
         # int_col_names.remove("lanes")
 
         for c in list(set(self.links_df.columns) & set(int_col_names)):
             try:
-                self.links_df[c] = self.links_df[c].replace(np.nan,0)
+                self.links_df[c] = self.links_df[c].replace(np.nan, 0)
                 self.links_df[c] = self.links_df[c].astype(int)
             except:
                 self.links_df[c] = self.links_df[c].astype(float)
@@ -1521,26 +1522,25 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Fill na values from create_managed_lane_network()
         """
 
-        WranglerLogger.info(
-            "Filling nan for network from network wrangler"
-        )
+        WranglerLogger.info("Filling nan for network from network wrangler")
 
         num_col = self.parameters.int_col + self.parameters.float_col
 
         for x in list(self.links_df.columns):
             if x in num_col:
-                self.links_df[x].fillna(0, inplace = True)
-                self.links_df[x] = self.links_df[x].apply(lambda k:
-                    0 if k in [np.nan, '', float('nan'), 'NaN'] else k)
+                self.links_df[x].fillna(0, inplace=True)
+                self.links_df[x] = self.links_df[x].apply(
+                    lambda k: 0 if k in [np.nan, "", float("nan"), "NaN"] else k
+                )
 
             else:
-                self.links_df[x].fillna("", inplace = True)
+                self.links_df[x].fillna("", inplace=True)
 
         for x in list(self.nodes_df.columns):
             if x in num_col:
-                self.nodes_df[x].fillna(0, inplace = True)
+                self.nodes_df[x].fillna(0, inplace=True)
             else:
-                self.nodes_df[x].fillna("", inplace = True)
+                self.nodes_df[x].fillna("", inplace=True)
 
     def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
@@ -1573,12 +1573,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             # when ML and assign_group projects are applied together, assign_group is filled as "" by wrangler for ML links
             for c in ModelRoadwayNetwork.CALCULATED_VALUES:
                 if c in self.links_df.columns and c in self.parameters.int_col:
-                    self.links_df[c]  = self.links_df[c].replace("", 0)
+                    self.links_df[c] = self.links_df[c].replace("", 0)
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
 
         self.create_calculated_variables()
-        self.calculate_distance(overwrite = True)
+        self.calculate_distance(overwrite=True)
 
         self.fill_na()
         # no method to calculate price yet, will be hard coded in project card
@@ -1635,7 +1635,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         variable_crosswalk = (
-            variable_crosswalk if variable_crosswalk else self.parameters.net_to_dbf_crosswalk
+            variable_crosswalk
+            if variable_crosswalk
+            else self.parameters.net_to_dbf_crosswalk
         )
 
         output_variables = (
