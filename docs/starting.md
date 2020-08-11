@@ -33,7 +33,7 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 
 ```bash
 conda config --add channels conda-forge
-conda create python=3.7 rtree geopandas-n <my_lasso_environment>
+conda create python=3.7 rtree geopandas osmnx -n <my_lasso_environment>
 conda activate <my_lasso_environment>
 git clone https://github.com/wsp-sag/Lasso
 git clone https://github.com/wsp-sag/network_wrangler
