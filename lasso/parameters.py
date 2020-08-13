@@ -619,6 +619,8 @@ class Parameters:
             "bus_only",
             "rail_only",
             "bike_facility",
+            "mrcc_id",
+            "ROUTE_SYS",  #mrcc functional class
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -688,6 +690,7 @@ class Parameters:
             "managed",
             "bus_only",
             "rail_only",
+            "mrcc_id",
         ]
 
         self.float_col = ["distance", "ttime_assert", "price", "X", "Y"]
@@ -701,6 +704,7 @@ class Parameters:
             "access_MD",
             "access_PM",
             "access_NT",
+            "ROUTE_SYS",
         ]
 
         self.__dict__.update(kwargs)

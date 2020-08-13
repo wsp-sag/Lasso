@@ -823,6 +823,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             mrcc_roadway_class_variable_shp,
         )
 
+        # for exporting mrcc_id
+        if "mrcc_id" in self.links_df.columns:
+            join_gdf.drop(["source_link_id"], axis = 1, inplace = True)
+        else:
+            join_gdf.rename(columns = {"source_link_id" : "mrcc_id"}, inplace = True)
+
         join_gdf = ModelRoadwayNetwork.get_attribute(
             join_gdf,
             "shstGeometryId",
@@ -885,13 +891,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         join_gdf[network_variable] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
 
+        if "mrcc_id" in self.links_df.columns:
+            columns_from_source = ["model_link_id"]
+        else:
+            columns_from_source = ["model_link_id", "mrcc_id", "ROUTE_SYS"]
+
         if update_assign_group:
             join_gdf.rename(
                 columns={network_variable: network_variable + "_cal"}, inplace=True
             )
             self.links_df = pd.merge(
                 self.links_df,
-                join_gdf[["model_link_id", network_variable + "_cal"]],
+                join_gdf[columns_from_source + [network_variable + "_cal"]],
                 how="left",
                 on="model_link_id",
             )
@@ -904,7 +915,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         else:
             self.links_df = pd.merge(
                 self.links_df,
-                join_gdf[["model_link_id", network_variable]],
+                join_gdf[columns_from_source + [network_variable]],
                 how="left",
                 on="model_link_id",
             )
@@ -1251,7 +1262,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # self.links_df[field_name] = join_refId_df[field_name]
 
-        return join_refId_df[links_df.columns.tolist() + [field_name]]
+        return join_refId_df[links_df.columns.tolist() + [field_name, "source_link_id"]]
 
     def calculate_hov(
         self, network_variable="HOV", as_integer=True, overwrite=False,
