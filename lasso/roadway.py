@@ -1799,7 +1799,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         # network object does not store true shape in the links_df
-        links_dbf_df["geometry"] = self.shapes_metcouncil_df["geometry"]
+        links_dbf_df = pd.merge(
+            links_dbf_df.drop("geometry", axis = 1),
+            self.shapes_metcouncil_df[["shape_id", "geometry"]],
+            how = "left",
+            on = "shape_id"
+        )
+
+        links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry = links_dbf_df["geometry"])
 
         WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
         nodes_dbf_df.to_file(output_node_shp)
