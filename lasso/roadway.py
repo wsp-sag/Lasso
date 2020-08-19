@@ -62,7 +62,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None
-        self.shapes_metcouncil_df = None
+        # self.shapes_metcouncil_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
@@ -1549,16 +1549,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             else:
                 self.links_df[x].fillna("", inplace=True)
 
-        for x in list(self.shapes_df.columns):
-            if x in num_col:
-                self.shapes_df[x].fillna(0, inplace=True)
-                self.shapes_df[x] = self.shapes_df[x].apply(
-                    lambda k: 0 if k in [np.nan, "", float("nan"), "NaN"] else k
-                )
-
-            else:
-                self.shapes_df[x].fillna("", inplace=True)
-
         for x in list(self.nodes_df.columns):
             if x in num_col:
                 self.nodes_df[x].fillna(0, inplace=True)
@@ -1611,15 +1601,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = self.links_df.copy()
         self.nodes_metcouncil_df = self.nodes_df.copy()
-        self.shapes_metcouncil_df = self.shapes_df.dropna().copy()
+
+        self.links_metcouncil_df = pd.merge(
+            self.links_metcouncil_df.drop("geometry", axis = 1),  # drop the stick geometry in links_df
+            self.shapes_df[["shape_id", "geometry"]],
+            how = "left",
+            on = "shape_id"
+        )
 
         self.links_metcouncil_df.crs = "EPSG:4326"
         self.nodes_metcouncil_df.crs = "EPSG:4326"
-        self.shapes_metcouncil_df.crs = "EPSG:4326"
         WranglerLogger.info("Setting Coordinate Reference System to EPSG 26915")
         self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
-        self.shapes_metcouncil_df = self.shapes_metcouncil_df.to_crs(epsg=26915)
 
         self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(
             lambda g: g.x
@@ -1806,14 +1800,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info("Renaming DBF Link Variables")
         links_dbf_df = self.rename_variables_for_dbf(
             self.links_metcouncil_df, output_variables=dbf_link_output_variables
-        )
-
-        # network object does not store true shape in the links_df
-        links_dbf_df = pd.merge(
-            links_dbf_df.drop("geometry", axis = 1),
-            self.shapes_metcouncil_df[["shape_id", "geometry"]],
-            how = "left",
-            on = "shape_id"
         )
 
         links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry = links_dbf_df["geometry"])
