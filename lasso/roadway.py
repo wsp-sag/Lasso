@@ -1549,6 +1549,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             else:
                 self.links_df[x].fillna("", inplace=True)
 
+        for x in list(self.shapes_df.columns):
+            if x in num_col:
+                self.shapes_df[x].fillna(0, inplace=True)
+                self.shapes_df[x] = self.shapes_df[x].apply(
+                    lambda k: 0 if k in [np.nan, "", float("nan"), "NaN"] else k
+                )
+
+            else:
+                self.shapes_df[x].fillna("", inplace=True)
+
         for x in list(self.nodes_df.columns):
             if x in num_col:
                 self.nodes_df[x].fillna(0, inplace=True)
