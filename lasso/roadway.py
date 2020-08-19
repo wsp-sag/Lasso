@@ -1766,7 +1766,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # unless specified that all the data goes to the DBF, only output A and B
         dbf_link_output_variables = (
-            link_output_variables if data_to_dbf else ["A", "B", "geometry"]
+            link_output_variables if data_to_dbf else ["A", "B", "shape_id", "geometry"]
         )
 
         output_link_shp = (
