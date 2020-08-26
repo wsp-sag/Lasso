@@ -152,6 +152,26 @@ class Parameters:
             and facility type. Default:
             ::
                 "lookups/osm_highway_facility_type_crosswalk.csv"
+        legacy_tm2_attributes (str): CSV file of link attributes by
+            shStReferenceId from Legacy TM2 network. Default:
+            ::
+                "lookups/legacy_tm2_attributes.csv"
+        osm_lanes_attributes (str): CSV file of number of lanes by shStReferenceId
+            from OSM. Default:
+            ::
+                "lookups/osm_lanes_attributes.csv"
+        tam_tm2_attributes (str): CSV file of link attributes by
+            shStReferenceId from TAM TM2 network. Default:
+            ::
+                "lookups/tam_tm2_attributes.csv"
+        tom_tom_attributes (str): CSV file of link attributes by
+            shStReferenceId from TomTom network. Default:
+            ::
+                "lookups/tomtom_attributes.csv"
+        sfcta_attributes (str): CSV file of link attributes by
+            shStReferenceId from SFCTA network. Default:
+            ::
+                "lookups/sfcta_attributes.csv"
         output_epsg (int): EPSG type of geographic projection for output
             shapefiles. Default:
             ::
@@ -307,9 +327,35 @@ class Parameters:
             9
         ]
 
-        self.osm_assgngrp_dict = os.path.join(
-            self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"
+        self.osm_facility_type_dict = os.path.join(
+            self.data_file_location, "lookups", "osm_highway_facility_type_crosswalk.csv"
         )
+
+        self.osm_lanes_attributes = os.path.join(
+            self.osm_lanes_attributes, "lookups", "osm_lanes_attributes.csv"
+        )
+
+        self.legacy_tm2_attributes = os.path.join(
+            self.data_file_location, "lookups", "legacy_tm2_attributes.csv"
+        )
+
+        self.tam_tm2_attributes = os.path.join(
+            self.data_file_location, "lookups", "tam_tm2_attributes.csv"
+        )
+
+        self.sfcta_attributes = os.path.join(
+            self.data_file_location, "lookups", "sfcta_attributes.csv"
+        )
+
+        self.tomtom_attributes = os.path.join(
+            self.data_file_location, "lookups", "tomtom_attributes.csv"
+        )
+
+        self.pems_attributes = os.path.join(
+            self.data_file_location, "lookups", "pems_attributes.csv"
+        )
+
+
 
         self.log_to_net_crosswalk = os.path.join(self.settings_location, "log_to_net.csv")
 
