@@ -846,7 +846,16 @@ class StandardTransit(object):
         """
         self.feed = ptg_feed
 
-        self.parameters = Parameters(**parameters)
+        if type(parameters) is dict:
+            self.parameters = Parameters(**parameters)
+        elif isinstance(parameters, Parameters):
+            self.parameters = Parameters(**parameters.__dict__)
+        else:
+            msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+                parameters, type(parameters)
+            )
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
     @staticmethod
     def fromTransitNetwork(
