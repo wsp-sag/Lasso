@@ -1824,7 +1824,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     # this should be moved to util
     @staticmethod
-    def dataframe_to_fixed_with(df):
+    def dataframe_to_fixed_width(df):
         """
         Convert dataframe to fixed width format, geometry column will not be transformed.
 
@@ -1835,7 +1835,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             pandas dataframe:  dataframe with fixed width for each column.
             dict: dictionary with columns names as keys, column width as values.
         """
-        WranglerLogger.info("Starting fixed width convertion")
+        WranglerLogger.info("Starting fixed width conversion")
 
         # get the max length for each variable column
         max_width_dict = dict(
@@ -1849,8 +1849,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         fw_df = df.drop("geometry", axis=1).copy()
         for c in fw_df.columns:
             fw_df[c] = fw_df[c].apply(lambda x: str(x))
-            fw_df["pad"] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
-            fw_df[c] = fw_df.apply(lambda x: x.pad + x[c], axis=1)
+            fw_df['pad'] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
+            fw_df[c] = fw_df.apply(lambda x: x['pad'] + x[c], axis=1)
 
         return fw_df, max_width_dict
 
@@ -1955,7 +1955,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start Process
         """
-        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(
+        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_width(
             self.links_metcouncil_df[link_output_variables]
         )
 
@@ -1973,7 +1973,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
         link_max_width_df.to_csv(output_link_header_width_txt, index=False)
 
-        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(
+        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
             self.nodes_metcouncil_df[node_output_variables]
         )
         WranglerLogger.info("Writing out node database")
