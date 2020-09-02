@@ -894,7 +894,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         if "mrcc_id" in self.links_df.columns:
             columns_from_source = ["model_link_id"]
         else:
-            columns_from_source = ["model_link_id", "mrcc_id", "ROUTE_SYS"]
+            columns_from_source = [
+            "model_link_id",
+            "mrcc_id",
+            mrcc_roadway_class_variable_shp,
+            widot_roadway_class_variable_shp,
+            ]
 
         if update_assign_group:
             join_gdf.rename(
