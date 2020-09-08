@@ -100,7 +100,6 @@ def test_calculate_area_type(request):
     print(net.links_df.area_type.value_counts())
     ## todo write an assert that actually tests something
 
-
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_calculate_assign_group_rdclass(request):
@@ -116,8 +115,7 @@ def test_calculate_assign_group_rdclass(request):
         fast=True,
     )
 
-    net.calculate_assign_group()
-    net.calculate_roadway_class()
+    net.calculate_assign_group_and_roadway_class()
     assert "assign_group" in net.links_df.columns
     assert "roadway_class" in net.links_df.columns
     print("centroid connector Frequency")

@@ -214,8 +214,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_county()
         self.calculate_centroidconnect()
         self.calculate_mpo()
-        self.calculate_assign_group()
-        self.calculate_roadway_class()
+        self.calculate_assign_group_and_roadway_class()
         self.add_counts()
         self.create_ML_variable()
         self.create_hov_corridor_variable()
@@ -593,9 +592,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Finished calculating MPO variable: {}".format(network_variable)
         )
 
-    def calculate_assign_group(
+    def calculate_assign_group_and_roadway_class(
         self,
-        network_variable="assign_group",
+        assign_group_variable_name="assign_group",
+        road_class_variable_name="roadway_class",
         mrcc_roadway_class_shape=None,
         mrcc_shst_data=None,
         mrcc_roadway_class_variable_shp=None,
@@ -608,7 +608,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
-        Calculates assignment group variable.
+        Calculates assignment group and roadway class variables.
 
         Assignment Group is used in MetCouncil's traffic assignment to segment the volume/delay curves.
         Original source is from the MRCC data for the Minnesota: "route system" which is a roadway class
@@ -619,7 +619,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         This method joins the network with mrcc and widot roadway data by shst js matcher returns
 
         Args:
-            network_variable (str): Name of the variable that should be written to.  Default to "assign_group".
+            assign_group_variable_name (str): Name of the variable assignment group should be written to.  Default to "assign_group".
+            road_class_variable_name (str): Name of the variable roadway class should be written to. Default to "roadway_class".
             mrcc_roadway_class_shape (str): File path to the MRCC route system geodatabase.
             mrcc_shst_data (str): File path to the MRCC SHST match return.
             mrcc_roadway_class_variable_shp (str): Name of the variable where MRCC route system are stored.
@@ -635,27 +636,43 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         update_assign_group = False
+        update_roadway_class = False
 
         WranglerLogger.info(
-            "Calculating Assignment Group as network variable: {}".format(
-                network_variable
+            "Calculating Assignment Group and Roadway Class as network variables: '{}' and '{}'".format(
+                assign_group_variable_name, road_class_variable_name,
             )
         )
 
-        if network_variable in self.links_df:
+        if assign_group_variable_name in self.links_df:
             if overwrite:
                 WranglerLogger.info(
                     "Overwriting existing MPO Variable '{}' already in network".format(
-                        network_variable
+                        assign_group_variable_name
                     )
                 )
             else:
                 WranglerLogger.info(
                     "MPO Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
-                        network_variable
+                        assign_group_variable_name
                     )
                 )
                 update_assign_group = True
+
+        if road_class_variable_name in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing MPO Variable '{}' already in network".format(
+                        road_class_variable_name
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "MPO Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                        road_class_variable_name
+                    )
+                )
+                update_roadway_class = True
 
         """
         Verify inputs
@@ -787,8 +804,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.debug("Calculating Centroid Connectors")
         self.calculate_centroidconnect()
 
-        WranglerLogger.debug("Reading MRCC / Shared Streets Match CSV")
-        # mrcc_shst_match_df = pd.read_csv()
         WranglerLogger.debug(
             "Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape)
         )
@@ -825,9 +840,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # for exporting mrcc_id
         if "mrcc_id" in self.links_df.columns:
-            join_gdf.drop(["source_link_id"], axis = 1, inplace = True)
+            join_gdf.drop(["source_link_id"], axis = 1, inplace=True)
         else:
-            join_gdf.rename(columns = {"source_link_id" : "mrcc_id"}, inplace = True)
+            join_gdf.rename(columns={"source_link_id" : "mrcc_id"}, inplace=True)
 
         join_gdf = ModelRoadwayNetwork.get_attribute(
             join_gdf,
@@ -838,24 +853,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_csv(
-            mrcc_assgngrp_dict, dtype={mrcc_roadway_class_variable_shp: str}
-        )
+        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict)
         widot_asgngrp_crosswak_df = pd.read_csv(widot_assgngrp_dict)
 
         join_gdf = pd.merge(
             join_gdf,
             osm_asgngrp_crosswalk_df.rename(
-                columns={"assign_group": "assignment_group_osm"}
+                columns={
+                "assign_group": "assignment_group_osm",
+                "roadway_class": "roadway_class_osm"
+                }
             ),
             how="left",
             on="roadway",
         )
 
+        join_gdf[mrcc_roadway_class_variable_shp] = join_gdf[mrcc_roadway_class_variable_shp].astype('int64', errors='ignore').fillna(0)
         join_gdf = pd.merge(
             join_gdf,
             mrcc_asgngrp_crosswalk_df.rename(
-                columns={"assign_group": "assignment_group_mrcc"}
+                columns={
+                "assign_group": "assignment_group_mrcc",
+                "roadway_class": "roadway_class_mrcc"
+                }
             ),
             how="left",
             on=mrcc_roadway_class_variable_shp,
@@ -864,7 +884,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf = pd.merge(
             join_gdf,
             widot_asgngrp_crosswak_df.rename(
-                columns={"assign_group": "assignment_group_widot"}
+                columns={
+                "assign_group": "assignment_group_widot",
+                "roadway_class": "roadway_class_widot"
+                }
             ),
             how="left",
             on=widot_roadway_class_variable_shp,
@@ -889,7 +912,65 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             except:
                 return 0
 
-        join_gdf[network_variable] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
+        join_gdf[assign_group_variable_name] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
+
+        def _set_roadway_class(x):
+            try:
+                if x.centroidconnect == 1:
+                    return 99
+                elif x.bus_only == 1:
+                    return 50
+                elif x.rail_only == 1:
+                    return 100
+                elif x.drive_access == 0:
+                    return 101
+                elif x.roadway_class_mrcc > 0:
+                    return int(x.roadway_class_mrcc)
+                elif x.roaday_class_widot > 0:
+                    return int(x.roaday_class_widot)
+                else:
+                    return int(x.roadway_class_osm)
+            except:
+                return 0
+
+        join_gdf[road_class_variable_name] = join_gdf.apply(lambda x: _set_roadway_class(x), axis=1)
+
+        if "mrcc_id" in self.links_df.columns:
+            columns_from_source = ["model_link_id"]
+        else:
+            columns_from_source=[
+            "model_link_id",
+            "mrcc_id",
+            mrcc_roadway_class_variable_shp,
+            widot_roadway_class_variable_shp,
+            ]
+
+        if update_assign_group:
+            join_gdf.rename(
+                columns={
+                assign_group_variable_name: assign_group_variable_name + "_cal"
+                },
+                inplace=True
+            )
+            self.links_df = pd.merge(
+                self.links_df,
+                join_gdf[columns_from_source + [assign_group_variable_name + "_cal"]],
+                how="left",
+                on="model_link_id",
+            )
+            self.links_df[assign_group_variable_name] = np.where(
+                self.links_df[assign_group_variable_name] > 0,
+                self.links_df[assign_group_variable_name],
+                self.links_df[assign_group_variable_name + "_cal"],
+            )
+            self.links_df.drop(assign_group_variable_name + "_cal", axis=1, inplace=True)
+        else:
+            self.links_df = pd.merge(
+                self.links_df,
+                join_gdf[columns_from_source + [assign_group_variable_name]],
+                how = "left",
+                on = "model_link_id",
+            )
 
         if "mrcc_id" in self.links_df.columns:
             columns_from_source = ["model_link_id"]
@@ -901,90 +982,38 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             widot_roadway_class_variable_shp,
             ]
 
-        if update_assign_group:
+
+        if update_roadway_class:
             join_gdf.rename(
-                columns={network_variable: network_variable + "_cal"}, inplace=True
+                columns={
+                road_class_variable_name: road_class_variable_name + "_cal"
+                },
+                inplace=True
             )
             self.links_df = pd.merge(
                 self.links_df,
-                join_gdf[columns_from_source + [network_variable + "_cal"]],
+                join_gdf[columns_from_source + [road_class_variable_name + "_cal"]],
                 how="left",
                 on="model_link_id",
             )
-            self.links_df[network_variable] = np.where(
-                self.links_df[network_variable] > 0,
-                self.links_df[network_variable],
-                self.links_df[network_variable + "_cal"],
+            self.links_df[road_class_variable_name] = np.where(
+                self.links_df[road_class_variable_name] > 0,
+                self.links_df[road_class_variable_name],
+                self.links_df[road_class_variable_name + "_cal"],
             )
-            self.links_df.drop(network_variable + "_cal", axis=1, inplace=True)
+            self.links_df.drop(road_class_variable_name + "_cal", axis=1, inplace=True)
         else:
             self.links_df = pd.merge(
                 self.links_df,
-                join_gdf[columns_from_source + [network_variable]],
+                join_gdf[columns_from_source + [road_class_variable_name]],
                 how="left",
                 on="model_link_id",
             )
 
         WranglerLogger.info(
-            "Finished calculating assignment group variable: {}".format(
-                network_variable
+            "Finished calculating assignment group variable {} and roadway class variable {}".format(
+                assign_group_variable_name, road_class_variable_name,
             )
-        )
-
-    def calculate_roadway_class(
-        self, network_variable="roadway_class", roadway_class_dict=None
-    ):
-        """
-        Calculates roadway class variable.
-
-        roadway_class is a lookup based on assignment group
-
-        Args:
-            network_variable (str): Name of the variable that should be written to.  Default to "roadway_class".
-            roadway_class_dict (dict): Dictionary to map assignment group to roadway class.
-
-        Returns:
-            None
-        """
-
-        WranglerLogger.info("Calculating Roadway Class")
-
-        if network_variable in self.links_df:
-            WranglerLogger.info(
-                "MPO Variable '{}' is calculated based on assign_group, it cannot be changed directly".format(
-                    network_variable
-                )
-            )
-            self.links_df.drop(network_variable, axis=1, inplace=True)
-
-        """
-        Verify inputs
-        """
-        roadway_class_dict = (
-            roadway_class_dict
-            if roadway_class_dict
-            else self.parameters.roadway_class_dict
-        )
-
-        if not roadway_class_dict:
-            msg = msg = "'roadway_class_dict' not found in method or lasso parameters."
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
-
-        """
-        Start actual process
-        """
-
-        asgngrp_rc_num_crosswalk_df = pd.read_csv(roadway_class_dict)
-
-        join_gdf = pd.merge(
-            self.links_df, asgngrp_rc_num_crosswalk_df, how="left", on="assign_group"
-        )
-
-        self.links_df[network_variable] = join_gdf[network_variable]
-
-        WranglerLogger.info(
-            "Finished calculating roadway class variable: {}".format(network_variable)
         )
 
     def add_variable_using_shst_reference(
