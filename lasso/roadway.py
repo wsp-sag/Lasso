@@ -853,7 +853,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         osm_asgngrp_crosswalk_df = pd.read_csv(osm_assgngrp_dict)
-        mrcc_asgngrp_crosswalk_df = pd.read_csv(mrcc_assgngrp_dict)
+        mrcc_asgngrp_crosswalk_df = pd.read_csv(
+            mrcc_assgngrp_dict, dtype={mrcc_roadway_class_variable_shp: str}
+        )
         widot_asgngrp_crosswak_df = pd.read_csv(widot_assgngrp_dict)
 
         join_gdf = pd.merge(
@@ -868,7 +870,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             on="roadway",
         )
 
-        join_gdf[mrcc_roadway_class_variable_shp] = join_gdf[mrcc_roadway_class_variable_shp].astype('int64', errors='ignore').fillna(0)
         join_gdf = pd.merge(
             join_gdf,
             mrcc_asgngrp_crosswalk_df.rename(
