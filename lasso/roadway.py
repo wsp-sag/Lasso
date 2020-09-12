@@ -840,7 +840,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # for exporting mrcc_id
         if "mrcc_id" in self.links_df.columns:
-            join_gdf.drop(["source_link_id"], axis = 1, inplace=True)
+            join_gdf.drop(["source_link_id"], axis=1, inplace=True)
         else:
             join_gdf.rename(columns={"source_link_id" : "mrcc_id"}, inplace=True)
 
@@ -927,8 +927,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     return 101
                 elif x.roadway_class_mrcc > 0:
                     return int(x.roadway_class_mrcc)
-                elif x.roaday_class_widot > 0:
-                    return int(x.roaday_class_widot)
+                elif x.roadway_class_widot > 0:
+                    return int(x.roadway_class_widot)
                 else:
                     return int(x.roadway_class_osm)
             except:
