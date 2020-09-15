@@ -128,20 +128,36 @@ class CubeTransit(object):
                 self.add_cube(lin_file)
             return
         else:
-            msg: "{} not a valid transit line string, directory, or file"
+            msg= "{} not a valid transit line string, directory, or file"
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
         WranglerLogger.debug("finished parsing cube line file")
-        # WranglerLogger.debug("--Parse Tree--\n {}".format(parse_tree.pretty()))
+        #WranglerLogger.debug("--Parse Tree--\n {}".format(parse_tree.pretty()))
         transformed_tree_data = CubeTransformer().transform(parse_tree)
-        # WranglerLogger.debug("--Transformed Tree Data --\n {}".format(transformed_tree_data["lines"]))
+        ## HACK, FIX LATER (why is transformer returning tuple OR dict depending on if program type line is there)
+        WranglerLogger.debug("Transformed Tree Data of type {}".format(type(transformed_tree_data)))
+        if type(transformed_tree_data) is tuple and transformed_tree_data[0]=='lines' and len(transformed_tree_data)==2:
+            WranglerLogger.debug("Found tuple of length {} in transformed tree with first value equal to 'lines' taking second value.".format(len(transformed_tree_data)))
+            _line_data = transformed_tree_data[1]
+        elif type(transformed_tree_data) is dict:
+            WranglerLogger.debug("_tranformed_tree_data a dict with keys: {}".format(transformed_tree_data.keys()))
+            _line_data = transformed_tree_data["lines"]
+        else:
+            msg = "Unexected parse tree returned of type: {}".format(type(transformed_tree_data))
+            raise ValueError(msg)
 
+        WranglerLogger.debug("Line data is of {}:\n{}".format(type(_line_data),_line_data))
+        if type(_line_data) != dict:
+            msg = "_line_data is of type {}, expecting dict".format(type(_line_data))
+            WranglerLogger.error(msg)
+            raise TypeError(msg)
+        ###END HACK
         line_properties_dict = {
-            k: v["line_properties"] for k, v in transformed_tree_data["lines"].items()
+            k: v["line_properties"] for k, v in _line_data.items()
         }
         line_shapes_dict = {
-            k: v["line_shape"] for k, v in transformed_tree_data["lines"].items()
+            k: v["line_shape"] for k, v in _line_data.items()
         }
         new_lines = list(line_properties_dict.keys())
         """
@@ -161,7 +177,13 @@ class CubeTransit(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        self.program_type = transformed_tree_data["program_type"]
+        ##HACK
+        if type(transformed_tree_data) is dict:
+            self.program_type = transformed_tree_data["program_type"]
+        else:
+            WranglerLogger.debug("Unknown program type.")
+
+        ##ENDHACK
         self.lines += new_lines
         self.line_properties.update(line_properties_dict)
         self.shapes.update(line_shapes_dict)
