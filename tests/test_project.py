@@ -66,10 +66,9 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
-
+@pytest.mark.elo
 @pytest.mark.travis
 @pytest.mark.parametrize("logfilename", [logfile_list[0]])
-@pytest.mark.elo
 def test_project_card_create_with_parameters_kw(request, logfilename):
     print("\n--Starting:", request.node.name)
     print("Reading: {}".format(logfilename))

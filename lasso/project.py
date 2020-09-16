@@ -249,11 +249,12 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if roadway_log_file and not project_name:
-            if type(roadway_log_file) == "list":
-                logfilename = roadway_log_file[0]
+            if type(roadway_log_file) == list:
+                project_name = os.path.splitext(os.path.basename(roadway_log_file[0]))[0]
+                WranglerLogger.info("No Project Name - Using name of first log file in list")
             else:
-                logfilename = roadway_log_file
-            project_name = os.path.splitext(os.path.basename(logfilename))[0]
+                project_name = os.path.splitext(os.path.basename(roadway_log_file))[0]
+                WranglerLogger.info("No Project Name - Using name of log file")
         if roadway_log_file:
             roadway_changes = Project.read_logfile(roadway_log_file)
         elif roadway_shp_file:
@@ -318,37 +319,32 @@ class Project(object):
         """
         if type(logfilename) == str:
             logfilename = [logfilename]
-        content = []
+
+        link_df = pd.DataFrame()
+        node_df = pd.DataFrame()
+
         for file in logfilename:
             WranglerLogger.info("Reading logfile: {}".format(file))
             with open(file) as f:
-                content += f.readlines()
+                _content = f.readlines()
 
-        # (content[0].startswith("HighwayLayerLogX")):
-        if not content[0].startswith("HighwayLayerLogX"):
-            WranglerLogger.info("Returning an empty dataframe")
-            return DataFrame()
+                _node_lines = [x.strip().replace(";",",") for x in _content if x.startswith("N")]
+                WranglerLogger.debug("node lines: {}".format(_node_lines))
+                _link_lines = [x.strip().replace(";",",") for x in _content if x.startswith("L")]
+                WranglerLogger.debug("link lines: {}".format(_link_lines))
 
-        NodeLines = [x.strip() for x in content if x.startswith("N")]
-        NodeLines = [x.replace(";", ",") for x in NodeLines]
+                _nodecol = ["OBJECT", "OPERATION", "GROUP"] + _node_lines[0].split(",")[1:]
+                WranglerLogger.debug("Node Cols: {}".format(_nodecol))
+                _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[1:]
+                WranglerLogger.debug("Link Cols: {}".format(_linkcol))
 
-        LinkLines = [x.strip() for x in content if x.startswith("L")]
-        LinkLines = [x.replace(";", ",") for x in LinkLines]
+                _node_df = pd.DataFrame([x.split(",") for x in _node_lines[1:]],columns = _nodecol)
+                WranglerLogger.debug("Node DF: {}".format(_node_df))
+                _link_df = pd.DataFrame([x.split(",") for x in _link_lines[1:]],columns = _linkcol)
+                WranglerLogger.debug("Link DF: {}".format(_link_df))
 
-        linkcol_names = ["OBJECT", "OPERATION", "GROUP"] + LinkLines[0].split(",")[1:]
-
-        nodecol_names = ["OBJECT", "OPERATION", "GROUP"] + NodeLines[0].split(",")[1:]
-
-        link_df = DataFrame(columns=linkcol_names)
-        node_df = DataFrame(columns=nodecol_names)
-
-        for row in reader(LinkLines[1:], delimiter=","):
-            link_df_length = len(link_df)
-            link_df.loc[link_df_length] = row
-
-        for row in reader(NodeLines[1:], delimiter=","):
-            node_df_length = len(node_df)
-            node_df.loc[node_df_length] = row
+                node_df = pd.concat([node_df,_node_df])
+                link_df = pd.concat([link_df,_link_df])
 
         log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
 
@@ -539,7 +535,11 @@ class Project(object):
                     if c in self.base_roadway_network.links_df.columns
                 ]
             else:
-                add_col = cube_add_df.columns
+                add_col = [
+                    c
+                    for c in cube_add_df.columns
+                    if  c not "OPERATION_final"
+                ]
                 # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
             add_link_properties = cube_add_df[add_col].to_dict("records")
