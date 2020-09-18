@@ -1,8 +1,7 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -12,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -29,11 +35,6 @@
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
 </head>
@@ -49,7 +50,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> lasso
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -72,6 +73,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -90,6 +92,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -128,7 +131,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../index.html">Docs</a> &raquo;</li>
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../index.html">Module code</a> &raquo;</li>
         
@@ -151,17 +154,20 @@
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">WranglerLogger</span>
 
-<span class="k">def</span> <span class="nf">get_base_dir</span><span class="p">(</span><span class="n">lasso_base_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()):</span>
+
+<span class="k">def</span> <span class="nf">get_base_dir</span><span class="p">(</span><span class="n">lasso_base_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()):</span>
     <span class="n">d</span> <span class="o">=</span> <span class="n">lasso_base_dir</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s1">&#39;metcouncil_data&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;metcouncil_data&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
             <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Lasso base directory set as: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
             <span class="k">return</span> <span class="n">d</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
 
-    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Cannot find Lasso base directory from </span><span class="si">{}</span><span class="s2">, please input using keyword in parameters: `lasso_base_dir =` &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lasso_base_dir</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Cannot find Lasso base directory from </span><span class="si">{}</span><span class="s2">, please input using keyword in parameters: `lasso_base_dir =` &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">lasso_base_dir</span>
+    <span class="p">)</span>
     <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-    <span class="k">raise</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="Parameters"><a class="viewcode-back" href="../../_generated/lasso.Parameters.html#lasso.Parameters">[docs]</a><span class="k">class</span> <span class="nc">Parameters</span><span class="p">:</span>
@@ -359,6 +365,14 @@
 <span class="sd">                    53: 1,</span>
 <span class="sd">                    60: 1,</span>
 <span class="sd">                }</span>
+<span class="sd">        downtown_area_type_shape (str): Location of shapefile defining downtown area type.</span>
+<span class="sd">            Default:</span>
+<span class="sd">            ::</span>
+<span class="sd">                r&quot;metcouncil_data/area_type/downtownzones_TAZ.shp&quot;</span>
+<span class="sd">        downtown_area_type (int): Area type integer for downtown.</span>
+<span class="sd">            Default:</span>
+<span class="sd">            ::</span>
+<span class="sd">                5</span>
 <span class="sd">        mrcc_roadway_class_shape (str): Shapefile of MRCC links with a property</span>
 <span class="sd">            associated with roadway class. Default:</span>
 <span class="sd">            ::</span>
@@ -465,8 +479,8 @@
 <span class="sd">        Time period and category  splitting info</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="s1">&#39;time_periods_to_time&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time_periods_to_time</span> <span class="o">=</span> <span class="n">time_periods_to_time</span>
+        <span class="k">if</span> <span class="s2">&quot;time_periods_to_time&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_periods_to_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;time_periods_to_time&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time_period_to_time</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">&quot;AM&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;6:00&quot;</span><span class="p">,</span> <span class="s2">&quot;9:00&quot;</span><span class="p">),</span>  <span class="c1">##TODO FILL IN with real numbers</span>
@@ -480,10 +494,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">route_type_mode_dict</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">9</span><span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cube_time_periods</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="s2">&quot;AM&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span> <span class="s2">&quot;MD&quot;</span><span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cube_time_periods_name</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;AM&quot;</span> <span class="p">:</span> <span class="s2">&quot;pk&quot;</span><span class="p">,</span> <span class="s2">&quot;MD&quot;</span> <span class="p">:</span> <span class="s2">&quot;op&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cube_time_periods_name</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;AM&quot;</span><span class="p">:</span> <span class="s2">&quot;pk&quot;</span><span class="p">,</span> <span class="s2">&quot;MD&quot;</span><span class="p">:</span> <span class="s2">&quot;op&quot;</span><span class="p">}</span>
 
-        <span class="k">if</span> <span class="s1">&#39;categories&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="o">=</span> <span class="n">categories</span>
+        <span class="k">if</span> <span class="s2">&quot;categories&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;categories&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="c1"># suffix, source (in order of search)</span>
@@ -517,25 +531,25 @@
 <span class="sd">        Details for calculating the county based on the centroid of the link.</span>
 <span class="sd">        The COUNTY_VARIABLE should be the name of a field in shapefile.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="s1">&#39;lasso_base_dir&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">get_base_dir</span><span class="p">(</span><span class="n">lasso_base_dir</span> <span class="o">=</span> <span class="n">base_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;lasso_base_dir&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">get_base_dir</span><span class="p">(</span><span class="n">lasso_base_dir</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lasso_base_dir&quot;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">get_base_dir</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="s1">&#39;data_file_location&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_files_location</span> <span class="o">=</span>  <span class="n">data_file_location</span>
+        <span class="k">if</span> <span class="s2">&quot;data_file_location&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data_file_location&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span>  <span class="s2">&quot;metcouncil_data&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;metcouncil_data&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="s1">&#39;settings_location&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span> <span class="o">=</span> <span class="n">settings_location</span>
+        <span class="k">if</span> <span class="s2">&quot;settings_location&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;settings_location&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="p">,</span> <span class="s2">&quot;examples&quot;</span><span class="p">,</span> <span class="s2">&quot;settings&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;examples&quot;</span><span class="p">,</span> <span class="s2">&quot;settings&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span>  <span class="s1">&#39;scratch_location&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scratch_location</span> <span class="o">=</span> <span class="n">scratch_location</span>
+        <span class="k">if</span> <span class="s2">&quot;scratch_location&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scratch_location</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scratch_location&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scratch_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="p">,</span> <span class="s2">&quot;tests&quot;</span><span class="p">,</span> <span class="s2">&quot;scratch&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scratch_location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;tests&quot;</span><span class="p">,</span> <span class="s2">&quot;scratch&quot;</span><span class="p">)</span>
 
         <span class="c1">### COUNTIES</span>
 
@@ -545,27 +559,27 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">county_variable_shp</span> <span class="o">=</span> <span class="s2">&quot;NAME&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">county_code_dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;Anoka&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;Carver&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span>
-            <span class="s1">&#39;Dakota&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span>
-            <span class="s1">&#39;Hennepin&#39;</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span>
-            <span class="s1">&#39;Ramsey&#39;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span>
-            <span class="s1">&#39;Scott&#39;</span><span class="p">:</span><span class="mi">6</span><span class="p">,</span>
-            <span class="s1">&#39;Washington&#39;</span><span class="p">:</span><span class="mi">7</span><span class="p">,</span>
-            <span class="s1">&#39;external&#39;</span><span class="p">:</span><span class="mi">10</span><span class="p">,</span>
-            <span class="s1">&#39;Chisago&#39;</span><span class="p">:</span><span class="mi">11</span><span class="p">,</span>
-            <span class="s1">&#39;Goodhue&#39;</span><span class="p">:</span><span class="mi">12</span><span class="p">,</span>
-            <span class="s1">&#39;Isanti&#39;</span><span class="p">:</span><span class="mi">13</span><span class="p">,</span>
-            <span class="s1">&#39;Le Sueur&#39;</span><span class="p">:</span><span class="mi">14</span><span class="p">,</span>
-            <span class="s1">&#39;McLeod&#39;</span><span class="p">:</span><span class="mi">15</span><span class="p">,</span>
-            <span class="s1">&#39;Pierce&#39;</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span>
-            <span class="s1">&#39;Polk&#39;</span><span class="p">:</span><span class="mi">17</span><span class="p">,</span>
-            <span class="s1">&#39;Rice&#39;</span><span class="p">:</span><span class="mi">18</span><span class="p">,</span>
-            <span class="s1">&#39;Sherburne&#39;</span><span class="p">:</span><span class="mi">19</span><span class="p">,</span>
-            <span class="s1">&#39;Sibley&#39;</span><span class="p">:</span><span class="mi">20</span><span class="p">,</span>
-            <span class="s1">&#39;St. Croix&#39;</span><span class="p">:</span><span class="mi">21</span><span class="p">,</span>
-            <span class="s1">&#39;Wright&#39;</span><span class="p">:</span><span class="mi">22</span>
-            <span class="p">}</span>
+            <span class="s2">&quot;Anoka&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;Carver&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;Dakota&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s2">&quot;Hennepin&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;Ramsey&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">&quot;Scott&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+            <span class="s2">&quot;Washington&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+            <span class="s2">&quot;external&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+            <span class="s2">&quot;Chisago&quot;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+            <span class="s2">&quot;Goodhue&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+            <span class="s2">&quot;Isanti&quot;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+            <span class="s2">&quot;Le Sueur&quot;</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+            <span class="s2">&quot;McLeod&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+            <span class="s2">&quot;Pierce&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+            <span class="s2">&quot;Polk&quot;</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+            <span class="s2">&quot;Rice&quot;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span>
+            <span class="s2">&quot;Sherburne&quot;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span>
+            <span class="s2">&quot;Sibley&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+            <span class="s2">&quot;St. Croix&quot;</span><span class="p">:</span> <span class="mi">21</span><span class="p">,</span>
+            <span class="s2">&quot;Wright&quot;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span>
+        <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mpo_counties</span> <span class="o">=</span> <span class="p">[</span>
             <span class="mi">1</span><span class="p">,</span>
@@ -587,7 +601,9 @@
 
         <span class="c1">### AREA TYPE</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">area_type_shape</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;area_type&quot;</span><span class="p">,</span> <span class="s2">&quot;ThriveMSP2040CommunityDesignation.shp&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span>
+            <span class="s2">&quot;area_type&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ThriveMSP2040CommunityDesignation.shp&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">area_type_variable_shp</span> <span class="o">=</span> <span class="s2">&quot;COMDES2040&quot;</span>
         <span class="c1"># area type map from raw data to model category</span>
@@ -602,7 +618,7 @@
         <span class="c1"># diversified rural</span>
         <span class="c1"># rural residential</span>
         <span class="c1"># agricultural</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">area_type_code_dict</span>  <span class="o">=</span> <span class="p">{</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">area_type_code_dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="mi">23</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># urban center</span>
             <span class="mi">24</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
             <span class="mi">25</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
@@ -614,6 +630,14 @@
             <span class="mi">53</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
             <span class="mi">60</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
         <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">downtown_area_type_shape</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span>
+            <span class="s2">&quot;area_type&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;downtownzones_TAZ.shp&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">downtown_area_type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">osm_assgngrp_dict</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;lookups&quot;</span><span class="p">,</span> <span class="s2">&quot;osm_highway_asgngrp_crosswalk.csv&quot;</span>
@@ -643,7 +667,9 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">widot_shst_data</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;Wisconsin_Lanes_Counts_Median&quot;</span><span class="p">,</span> <span class="s2">&quot;widot.out.matched.geojson&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span>
+            <span class="s2">&quot;Wisconsin_Lanes_Counts_Median&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;widot.out.matched.geojson&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">roadway_class_dict</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -661,7 +687,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mndot_count_variable_shp</span> <span class="o">=</span> <span class="s2">&quot;AADT_mn&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">widot_county_shape</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;Wisconsin_Lanes_Counts_Median&quot;</span><span class="p">,</span> <span class="s2">&quot;TRADAS_(counts).shp&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span>
+            <span class="s2">&quot;Wisconsin_Lanes_Counts_Median&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TRADAS_(counts).shp&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">widot_count_shst_data</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -672,9 +700,13 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">widot_count_variable_shp</span> <span class="o">=</span> <span class="s2">&quot;AADT_wi&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">net_to_dbf_crosswalk</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span><span class="p">,</span> <span class="s2">&quot;net_to_dbf.csv&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">net_to_dbf_crosswalk</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span><span class="p">,</span> <span class="s2">&quot;net_to_dbf.csv&quot;</span>
+        <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">log_to_net_crosswalk</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span><span class="p">,</span> <span class="s2">&quot;log_to_net.csv&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_to_net_crosswalk</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings_location</span><span class="p">,</span> <span class="s2">&quot;log_to_net.csv&quot;</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_variables</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;model_link_id&quot;</span><span class="p">,</span>
@@ -682,6 +714,7 @@
             <span class="s2">&quot;A&quot;</span><span class="p">,</span>
             <span class="s2">&quot;B&quot;</span><span class="p">,</span>
             <span class="s2">&quot;shstGeometryId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;shape_id&quot;</span><span class="p">,</span>
             <span class="s2">&quot;distance&quot;</span><span class="p">,</span>
             <span class="s2">&quot;roadway&quot;</span><span class="p">,</span>
             <span class="s2">&quot;name&quot;</span><span class="p">,</span>
@@ -753,7 +786,10 @@
             <span class="s2">&quot;segment_id&quot;</span><span class="p">,</span>
             <span class="s2">&quot;managed&quot;</span><span class="p">,</span>
             <span class="s2">&quot;bus_only&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;rail_only&quot;</span>
+            <span class="s2">&quot;rail_only&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bike_facility&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mrcc_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ROUTE_SYS&quot;</span><span class="p">,</span>  <span class="c1">#mrcc functional class</span>
         <span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_link_shp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scratch_location</span><span class="p">,</span> <span class="s2">&quot;links.shp&quot;</span><span class="p">)</span>
@@ -788,17 +824,21 @@
             <span class="s2">&quot;model_node_id&quot;</span><span class="p">,</span>
             <span class="s2">&quot;A&quot;</span><span class="p">,</span>
             <span class="s2">&quot;B&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;lanes&quot;</span><span class="p">,</span>
+            <span class="c1"># &quot;lanes&quot;,</span>
+            <span class="s2">&quot;lanes_AM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lanes_MD&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lanes_PM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lanes_NT&quot;</span><span class="p">,</span>
             <span class="s2">&quot;roadway_class&quot;</span><span class="p">,</span>
             <span class="s2">&quot;assign_group&quot;</span><span class="p">,</span>
             <span class="s2">&quot;county&quot;</span><span class="p">,</span>
             <span class="s2">&quot;area_type&quot;</span><span class="p">,</span>
             <span class="s2">&quot;trn_priority&quot;</span><span class="p">,</span>
             <span class="s2">&quot;AADT&quot;</span><span class="p">,</span>
-            <span class="s1">&#39;count_AM&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;count_MD&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;count_PM&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;count_NT&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;count_AM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;count_MD&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;count_PM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;count_NT&quot;</span><span class="p">,</span>
             <span class="s2">&quot;count_daily&quot;</span><span class="p">,</span>
             <span class="s2">&quot;centroidconnect&quot;</span><span class="p">,</span>
             <span class="s2">&quot;bike_facility&quot;</span><span class="p">,</span>
@@ -810,20 +850,19 @@
             <span class="s2">&quot;walk_node&quot;</span><span class="p">,</span>
             <span class="s2">&quot;bike_node&quot;</span><span class="p">,</span>
             <span class="s2">&quot;transit_node&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ML_lanes&quot;</span><span class="p">,</span>
+            <span class="c1"># &quot;ML_lanes&quot;,</span>
+            <span class="s2">&quot;ML_lanes_AM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ML_lanes_MD&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ML_lanes_PM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ML_lanes_NT&quot;</span><span class="p">,</span>
             <span class="s2">&quot;segment_id&quot;</span><span class="p">,</span>
             <span class="s2">&quot;managed&quot;</span><span class="p">,</span>
             <span class="s2">&quot;bus_only&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;rail_only&quot;</span>
+            <span class="s2">&quot;rail_only&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mrcc_id&quot;</span><span class="p">,</span>
         <span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">float_col</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">&quot;distance&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ttime_assert&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;price&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;X&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Y&quot;</span>
-        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">float_col</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;distance&quot;</span><span class="p">,</span> <span class="s2">&quot;ttime_assert&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">string_col</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;osm_node_id&quot;</span><span class="p">,</span>
@@ -833,7 +872,8 @@
             <span class="s2">&quot;access_AM&quot;</span><span class="p">,</span>
             <span class="s2">&quot;access_MD&quot;</span><span class="p">,</span>
             <span class="s2">&quot;access_PM&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;access_NT&quot;</span>
+            <span class="s2">&quot;access_NT&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ROUTE_SYS&quot;</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div></div>
@@ -849,11 +889,19 @@
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -864,7 +912,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

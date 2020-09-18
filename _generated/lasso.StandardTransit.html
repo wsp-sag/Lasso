@@ -1,8 +1,7 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -12,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -29,11 +35,6 @@
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="lasso.ModelRoadwayNetwork" href="lasso.ModelRoadwayNetwork.html" />
@@ -51,7 +52,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> lasso
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -74,6 +75,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -103,6 +105,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -141,7 +144,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../autodoc.html">Lasso Classes and Functions</a> &raquo;</li>
         
@@ -199,7 +202,14 @@ about time periods and variables.</p>
 <dl class="py method">
 <dt id="lasso.StandardTransit.__init__">
 <code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ptg_feed</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/transit.html#StandardTransit.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.StandardTransit.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ptg_feed</strong> – partridge feed object</p></li>
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Methods</p>
@@ -210,7 +220,12 @@ about time periods and variables.</p>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.StandardTransit.__init__" title="lasso.StandardTransit.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(ptg_feed[, parameters])</p></td>
-<td><p>Initialize self.</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param ptg_feed</dt>
+<dd class="field-odd"><p>partridge feed object</p>
+</dd>
+</dl>
+</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.StandardTransit.calculate_cube_mode" title="lasso.StandardTransit.calculate_cube_mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_cube_mode</span></code></a>(row)</p></td>
 <td><p>Assigns a cube mode number by following logic.</p></td>
@@ -305,7 +320,7 @@ trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY, MODE, ONEWAY, OPERATOR</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>transit_network_object</strong> – Reference to an instance of TransitNetwork.</p></li>
-<li><p><strong>parameters</strong> (<em>Optional</em>) – Dictionary of parameter settings. If not provided will
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will
 use default parameters.</p></li>
 </ul>
 </dd>
@@ -324,7 +339,7 @@ instance.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>gtfs_feed_dir</strong> – location of the GTFS files</p></li>
-<li><p><strong>parameters</strong> (<em>Optional</em>) – Dictionary of parameter settings. Of not provided will
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will
 use default parameters.</p></li>
 </ul>
 </dd>
@@ -444,11 +459,19 @@ converting gtfs properties to MetCouncil cube properties.</p>
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -459,7 +482,6 @@ converting gtfs properties to MetCouncil cube properties.</p>
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

@@ -1,4 +1,4 @@
-lasso.Parameters
+﻿lasso.Parameters
 ================
 
 .. currentmodule:: lasso

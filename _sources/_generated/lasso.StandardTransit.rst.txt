@@ -1,4 +1,4 @@
-lasso.StandardTransit
+﻿lasso.StandardTransit
 =====================
 
 .. currentmodule:: lasso

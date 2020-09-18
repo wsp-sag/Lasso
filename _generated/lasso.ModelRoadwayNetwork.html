@@ -1,8 +1,7 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -12,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -29,11 +35,6 @@
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="lasso.Project" href="lasso.Project.html" />
@@ -51,7 +52,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> lasso
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -74,6 +75,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -103,6 +105,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -141,7 +144,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../autodoc.html">Lasso Classes and Functions</a> &raquo;</li>
         
@@ -169,13 +172,23 @@
 <dl class="py class">
 <dt id="lasso.ModelRoadwayNetwork">
 <em class="property">class </em><code class="sig-prename descclassname">lasso.</code><code class="sig-name descname">ModelRoadwayNetwork</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nodes</span></em>, <em class="sig-param"><span class="n">links</span></em>, <em class="sig-param"><span class="n">shapes</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">network_wrangler.RoadwayNetwork.RoadwayNetwork</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">network_wrangler.roadwaynetwork.RoadwayNetwork</span></code></p>
 <p>Subclass of network_wrangler class <span class="xref std std-ref">RoadwayNetwork</span></p>
 <p>A representation of the physical roadway network and its properties.</p>
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.__init__">
 <code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nodes</span></em>, <em class="sig-param"><span class="n">links</span></em>, <em class="sig-param"><span class="n">shapes</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nodes</strong> – geodataframe of nodes</p></li>
+<li><p><strong>links</strong> – dataframe of links</p></li>
+<li><p><strong>shapes</strong> – geodataframe of shapes</p></li>
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Methods</p>
@@ -192,7 +205,7 @@
 <td><p>Adds count variable.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.add_new_roadway_feature_change" title="lasso.ModelRoadwayNetwork.add_new_roadway_feature_change"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_new_roadway_feature_change</span></code></a>(links, nodes)</p></td>
-<td><p>add the new roadway features defined in the project card</p></td>
+<td><p>add the new roadway features defined in the project card.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.add_variable_using_shst_reference" title="lasso.ModelRoadwayNetwork.add_variable_using_shst_reference"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_variable_using_shst_reference</span></code></a>([…])</p></td>
 <td><p>Join network links with source data, via SHST API node match result.</p></td>
@@ -206,41 +219,41 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.apply_managed_lane_feature_change" title="lasso.ModelRoadwayNetwork.apply_managed_lane_feature_change"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_managed_lane_feature_change</span></code></a>(link_idx, …)</p></td>
 <td><p>Apply the managed lane feature changes to the roadway network</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.apply_roadway_feature_change" title="lasso.ModelRoadwayNetwork.apply_roadway_feature_change"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_roadway_feature_change</span></code></a>(link_idx, …)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.apply_python_calculation" title="lasso.ModelRoadwayNetwork.apply_python_calculation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_python_calculation</span></code></a>(pycode[, in_place])</p></td>
+<td><p>Changes roadway network object by executing pycode.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.apply_roadway_feature_change" title="lasso.ModelRoadwayNetwork.apply_roadway_feature_change"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_roadway_feature_change</span></code></a>(link_idx, …)</p></td>
 <td><p>Changes the roadway attributes for the selected features based on the project card information passed</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.assess_connectivity" title="lasso.ModelRoadwayNetwork.assess_connectivity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">assess_connectivity</span></code></a>([mode, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.assess_connectivity" title="lasso.ModelRoadwayNetwork.assess_connectivity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">assess_connectivity</span></code></a>([mode, …])</p></td>
 <td><p>Returns a network graph and list of disconnected subgraphs as described by a list of their member nodes.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.build_selection_key" title="lasso.ModelRoadwayNetwork.build_selection_key"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_selection_key</span></code></a>(selection_dict)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.build_selection_key" title="lasso.ModelRoadwayNetwork.build_selection_key"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_selection_key</span></code></a>(selection_dict)</p></td>
 <td><p>Selections are stored by a key combining the query and the A and B ids.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_area_type" title="lasso.ModelRoadwayNetwork.calculate_area_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_area_type</span></code></a>([area_type_shape, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_area_type" title="lasso.ModelRoadwayNetwork.calculate_area_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_area_type</span></code></a>([area_type_shape, …])</p></td>
 <td><p>Calculates area type variable.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_assign_group" title="lasso.ModelRoadwayNetwork.calculate_assign_group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_assign_group</span></code></a>([network_variable, …])</p></td>
-<td><p>Calculates assignment group variable.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_assign_group_and_roadway_class" title="lasso.ModelRoadwayNetwork.calculate_assign_group_and_roadway_class"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_assign_group_and_roadway_class</span></code></a>([…])</p></td>
+<td><p>Calculates assignment group and roadway class variables.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_centroidconnect" title="lasso.ModelRoadwayNetwork.calculate_centroidconnect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_centroidconnect</span></code></a>([…])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_centroidconnect" title="lasso.ModelRoadwayNetwork.calculate_centroidconnect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_centroidconnect</span></code></a>([…])</p></td>
 <td><p>Calculates centroid connector variable.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_county" title="lasso.ModelRoadwayNetwork.calculate_county"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_county</span></code></a>([county_shape, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_county" title="lasso.ModelRoadwayNetwork.calculate_county"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_county</span></code></a>([county_shape, …])</p></td>
 <td><p>Calculates county variable.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_distance" title="lasso.ModelRoadwayNetwork.calculate_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_distance</span></code></a>([network_variable, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_distance" title="lasso.ModelRoadwayNetwork.calculate_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_distance</span></code></a>([network_variable, …])</p></td>
 <td><p>calculate link distance in miles</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_hov" title="lasso.ModelRoadwayNetwork.calculate_hov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_hov</span></code></a>([network_variable, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_hov" title="lasso.ModelRoadwayNetwork.calculate_hov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_hov</span></code></a>([network_variable, …])</p></td>
 <td><p>Calculates hov variable.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_mpo" title="lasso.ModelRoadwayNetwork.calculate_mpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_mpo</span></code></a>([county_network_variable, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_mpo" title="lasso.ModelRoadwayNetwork.calculate_mpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_mpo</span></code></a>([county_network_variable, …])</p></td>
 <td><p>Calculates mpo variable.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.calculate_roadway_class" title="lasso.ModelRoadwayNetwork.calculate_roadway_class"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_roadway_class</span></code></a>([network_variable, …])</p></td>
-<td><p>Calculates roadway class variable.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.convert_int" title="lasso.ModelRoadwayNetwork.convert_int"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_int</span></code></a>()</p></td>
-<td><p>convert integer columns</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.convert_int" title="lasso.ModelRoadwayNetwork.convert_int"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_int</span></code></a>([int_col_names])</p></td>
+<td><p>Convert integer columns</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.create_ML_variable" title="lasso.ModelRoadwayNetwork.create_ML_variable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_ML_variable</span></code></a>([network_variable, overwrite])</p></td>
 <td><p>Created ML lanes placeholder for project to write out ML changes</p></td>
@@ -255,16 +268,16 @@
 <td><p>Created hov corridor placeholder for project to write out corridor changes</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.create_managed_lane_network" title="lasso.ModelRoadwayNetwork.create_managed_lane_network"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_managed_lane_network</span></code></a>([in_place])</p></td>
-<td><p>Create a roadway network with managed lanes links separated out</p></td>
+<td><p>Create a roadway network with managed lanes links separated out.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.create_managed_variable" title="lasso.ModelRoadwayNetwork.create_managed_variable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_managed_variable</span></code></a>([network_variable, …])</p></td>
 <td><p>Created placeholder for project to write out managed</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.dataframe_to_fixed_with" title="lasso.ModelRoadwayNetwork.dataframe_to_fixed_with"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_fixed_with</span></code></a>(df)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.dataframe_to_fixed_width" title="lasso.ModelRoadwayNetwork.dataframe_to_fixed_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_fixed_width</span></code></a>(df)</p></td>
 <td><p>Convert dataframe to fixed width format, geometry column will not be transformed.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.delete_roadway_feature_change" title="lasso.ModelRoadwayNetwork.delete_roadway_feature_change"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_roadway_feature_change</span></code></a>(links, nodes)</p></td>
-<td><p>delete the roadway features defined in the project card</p></td>
+<td><p>delete the roadway features defined in the project card.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.deletion_map" title="lasso.ModelRoadwayNetwork.deletion_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deletion_map</span></code></a>(links, nodes)</p></td>
 <td><p>Shows which links and nodes are deleted from the roadway network</p></td>
@@ -284,7 +297,7 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.get_modal_graph" title="lasso.ModelRoadwayNetwork.get_modal_graph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_modal_graph</span></code></a>(links_df, nodes_df[, mode])</p></td>
 <td><p>Determines if the network graph is “strongly” connected A graph is strongly connected if each vertex is reachable from every other vertex.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.get_modal_links_nodes" title="lasso.ModelRoadwayNetwork.get_modal_links_nodes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_modal_links_nodes</span></code></a>(links_df, nodes_df[, mode])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.get_modal_links_nodes" title="lasso.ModelRoadwayNetwork.get_modal_links_nodes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_modal_links_nodes</span></code></a>(links_df, nodes_df[, …])</p></td>
 <td><p>Returns nodes and link dataframes for specific mode.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.get_property_by_time_period_and_group" title="lasso.ModelRoadwayNetwork.get_property_by_time_period_and_group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property_by_time_period_and_group</span></code></a>(property)</p></td>
@@ -311,13 +324,16 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.rename_variables_for_dbf" title="lasso.ModelRoadwayNetwork.rename_variables_for_dbf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_variables_for_dbf</span></code></a>(input_df[, …])</p></td>
 <td><p>Rename attributes for DBF/SHP, make sure length within 10 chars.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.roadway_standard_to_met_council_network" title="lasso.ModelRoadwayNetwork.roadway_standard_to_met_council_network"><code class="xref py py-obj docutils literal notranslate"><span class="pre">roadway_standard_to_met_council_network</span></code></a>([…])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.roadway_net_to_gdf" title="lasso.ModelRoadwayNetwork.roadway_net_to_gdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">roadway_net_to_gdf</span></code></a>(roadway_net)</p></td>
+<td><p>Turn the roadway network into a GeoDataFrame :param roadway_net: the roadway network to export</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.roadway_standard_to_met_council_network" title="lasso.ModelRoadwayNetwork.roadway_standard_to_met_council_network"><code class="xref py py-obj docutils literal notranslate"><span class="pre">roadway_standard_to_met_council_network</span></code></a>([…])</p></td>
 <td><p>Rename and format roadway attributes to be consistent with what metcouncil’s model is expecting.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.select_roadway_features" title="lasso.ModelRoadwayNetwork.select_roadway_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_roadway_features</span></code></a>(selection[, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.select_roadway_features" title="lasso.ModelRoadwayNetwork.select_roadway_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_roadway_features</span></code></a>(selection[, …])</p></td>
 <td><p>Selects roadway features that satisfy selection criteria</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.selection_has_unique_link_id" title="lasso.ModelRoadwayNetwork.selection_has_unique_link_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_has_unique_link_id</span></code></a>(selection_dict)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.selection_has_unique_link_id" title="lasso.ModelRoadwayNetwork.selection_has_unique_link_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_has_unique_link_id</span></code></a>(selection_dict)</p></td>
 <td><p><dl class="field-list simple">
 <dt class="field-odd">param selection_dictionary</dt>
 <dd class="field-odd"><p>Dictionary representation of selection</p>
@@ -325,40 +341,40 @@
 </dl>
 </p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.selection_map" title="lasso.ModelRoadwayNetwork.selection_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_map</span></code></a>()</p></td>
-<td><p>Shows which links are selected for roadway property change or parallel managed lanes category of roadway projects</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.selection_map" title="lasso.ModelRoadwayNetwork.selection_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_map</span></code></a>(selected_link_idx[, A, B, …])</p></td>
+<td><p>Shows which links are selected for roadway property change or parallel managed lanes category of roadway projects.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.split_properties_by_time_period_and_category" title="lasso.ModelRoadwayNetwork.split_properties_by_time_period_and_category"><code class="xref py py-obj docutils literal notranslate"><span class="pre">split_properties_by_time_period_and_category</span></code></a>([…])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.split_properties_by_time_period_and_category" title="lasso.ModelRoadwayNetwork.split_properties_by_time_period_and_category"><code class="xref py py-obj docutils literal notranslate"><span class="pre">split_properties_by_time_period_and_category</span></code></a>([…])</p></td>
 <td><p>Splits properties by time period, assuming a variable structure of</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_link_schema" title="lasso.ModelRoadwayNetwork.validate_link_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_link_schema</span></code></a>(link_file[, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_link_schema" title="lasso.ModelRoadwayNetwork.validate_link_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_link_schema</span></code></a>(link_file[, …])</p></td>
 <td><p>Validate roadway network data link schema and output a boolean</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_node_schema" title="lasso.ModelRoadwayNetwork.validate_node_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_node_schema</span></code></a>(node_file[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_node_schema" title="lasso.ModelRoadwayNetwork.validate_node_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_node_schema</span></code></a>(node_file[, …])</p></td>
 <td><p>Validate roadway network data node schema and output a boolean</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_object_types" title="lasso.ModelRoadwayNetwork.validate_object_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_object_types</span></code></a>(nodes, links, shapes)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_object_types" title="lasso.ModelRoadwayNetwork.validate_object_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_object_types</span></code></a>(nodes, links, shapes)</p></td>
 <td><p>Determines if the roadway network is being built with the right object types.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_properties" title="lasso.ModelRoadwayNetwork.validate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_properties</span></code></a>(properties[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_properties" title="lasso.ModelRoadwayNetwork.validate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_properties</span></code></a>(properties[, …])</p></td>
 <td><p>If there are change or existing commands, make sure that that property exists in the network.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_selection" title="lasso.ModelRoadwayNetwork.validate_selection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_selection</span></code></a>(selection)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_selection" title="lasso.ModelRoadwayNetwork.validate_selection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_selection</span></code></a>(selection)</p></td>
 <td><p>Evaluate whetther the selection dictionary contains the minimum required values.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_shape_schema" title="lasso.ModelRoadwayNetwork.validate_shape_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_shape_schema</span></code></a>(shape_file[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_shape_schema" title="lasso.ModelRoadwayNetwork.validate_shape_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_shape_schema</span></code></a>(shape_file[, …])</p></td>
 <td><p>Validate roadway network data shape schema and output a boolean</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_uniqueness" title="lasso.ModelRoadwayNetwork.validate_uniqueness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_uniqueness</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.validate_uniqueness" title="lasso.ModelRoadwayNetwork.validate_uniqueness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_uniqueness</span></code></a>()</p></td>
 <td><p>Confirms that the unique identifiers are met.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write" title="lasso.ModelRoadwayNetwork.write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write</span></code></a>([path, filename])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write" title="lasso.ModelRoadwayNetwork.write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write</span></code></a>([path, filename])</p></td>
 <td><p>Writes a network in the roadway network standard</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth" title="lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_roadway_as_fixedwidth</span></code></a>([…])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth" title="lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_roadway_as_fixedwidth</span></code></a>([…])</p></td>
 <td><p>Writes out fixed width file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write_roadway_as_shp" title="lasso.ModelRoadwayNetwork.write_roadway_as_shp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_roadway_as_shp</span></code></a>([…])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.write_roadway_as_shp" title="lasso.ModelRoadwayNetwork.write_roadway_as_shp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_roadway_as_shp</span></code></a>([…])</p></td>
 <td><p>Write out dbf/shp for cube.</p></td>
 </tr>
 </tbody>
@@ -370,10 +386,10 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.CRS" title="lasso.ModelRoadwayNetwork.CRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CRS</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.CALCULATED_VALUES" title="lasso.ModelRoadwayNetwork.CALCULATED_VALUES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CALCULATED_VALUES</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.EPSG" title="lasso.ModelRoadwayNetwork.EPSG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EPSG</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.CRS" title="lasso.ModelRoadwayNetwork.CRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CRS</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP" title="lasso.ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KEEP_SAME_ATTRIBUTES_ML_AND_GP</span></code></a></p></td>
@@ -427,6 +443,9 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.UNIQUE_NODE_KEY" title="lasso.ModelRoadwayNetwork.UNIQUE_NODE_KEY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UNIQUE_NODE_KEY</span></code></a></p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lasso.ModelRoadwayNetwork.UNIQUE_SHAPE_KEY" title="lasso.ModelRoadwayNetwork.UNIQUE_SHAPE_KEY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UNIQUE_SHAPE_KEY</span></code></a></p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 <dl class="py method">
@@ -453,10 +472,17 @@
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.add_new_roadway_feature_change">
 <code class="sig-name descname">add_new_roadway_feature_change</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">links</span></em>, <em class="sig-param"><span class="n">nodes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.add_new_roadway_feature_change" title="Permalink to this definition">¶</a></dt>
-<dd><p>add the new roadway features defined in the project card</p>
-<p>args:
-links : list of dictionaries
-nodes : list of dictionaries</p>
+<dd><p>add the new roadway features defined in the project card.
+new shapes are also added for the new roadway links.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>links</strong> – list of dictionaries</p></li>
+<li><p><strong>nodes</strong> – list of dictionaries</p></li>
+</ul>
+</dd>
+</dl>
+<p>returns: None</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
@@ -515,6 +541,25 @@ a dictionary of the project card object</p>
 a new roadway network object</p></li>
 </ul>
 </dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Union(None, RoadwayNetwork)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lasso.ModelRoadwayNetwork.apply_python_calculation">
+<code class="sig-name descname">apply_python_calculation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pycode</span></em>, <em class="sig-param"><span class="n">in_place</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.apply_python_calculation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes roadway network object by executing pycode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pycode</strong> – python code which changes values in the roadway network object</p></li>
+<li><p><strong>in_place</strong> – update self or return a new roadway network object</p></li>
+</ul>
+</dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>Union(None, RoadwayNetwork)</p>
 </dd>
@@ -545,13 +590,13 @@ update self or return a new roadway network object</p></li>
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.assess_connectivity">
-<code class="sig-name descname">assess_connectivity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ignore_end_nodes</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">links_df</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nodes_df</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.assess_connectivity" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">assess_connectivity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">ignore_end_nodes</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">links_df</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nodes_df</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.assess_connectivity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a network graph and list of disconnected subgraphs
 as described by a list of their member nodes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mode</strong> – mode of the network, one of <cite>drive</cite>,`transit`,
+<li><p><strong>mode</strong> – list of modes of the network, one of <cite>drive</cite>,`transit`,
 <cite>walk</cite>, <cite>bike</cite></p></li>
 <li><p><strong>ignore_end_nodes</strong> – if True, ignores stray singleton nodes</p></li>
 <li><p><strong>links_df</strong> – if specified, will assess connectivity of this
@@ -591,7 +636,7 @@ This method combines the two for you based on the selection dictionary.</p>
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.calculate_area_type">
-<code class="sig-name descname">calculate_area_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">area_type_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">area_type_shape_variable</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">network_variable</span><span class="o">=</span><span class="default_value">'area_type'</span></em>, <em class="sig-param"><span class="n">area_type_codes_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.calculate_area_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.calculate_area_type" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">calculate_area_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">area_type_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">area_type_shape_variable</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">network_variable</span><span class="o">=</span><span class="default_value">'area_type'</span></em>, <em class="sig-param"><span class="n">area_type_codes_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">downtown_area_type_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">downtown_area_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.calculate_area_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.calculate_area_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates area type variable.</p>
 <p>This uses the centroid of the geometry field to determine which area it should be labeled.
 This isn’t perfect, but it much quicker than other methods.</p>
@@ -602,6 +647,8 @@ This isn’t perfect, but it much quicker than other methods.</p>
 <li><p><strong>area_type_shape_variable</strong> (<em>str</em>) – The variable name of area type in area geodadabase.</p></li>
 <li><p><strong>network_variable</strong> (<em>str</em>) – The variable name of area type in network standard.  Default to “area_type”.</p></li>
 <li><p><strong>area_type_codes_dict</strong> – The dictionary to map input area_type_shape_variable to network_variable</p></li>
+<li><p><strong>downtown_area_type_shape</strong> – The file path to the downtown area type boundary.</p></li>
+<li><p><strong>downtown_area_type</strong> (<em>int</em>) – Integer value of downtown area type</p></li>
 <li><p><strong>overwrite</strong> (<em>Bool</em>) – True if overwriting existing county variable in network.  Default to False.</p></li>
 </ul>
 </dd>
@@ -612,9 +659,9 @@ This isn’t perfect, but it much quicker than other methods.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lasso.ModelRoadwayNetwork.calculate_assign_group">
-<code class="sig-name descname">calculate_assign_group</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">network_variable</span><span class="o">=</span><span class="default_value">'assign_group'</span></em>, <em class="sig-param"><span class="n">mrcc_roadway_class_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_shst_data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_roadway_class_variable_shp</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_roadway_class_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_shst_data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_roadway_class_variable_shp</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">osm_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.calculate_assign_group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.calculate_assign_group" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates assignment group variable.</p>
+<dt id="lasso.ModelRoadwayNetwork.calculate_assign_group_and_roadway_class">
+<code class="sig-name descname">calculate_assign_group_and_roadway_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">assign_group_variable_name</span><span class="o">=</span><span class="default_value">'assign_group'</span></em>, <em class="sig-param"><span class="n">road_class_variable_name</span><span class="o">=</span><span class="default_value">'roadway_class'</span></em>, <em class="sig-param"><span class="n">mrcc_roadway_class_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_shst_data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_roadway_class_variable_shp</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mrcc_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_roadway_class_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_shst_data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_roadway_class_variable_shp</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">widot_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">osm_assgngrp_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.calculate_assign_group_and_roadway_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.calculate_assign_group_and_roadway_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates assignment group and roadway class variables.</p>
 <p>Assignment Group is used in MetCouncil’s traffic assignment to segment the volume/delay curves.
 Original source is from the MRCC data for the Minnesota: “route system” which is a roadway class
 For Wisconsin, it is from the Wisconsin DOT database, which has a variable called “roadway category”</p>
@@ -623,7 +670,8 @@ For Wisconsin, it is from the Wisconsin DOT database, which has a variable calle
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>network_variable</strong> (<em>str</em>) – Name of the variable that should be written to.  Default to “assign_group”.</p></li>
+<li><p><strong>assign_group_variable_name</strong> (<em>str</em>) – Name of the variable assignment group should be written to.  Default to “assign_group”.</p></li>
+<li><p><strong>road_class_variable_name</strong> (<em>str</em>) – Name of the variable roadway class should be written to. Default to “roadway_class”.</p></li>
 <li><p><strong>mrcc_roadway_class_shape</strong> (<em>str</em>) – File path to the MRCC route system geodatabase.</p></li>
 <li><p><strong>mrcc_shst_data</strong> (<em>str</em>) – File path to the MRCC SHST match return.</p></li>
 <li><p><strong>mrcc_roadway_class_variable_shp</strong> (<em>str</em>) – Name of the variable where MRCC route system are stored.</p></li>
@@ -737,27 +785,9 @@ This isn’t perfect, but it much quicker than other methods.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lasso.ModelRoadwayNetwork.calculate_roadway_class">
-<code class="sig-name descname">calculate_roadway_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">network_variable</span><span class="o">=</span><span class="default_value">'roadway_class'</span></em>, <em class="sig-param"><span class="n">roadway_class_dict</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.calculate_roadway_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.calculate_roadway_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates roadway class variable.</p>
-<p>roadway_class is a lookup based on assignment group</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>network_variable</strong> (<em>str</em>) – Name of the variable that should be written to.  Default to “roadway_class”.</p></li>
-<li><p><strong>roadway_class_dict</strong> (<em>dict</em>) – Dictionary to map assignment group to roadway class.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.convert_int">
-<code class="sig-name descname">convert_int</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.convert_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.convert_int" title="Permalink to this definition">¶</a></dt>
-<dd><p>convert integer columns</p>
+<code class="sig-name descname">convert_int</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">int_col_names</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.convert_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.convert_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert integer columns</p>
 </dd></dl>
 
 <dl class="py method">
@@ -820,7 +850,9 @@ dataframe of corresponding managed lane links</p></li>
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.create_managed_lane_network">
 <code class="sig-name descname">create_managed_lane_network</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">in_place</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.create_managed_lane_network" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a roadway network with managed lanes links separated out</p>
+<dd><p>Create a roadway network with managed lanes links separated out.
+Add new parallel managed lane links, access/egress links,
+and add shapes corresponding to the new links</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>in_place</strong> – update self or return a new roadway network object</p>
@@ -850,8 +882,8 @@ dataframe of corresponding managed lane links</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lasso.ModelRoadwayNetwork.dataframe_to_fixed_with">
-<em class="property">static </em><code class="sig-name descname">dataframe_to_fixed_with</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.dataframe_to_fixed_with"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.dataframe_to_fixed_with" title="Permalink to this definition">¶</a></dt>
+<dt id="lasso.ModelRoadwayNetwork.dataframe_to_fixed_width">
+<em class="property">static </em><code class="sig-name descname">dataframe_to_fixed_width</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.dataframe_to_fixed_width"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.dataframe_to_fixed_width" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert dataframe to fixed width format, geometry column will not be transformed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -870,7 +902,9 @@ dict: dictionary with columns names as keys, column width as values.</p>
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.delete_roadway_feature_change">
 <code class="sig-name descname">delete_roadway_feature_change</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">links</span></em>, <em class="sig-param"><span class="n">nodes</span></em>, <em class="sig-param"><span class="n">ignore_missing</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.delete_roadway_feature_change" title="Permalink to this definition">¶</a></dt>
-<dd><p>delete the roadway features defined in the project card</p>
+<dd><p>delete the roadway features defined in the project card.
+valid links and nodes defined in the project gets deleted
+and shapes corresponding to the deleted links are also deleted.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -910,7 +944,7 @@ If False, will fail.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>roadway_network_object</strong> (<em>RoadwayNetwork</em>) – </p></li>
-<li><p><strong>parameters</strong> – parameters for lasso.</p></li>
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -964,19 +998,22 @@ A graph is strongly connected if each vertex is reachable from every other verte
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.get_modal_links_nodes">
-<em class="property">static </em><code class="sig-name descname">get_modal_links_nodes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">links_df</span></em>, <em class="sig-param"><span class="n">nodes_df</span></em>, <em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.get_modal_links_nodes" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_modal_links_nodes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">links_df</span></em>, <em class="sig-param"><span class="n">nodes_df</span></em>, <em class="sig-param"><span class="n">modes</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.get_modal_links_nodes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns nodes and link dataframes for specific mode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>links_df</strong> – DataFrame of standard network links</p></li>
 <li><p><strong>nodes_df</strong> – DataFrame of standard network nodes</p></li>
-<li><p><strong>mode</strong> – mode of the network, one of <cite>drive</cite>,`transit`,
-<cite>walk</cite>, <cite>bike</cite></p></li>
+<li><p><strong>modes</strong> – list of the modes of the network to be kept, must be in <cite>drive</cite>,`transit`,`rail`,`bus`,
+<cite>walk</cite>, <cite>bike</cite>. For example, if bike and walk are selected, both bike and walk links will be kept.</p></li>
 </ul>
 </dd>
 </dl>
 <p>Returns: tuple of DataFrames for links, nodes filtered by mode</p>
+<p>links with walk access are not marked as having walk access
+Issue discussed in <a class="reference external" href="https://github.com/wsp-sag/network_wrangler/issues/145">https://github.com/wsp-sag/network_wrangler/issues/145</a>
+modal_nodes_df = nodes_df[nodes_df[mode_node_variable] == 1]</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1050,7 +1087,8 @@ variables in the links file) for the AB nodes as a tuple.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>selection</strong> – selection dictionary with A and B keys</p></li>
 <li><p><strong>node_foreign_key</strong> – variable name for whatever is used by the u and v variable</p></li>
-<li><p><strong>the links_df file.  If nothing is specified</strong><strong>, </strong><strong>assume whatever</strong> (<em>in</em>) – </p></li>
+<li><p><strong>the links_df file.  If nothing is specified</strong> (<em>in</em>) – </p></li>
+<li><p><strong>whatever</strong> (<em>assume</em>) – </p></li>
 <li><p><strong>is</strong> (<em>default</em>) – </p></li>
 </ul>
 </dd>
@@ -1083,7 +1121,7 @@ be filled in, so do that too.</p>
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.read">
-<em class="property">static </em><code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">link_file</span></em>, <em class="sig-param"><span class="n">node_file</span></em>, <em class="sig-param"><span class="n">shape_file</span></em>, <em class="sig-param"><span class="n">fast</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.read" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">link_file</span></em>, <em class="sig-param"><span class="n">node_file</span></em>, <em class="sig-param"><span class="n">shape_file</span></em>, <em class="sig-param"><span class="n">fast</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">recalculate_calculated_variables</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">recalculate_distance</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads in links and nodes network standard.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1092,7 +1130,9 @@ be filled in, so do that too.</p>
 <li><p><strong>node_file</strong> (<em>str</em>) – File path to node geojson.</p></li>
 <li><p><strong>shape_file</strong> (<em>str</em>) – File path to link true shape geojson</p></li>
 <li><p><strong>fast</strong> (<em>bool</em>) – boolean that will skip validation to speed up read time.</p></li>
-<li><p><strong>parameters</strong> – parameters for lasso.</p></li>
+<li><p><strong>recalculate_calculated_variables</strong> (<em>bool</em>) – calculates fields from spatial joins, etc.</p></li>
+<li><p><strong>recalculate_distance</strong> (<em>bool</em>) – re-calculates distance.</p></li>
+<li><p><strong>parameters</strong> – dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1137,6 +1177,19 @@ not sure why we need, but should be in utilities not this class</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>dataframe</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lasso.ModelRoadwayNetwork.roadway_net_to_gdf">
+<em class="property">static </em><code class="sig-name descname">roadway_net_to_gdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">roadway_net</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.roadway_net_to_gdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn the roadway network into a GeoDataFrame
+:param roadway_net: the roadway network to export</p>
+<p>returns: shapes dataframe</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1215,9 +1268,19 @@ of roadway features, containing a “link” key.</p>
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.selection_map">
-<code class="sig-name descname">selection_map</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.selection_map" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">selection_map</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">selected_link_idx</span></em>, <em class="sig-param"><span class="n">A</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">B</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">candidate_link_idx</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lasso.ModelRoadwayNetwork.selection_map" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shows which links are selected for roadway property change or parallel
-managed lanes category of roadway projects</p>
+managed lanes category of roadway projects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>selected_links_idx</strong> – list of selected link indices</p></li>
+<li><p><strong>candidate_links_idx</strong> – optional list of candidate link indices to also include in map</p></li>
+<li><p><strong>A</strong> – optional foreign key of starting node of a route selection</p></li>
+<li><p><strong>B</strong> – optional foreign key of ending node of a route selection</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1352,7 +1415,7 @@ minimum required values.</p>
 
 <dl class="py method">
 <dt id="lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth">
-<code class="sig-name descname">write_roadway_as_fixedwidth</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node_output_variables</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">link_output_variables</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_link_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_node_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_link_header_width_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_node_header_width_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_cube_network_script</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.write_roadway_as_fixedwidth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">write_roadway_as_fixedwidth</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node_output_variables</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">link_output_variables</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_link_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_node_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_link_header_width_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_node_header_width_txt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_cube_network_script</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">drive_only</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lasso/roadway.html#ModelRoadwayNetwork.write_roadway_as_fixedwidth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lasso.ModelRoadwayNetwork.write_roadway_as_fixedwidth" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes out fixed width file.</p>
 <p>This function does:
 1. write out link and node fixed width data files for cube.
@@ -1368,6 +1431,7 @@ minimum required values.</p>
 <li><p><strong>output_link_header_width_txt</strong> (<em>str</em>) – File path to link column width records.</p></li>
 <li><p><strong>output_node_header_width_txt</strong> (<em>str</em>) – File path to node column width records.</p></li>
 <li><p><strong>output_cube_network_script</strong> (<em>str</em>) – File path to CUBE network building script.</p></li>
+<li><p><strong>drive_only</strong> (<em>bool</em>) – If True, only writes drive nodes and links</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1400,18 +1464,18 @@ minimum required values.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="lasso.ModelRoadwayNetwork.CRS">
-<code class="sig-name descname">CRS</code><em class="property"> = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.CRS" title="Permalink to this definition">¶</a></dt>
+<dt id="lasso.ModelRoadwayNetwork.CALCULATED_VALUES">
+<code class="sig-name descname">CALCULATED_VALUES</code><em class="property"> = ['area_type', 'county', 'assign_group', 'centroidconnect']</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.CALCULATED_VALUES" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="lasso.ModelRoadwayNetwork.EPSG">
-<code class="sig-name descname">EPSG</code><em class="property"> = 4326</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.EPSG" title="Permalink to this definition">¶</a></dt>
+<dt id="lasso.ModelRoadwayNetwork.CRS">
+<code class="sig-name descname">CRS</code><em class="property"> = 4326</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.CRS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="lasso.ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP">
-<code class="sig-name descname">KEEP_SAME_ATTRIBUTES_ML_AND_GP</code><em class="property"> = ['distance', 'bike_access', 'drive_access', 'transit_access', 'walk_access', 'maxspeed', 'name', 'oneway', 'ref', 'roadway', 'length']</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">KEEP_SAME_ATTRIBUTES_ML_AND_GP</code><em class="property"> = ['distance', 'bike_access', 'drive_access', 'transit_access', 'walk_access', 'maxspeed', 'name', 'oneway', 'ref', 'roadway', 'length', 'segment_id']</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1446,12 +1510,12 @@ minimum required values.</p>
 
 <dl class="py attribute">
 <dt id="lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_LINK_VARIABLES">
-<code class="sig-name descname">MODES_TO_NETWORK_LINK_VARIABLES</code><em class="property"> = {'bike': 'bike_access', 'drive': 'drive_access', 'transit': 'transit_access', 'walk': 'walk_access'}</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_LINK_VARIABLES" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">MODES_TO_NETWORK_LINK_VARIABLES</code><em class="property"> = {'bike': ['bike_access'], 'bus': ['bus_only', 'drive_access'], 'drive': ['drive_access'], 'rail': ['rail_only'], 'transit': ['bus_only', 'rail_only', 'drive_access'], 'walk': ['walk_access']}</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_LINK_VARIABLES" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_NODE_VARIABLES">
-<code class="sig-name descname">MODES_TO_NETWORK_NODE_VARIABLES</code><em class="property"> = {'bike': 'bike_node', 'drive': 'drive_node', 'transit': 'transit_node', 'walk': 'walk_node'}</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_NODE_VARIABLES" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">MODES_TO_NETWORK_NODE_VARIABLES</code><em class="property"> = {'bike': ['bike_node'], 'bus': ['bus_only', 'drive_node'], 'drive': ['drive_node'], 'rail': ['rail_only', 'drive_node'], 'transit': ['bus_only', 'rail_only', 'drive_node'], 'walk': ['walk_node']}</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.MODES_TO_NETWORK_NODE_VARIABLES" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1494,6 +1558,11 @@ minimum required values.</p>
 <code class="sig-name descname">UNIQUE_NODE_KEY</code><em class="property"> = 'model_node_id'</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.UNIQUE_NODE_KEY" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt id="lasso.ModelRoadwayNetwork.UNIQUE_SHAPE_KEY">
+<code class="sig-name descname">UNIQUE_SHAPE_KEY</code><em class="property"> = 'shape_id'</em><a class="headerlink" href="#lasso.ModelRoadwayNetwork.UNIQUE_SHAPE_KEY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1518,11 +1587,19 @@ minimum required values.</p>
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -1533,7 +1610,6 @@ minimum required values.</p>
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

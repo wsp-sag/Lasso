@@ -1,4 +1,4 @@
-lasso.CubeTransit
+﻿lasso.CubeTransit
 =================
 
 .. currentmodule:: lasso

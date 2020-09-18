@@ -1,9 +1,7 @@
 
 
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -13,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -30,11 +35,6 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" /> 
 </head>
@@ -50,7 +50,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lasso
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -73,6 +73,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -91,6 +92,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -129,7 +131,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Index</li>
     
@@ -219,6 +221,8 @@
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.apply_managed_lane_feature_change">apply_managed_lane_feature_change() (lasso.ModelRoadwayNetwork method)</a>
 </li>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.apply_python_calculation">apply_python_calculation() (lasso.ModelRoadwayNetwork method)</a>
+</li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.apply_roadway_feature_change">apply_roadway_feature_change() (lasso.ModelRoadwayNetwork method)</a>
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.assess_connectivity">assess_connectivity() (lasso.ModelRoadwayNetwork method)</a>
@@ -249,7 +253,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_area_type">calculate_area_type() (lasso.ModelRoadwayNetwork method)</a>
 </li>
-      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_assign_group">calculate_assign_group() (lasso.ModelRoadwayNetwork method)</a>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_assign_group_and_roadway_class">calculate_assign_group_and_roadway_class() (lasso.ModelRoadwayNetwork method)</a>
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_centroidconnect">calculate_centroidconnect() (lasso.ModelRoadwayNetwork method)</a>
 </li>
@@ -263,18 +267,24 @@
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_mpo">calculate_mpo() (lasso.ModelRoadwayNetwork method)</a>
 </li>
-      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.calculate_roadway_class">calculate_roadway_class() (lasso.ModelRoadwayNetwork method)</a>
-</li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.calculate_start_end_times">calculate_start_end_times() (lasso.CubeTransit method)</a>
 </li>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.CALCULATED_VALUES">CALCULATED_VALUES (lasso.ModelRoadwayNetwork attribute)</a>
+
+      <ul>
+        <li><a href="_generated/lasso.Project.html#lasso.Project.CALCULATED_VALUES">(lasso.Project attribute)</a>
+</li>
+      </ul></li>
       <li><a href="_generated/lasso.Project.html#lasso.Project.card_data">card_data (lasso.Project attribute)</a>
+</li>
+      <li><a href="_generated/lasso.util.html#lasso.util.column_name_to_parts">column_name_to_parts() (in module lasso.util)</a>
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.convert_int">convert_int() (lasso.ModelRoadwayNetwork method)</a>
 </li>
-      <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.create_add_route_card_dict">create_add_route_card_dict() (lasso.CubeTransit method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.create_add_route_card_dict">create_add_route_card_dict() (lasso.CubeTransit method)</a>
+</li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.create_calculated_variables">create_calculated_variables() (lasso.ModelRoadwayNetwork method)</a>
 </li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.create_delete_route_card_dict">create_delete_route_card_dict() (lasso.CubeTransit method)</a>
@@ -309,7 +319,7 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.dataframe_to_fixed_with">dataframe_to_fixed_with() (lasso.ModelRoadwayNetwork static method)</a>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.dataframe_to_fixed_width">dataframe_to_fixed_width() (lasso.ModelRoadwayNetwork static method)</a>
 </li>
       <li><a href="_generated/lasso.Project.html#id0">DEFAULT_PROJECT_NAME (lasso.Project attribute)</a>, <a href="_generated/lasso.Project.html#lasso.Project.DEFAULT_PROJECT_NAME">[1]</a>
 </li>
@@ -319,7 +329,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.deletion_map">deletion_map() (lasso.ModelRoadwayNetwork method)</a>
 </li>
-      <li><a href="_generated/lasso.Project.html#lasso.Project.determine_roadway_network_changes_compatability">determine_roadway_network_changes_compatability() (lasso.Project method)</a>
+      <li><a href="_generated/lasso.Project.html#lasso.Project.determine_roadway_network_changes_compatability">determine_roadway_network_changes_compatability() (lasso.Project static method)</a>
 </li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.diff_dict">diff_dict (lasso.CubeTransit attribute)</a>
 </li>
@@ -329,14 +339,12 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.EPSG">EPSG (lasso.ModelRoadwayNetwork attribute)</a>
-</li>
       <li><a href="_generated/lasso.Project.html#lasso.Project.evaluate_changes">evaluate_changes() (lasso.Project method)</a>
+</li>
+      <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_differences">evaluate_differences() (lasso.CubeTransit method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_differences">evaluate_differences() (lasso.CubeTransit method)</a>
-</li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_route_property_differences">evaluate_route_property_differences() (lasso.CubeTransit method)</a>
 </li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_route_shape_changes">evaluate_route_shape_changes() (lasso.CubeTransit method)</a>
@@ -510,6 +518,8 @@
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.parameters">parameters (lasso.CubeTransit attribute)</a>
 
       <ul>
+        <li><a href="_generated/lasso.Project.html#lasso.Project.parameters">(lasso.Project attribute)</a>
+</li>
         <li><a href="_generated/lasso.StandardTransit.html#lasso.StandardTransit.parameters">(lasso.StandardTransit attribute)</a>
 </li>
       </ul></li>
@@ -542,6 +552,8 @@
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.rename_variables_for_dbf">rename_variables_for_dbf() (lasso.ModelRoadwayNetwork method)</a>
 </li>
       <li><a href="_generated/lasso.Project.html#lasso.Project.roadway_changes">roadway_changes (lasso.Project attribute)</a>
+</li>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.roadway_net_to_gdf">roadway_net_to_gdf() (lasso.ModelRoadwayNetwork static method)</a>
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.roadway_standard_to_met_council_network">roadway_standard_to_met_council_network() (lasso.ModelRoadwayNetwork method)</a>
 </li>
@@ -605,11 +617,13 @@
 </li>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.UNIQUE_MODEL_LINK_IDENTIFIERS">UNIQUE_MODEL_LINK_IDENTIFIERS (lasso.ModelRoadwayNetwork attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.UNIQUE_NODE_IDENTIFIERS">UNIQUE_NODE_IDENTIFIERS (lasso.ModelRoadwayNetwork attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.UNIQUE_NODE_KEY">UNIQUE_NODE_KEY (lasso.ModelRoadwayNetwork attribute)</a>
+</li>
+      <li><a href="_generated/lasso.ModelRoadwayNetwork.html#lasso.ModelRoadwayNetwork.UNIQUE_SHAPE_KEY">UNIQUE_SHAPE_KEY (lasso.ModelRoadwayNetwork attribute)</a>
 </li>
       <li><a href="_generated/lasso.CubeTransit.html#lasso.CubeTransit.unpack_route_name">unpack_route_name() (lasso.CubeTransit static method)</a>
 </li>
@@ -668,11 +682,19 @@
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -683,7 +705,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

@@ -1,7 +1,11 @@
-lasso.util
+﻿lasso.util
 ==========
 
 .. automodule:: lasso.util
+
+   
+   
+   
 
    
    
@@ -9,6 +13,7 @@ lasso.util
 
    .. autosummary::
    
+      column_name_to_parts
       get_shared_streets_intersection_hash
       hhmmss_to_datetime
       secs_to_datetime
@@ -22,3 +27,6 @@ lasso.util
    
    
    
+
+
+

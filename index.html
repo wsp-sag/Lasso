@@ -1,8 +1,7 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -12,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -29,11 +35,6 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Starting Out" href="starting.html" /> 
@@ -50,7 +51,7 @@
           
 
           
-            <a href="#" class="icon icon-home"> lasso
+            <a href="#" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -73,6 +74,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -91,6 +93,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -129,7 +132,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="#">Docs</a> &raquo;</li>
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
         
       <li>Welcome to lasso’s documentation!</li>
     
@@ -152,14 +155,26 @@
             
   <div class="section" id="welcome-to-lasso-s-documentation">
 <h1>Welcome to lasso’s documentation!<a class="headerlink" href="#welcome-to-lasso-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>This package of utilities is a wrapper around the
+[network_wrangler](<a class="reference external" href="http://github.com/wsp-sag/network_wrangler">http://github.com/wsp-sag/network_wrangler</a>) package
+for MetCouncil.  It aims to have the following functionality:
+1. parse Cube log files and base highway networks and create ProjectCards</p>
+<blockquote>
+<div><p>for Network Wrangler</p>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>parse two Cube transit line files and create ProjectCards for NetworkWrangler</p></li>
+<li><p>refine Network Wrangler highway networks to contain specific variables and
+settings for Metropolitan Council and export them to a format that can
+be read in by  Citilab’s Cube software.</p></li>
+</ol>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="starting.html">Starting Out</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="starting.html#installation">Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="starting.html#requirements">Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="starting.html#basic-install-instructions">Basic install instructions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="starting.html#recommended-installing-from-a-git-clone">Recommended: Installing from a Git Clone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="starting.html#bleeding-edge">Bleeding Edge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="starting.html#from-clone">From Clone</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="starting.html#brief-intro">Brief Intro</a><ul>
@@ -230,11 +245,19 @@
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -245,7 +268,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

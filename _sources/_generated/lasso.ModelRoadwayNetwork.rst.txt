@@ -1,4 +1,4 @@
-lasso.ModelRoadwayNetwork
+﻿lasso.ModelRoadwayNetwork
 =========================
 
 .. currentmodule:: lasso
@@ -20,17 +20,17 @@ lasso.ModelRoadwayNetwork
       ~ModelRoadwayNetwork.addition_map
       ~ModelRoadwayNetwork.apply
       ~ModelRoadwayNetwork.apply_managed_lane_feature_change
+      ~ModelRoadwayNetwork.apply_python_calculation
       ~ModelRoadwayNetwork.apply_roadway_feature_change
       ~ModelRoadwayNetwork.assess_connectivity
       ~ModelRoadwayNetwork.build_selection_key
       ~ModelRoadwayNetwork.calculate_area_type
-      ~ModelRoadwayNetwork.calculate_assign_group
+      ~ModelRoadwayNetwork.calculate_assign_group_and_roadway_class
       ~ModelRoadwayNetwork.calculate_centroidconnect
       ~ModelRoadwayNetwork.calculate_county
       ~ModelRoadwayNetwork.calculate_distance
       ~ModelRoadwayNetwork.calculate_hov
       ~ModelRoadwayNetwork.calculate_mpo
-      ~ModelRoadwayNetwork.calculate_roadway_class
       ~ModelRoadwayNetwork.convert_int
       ~ModelRoadwayNetwork.create_ML_variable
       ~ModelRoadwayNetwork.create_calculated_variables
@@ -38,7 +38,7 @@ lasso.ModelRoadwayNetwork
       ~ModelRoadwayNetwork.create_hov_corridor_variable
       ~ModelRoadwayNetwork.create_managed_lane_network
       ~ModelRoadwayNetwork.create_managed_variable
-      ~ModelRoadwayNetwork.dataframe_to_fixed_with
+      ~ModelRoadwayNetwork.dataframe_to_fixed_width
       ~ModelRoadwayNetwork.delete_roadway_feature_change
       ~ModelRoadwayNetwork.deletion_map
       ~ModelRoadwayNetwork.fill_na
@@ -55,6 +55,7 @@ lasso.ModelRoadwayNetwork
       ~ModelRoadwayNetwork.read
       ~ModelRoadwayNetwork.read_match_result
       ~ModelRoadwayNetwork.rename_variables_for_dbf
+      ~ModelRoadwayNetwork.roadway_net_to_gdf
       ~ModelRoadwayNetwork.roadway_standard_to_met_council_network
       ~ModelRoadwayNetwork.select_roadway_features
       ~ModelRoadwayNetwork.selection_has_unique_link_id
@@ -79,8 +80,8 @@ lasso.ModelRoadwayNetwork
 
    .. autosummary::
    
+      ~ModelRoadwayNetwork.CALCULATED_VALUES
       ~ModelRoadwayNetwork.CRS
-      ~ModelRoadwayNetwork.EPSG
       ~ModelRoadwayNetwork.KEEP_SAME_ATTRIBUTES_ML_AND_GP
       ~ModelRoadwayNetwork.LINK_FOREIGN_KEY
       ~ModelRoadwayNetwork.MANAGED_LANES_LINK_ID_SCALAR
@@ -98,5 +99,6 @@ lasso.ModelRoadwayNetwork
       ~ModelRoadwayNetwork.UNIQUE_MODEL_LINK_IDENTIFIERS
       ~ModelRoadwayNetwork.UNIQUE_NODE_IDENTIFIERS
       ~ModelRoadwayNetwork.UNIQUE_NODE_KEY
+      ~ModelRoadwayNetwork.UNIQUE_SHAPE_KEY
    
    

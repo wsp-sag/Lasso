@@ -1,8 +1,7 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
@@ -12,12 +11,19 @@
   
 
   
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+
+  
   
   
   
 
   
-  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -29,11 +35,6 @@
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
 </head>
@@ -49,7 +50,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> lasso
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> lasso
           
 
           
@@ -72,6 +73,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -90,6 +92,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -128,7 +131,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../index.html">Docs</a> &raquo;</li>
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../index.html">Module code</a> &raquo;</li>
         
@@ -162,7 +165,7 @@
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">csv</span>
 <span class="kn">import</span> <span class="nn">datetime</span><span class="o">,</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">lark</span> <span class="kn">import</span> <span class="n">Lark</span><span class="p">,</span> <span class="n">Transformer</span><span class="p">,</span> <span class="n">v_args</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
@@ -214,14 +217,13 @@
 <span class="sd">        diff_dict (dict):</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="CubeTransit.__init__"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="CubeTransit.__init__"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Parameters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        line_properties_dict (dict[line names]: line level attributes)</span>
-<span class="sd">        line_shapes_dict (dict[line names]: line shape df)</span>
+<span class="sd">        Constructor  for CubeTransit</span>
 
-
+<span class="sd">        parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;HI THERE&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating a new Cube Transit instance&quot;</span><span class="p">)</span>
         <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating a new Cube Transit instance&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
@@ -231,7 +233,16 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">program_type</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">Parameters</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Parameters should be a dict or instance of Parameters: found </span><span class="si">{}</span><span class="s2"> which is of type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">source_list</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -240,9 +251,8 @@
 <div class="viewcode-block" id="CubeTransit.add_cube"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.add_cube">[docs]</a>    <span class="k">def</span> <span class="nf">add_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transit_source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Reads a .lin file and adds it to existing TransitNetwork instance.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        -----------</span>
-<span class="sd">        transit_source:  a string or the directory of the cube line file to be parsed</span>
+<span class="sd">        Args:</span>
+<span class="sd">            transit_source:  a string or the directory of the cube line file to be parsed</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -271,20 +281,22 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_cube</span><span class="p">(</span><span class="n">lin_file</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">msg</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not a valid transit line string, directory, or file&quot;</span>
+            <span class="n">msg</span><span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not a valid transit line string, directory, or file&quot;</span>
             <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;finished parsing cube line file&quot;</span><span class="p">)</span>
-        <span class="c1"># WranglerLogger.debug(&quot;--Parse Tree--\n {}&quot;.format(parse_tree.pretty()))</span>
+        <span class="c1">#WranglerLogger.debug(&quot;--Parse Tree--\n {}&quot;.format(parse_tree.pretty()))</span>
         <span class="n">transformed_tree_data</span> <span class="o">=</span> <span class="n">CubeTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">parse_tree</span><span class="p">)</span>
-        <span class="c1"># WranglerLogger.debug(&quot;--Transformed Tree Data --\n {}&quot;.format(transformed_tree_data[&quot;lines&quot;]))</span>
+        <span class="c1">#WranglerLogger.debug(&quot;--Transformed Parse Tree--\n {}&quot;.format(transformed_tree_data))</span>
+
+        <span class="n">_line_data</span> <span class="o">=</span> <span class="n">transformed_tree_data</span><span class="p">[</span><span class="s1">&#39;lines&#39;</span><span class="p">]</span>
 
         <span class="n">line_properties_dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;line_properties&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">transformed_tree_data</span><span class="p">[</span><span class="s2">&quot;lines&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;line_properties&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_line_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="n">line_shapes_dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;line_shape&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">transformed_tree_data</span><span class="p">[</span><span class="s2">&quot;lines&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;line_shape&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_line_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="n">new_lines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">line_properties_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -304,7 +316,8 @@
             <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">program_type</span> <span class="o">=</span> <span class="n">transformed_tree_data</span><span class="p">[</span><span class="s2">&quot;program_type&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">program_type</span> <span class="o">=</span> <span class="n">transformed_tree_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;program_type&quot;</span><span class="p">,</span><span class="kc">None</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">lines</span> <span class="o">+=</span> <span class="n">new_lines</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">line_properties</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">line_properties_dict</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">line_shapes_dict</span><span class="p">)</span>
@@ -328,7 +341,7 @@
 
         <span class="k">return</span> <span class="n">tn</span></div>
 
-<div class="viewcode-block" id="CubeTransit.evaluate_differences"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_differences">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_transit</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="CubeTransit.evaluate_differences"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.evaluate_differences">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_transit</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        1. Identifies what routes need to be updated, deleted, or added</span>
 <span class="sd">        2. For routes being added or updated, identify if the time periods</span>
@@ -452,7 +465,9 @@
 
         <span class="k">return</span> <span class="n">project_card_changes</span></div>
 
-<div class="viewcode-block" id="CubeTransit.add_additional_time_periods"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.add_additional_time_periods">[docs]</a>    <span class="k">def</span> <span class="nf">add_additional_time_periods</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_time_period_number</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">orig_line_name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="CubeTransit.add_additional_time_periods"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.add_additional_time_periods">[docs]</a>    <span class="k">def</span> <span class="nf">add_additional_time_periods</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">new_time_period_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">orig_line_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Copies a route to another cube time period with appropriate</span>
 <span class="sd">        values for time-period-specific properties.</span>
@@ -475,9 +490,12 @@
             <span class="p">)</span>
         <span class="p">)</span>
 
-        <span class="n">route_id</span><span class="p">,</span> <span class="n">_init_time_period</span><span class="p">,</span> <span class="n">agency_id</span><span class="p">,</span> <span class="n">direction_id</span> <span class="o">=</span> <span class="n">CubeTransit</span><span class="o">.</span><span class="n">unpack_route_name</span><span class="p">(</span>
-            <span class="n">orig_line_name</span>
-        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">route_id</span><span class="p">,</span>
+            <span class="n">_init_time_period</span><span class="p">,</span>
+            <span class="n">agency_id</span><span class="p">,</span>
+            <span class="n">direction_id</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">CubeTransit</span><span class="o">.</span><span class="n">unpack_route_name</span><span class="p">(</span><span class="n">orig_line_name</span><span class="p">)</span>
         <span class="n">new_time_period_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">cube_time_periods</span><span class="p">[</span><span class="n">new_time_period_number</span><span class="p">]</span>
         <span class="n">new_tp_line_name</span> <span class="o">=</span> <span class="n">CubeTransit</span><span class="o">.</span><span class="n">build_route_name</span><span class="p">(</span>
             <span class="n">route_id</span><span class="o">=</span><span class="n">route_id</span><span class="p">,</span>
@@ -603,7 +621,7 @@
 
         <span class="k">return</span> <span class="n">delete_card_dict</span></div>
 
-<div class="viewcode-block" id="CubeTransit.create_add_route_card_dict"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.create_add_route_card_dict">[docs]</a>    <span class="k">def</span> <span class="nf">create_add_route_card_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="CubeTransit.create_add_route_card_dict"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.create_add_route_card_dict">[docs]</a>    <span class="k">def</span> <span class="nf">create_add_route_card_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates a project card change formatted dictionary for adding</span>
 <span class="sd">        a route based on the information in self.route_properties for</span>
@@ -667,7 +685,12 @@
         <span class="k">return</span> <span class="n">time_periods_list</span></div>
 
 <div class="viewcode-block" id="CubeTransit.build_route_name"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.build_route_name">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">build_route_name</span><span class="p">(</span><span class="n">route_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">time_period</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">agency_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">direction_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">build_route_name</span><span class="p">(</span>
+        <span class="n">route_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">time_period</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">agency_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">direction_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a route name by contatenating route, time period, agency, and direction</span>
 
@@ -693,7 +716,7 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="CubeTransit.unpack_route_name"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.unpack_route_name">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">unpack_route_name</span><span class="p">(</span><span class="n">line_name</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">unpack_route_name</span><span class="p">(</span><span class="n">line_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Unpacks route name into direction, route, agency, and time period info</span>
 
@@ -715,7 +738,7 @@
 
         <span class="k">return</span> <span class="n">route_id</span><span class="p">,</span> <span class="n">time_period</span><span class="p">,</span> <span class="n">agency_id</span><span class="p">,</span> <span class="n">direction_id</span></div>
 
-<div class="viewcode-block" id="CubeTransit.calculate_start_end_times"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.calculate_start_end_times">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_start_end_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_properties_dict</span><span class="p">:</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="CubeTransit.calculate_start_end_times"><a class="viewcode-back" href="../../_generated/lasso.CubeTransit.html#lasso.CubeTransit.calculate_start_end_times">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_start_end_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_properties_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate the start and end times of the property change</span>
 <span class="sd">        WARNING: Doesn&#39;t take care of discongruous time periods!!!!</span>
@@ -970,19 +993,36 @@
 <span class="sd">            about time periods and variables.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="StandardTransit.__init__"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ptg_feed</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="StandardTransit.__init__"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ptg_feed</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Parameters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ptg_feed: partridge feed object</span>
+<span class="sd">            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feed</span> <span class="o">=</span> <span class="n">ptg_feed</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">Parameters</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">Parameters</span><span class="p">(</span><span class="o">**</span><span class="n">parameters</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Parameters should be a dict or instance of Parameters: found </span><span class="si">{}</span><span class="s2"> which is of type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">WranglerLogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StandardTransit.fromTransitNetwork"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.fromTransitNetwork">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">fromTransitNetwork</span><span class="p">(</span><span class="n">transit_network_object</span><span class="p">:</span> <span class="n">TransitNetwork</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}):</span>
+    <span class="k">def</span> <span class="nf">fromTransitNetwork</span><span class="p">(</span>
+        <span class="n">transit_network_object</span><span class="p">:</span> <span class="n">TransitNetwork</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Parameters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        RoadwayNetwork to ModelRoadwayNetwork</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            transit_network_object: Reference to an instance of TransitNetwork.</span>
-<span class="sd">            parameters (Optional): Dictionary of parameter settings. If not provided will</span>
+<span class="sd">            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will</span>
 <span class="sd">                use default parameters.</span>
 
 <span class="sd">        Returns:</span>
@@ -991,14 +1031,14 @@
         <span class="k">return</span> <span class="n">StandardTransit</span><span class="p">(</span><span class="n">transit_network_object</span><span class="o">.</span><span class="n">feed</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StandardTransit.read_gtfs"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.read_gtfs">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">read_gtfs</span><span class="p">(</span><span class="n">gtfs_feed_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}):</span>
+    <span class="k">def</span> <span class="nf">read_gtfs</span><span class="p">(</span><span class="n">gtfs_feed_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Parameters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reads GTFS files from a directory and returns a StandardTransit</span>
 <span class="sd">        instance.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            gtfs_feed_dir: location of the GTFS files</span>
-<span class="sd">            parameters (Optional): Dictionary of parameter settings. Of not provided will</span>
+<span class="sd">            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will</span>
 <span class="sd">                use default parameters.</span>
 
 <span class="sd">        Returns:</span>
@@ -1006,7 +1046,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">StandardTransit</span><span class="p">(</span><span class="n">ptg</span><span class="o">.</span><span class="n">load_feed</span><span class="p">(</span><span class="n">gtfs_feed_dir</span><span class="p">),</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="StandardTransit.write_as_cube_lin"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.write_as_cube_lin">[docs]</a>    <span class="k">def</span> <span class="nf">write_as_cube_lin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="p">:</span> <span class="nb">str</span>  <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="StandardTransit.write_as_cube_lin"><a class="viewcode-back" href="../../_generated/lasso.StandardTransit.html#lasso.StandardTransit.write_as_cube_lin">[docs]</a>    <span class="k">def</span> <span class="nf">write_as_cube_lin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Writes the gtfs feed as a cube line file after</span>
 <span class="sd">        converting gtfs properties to MetCouncil cube properties.</span>
@@ -1016,7 +1056,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">outpath</span><span class="p">:</span>
-            <span class="n">outpath</span>  <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">scratch_location</span><span class="p">,</span><span class="s2">&quot;outtransit.lin&quot;</span><span class="p">)</span>
+            <span class="n">outpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">scratch_location</span><span class="p">,</span> <span class="s2">&quot;outtransit.lin&quot;</span><span class="p">)</span>
         <span class="n">trip_cube_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">route_properties_gtfs_to_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="n">trip_cube_df</span><span class="p">[</span><span class="s2">&quot;LIN&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_cube_df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cube_format</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -1078,9 +1118,13 @@
         <span class="n">trip_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">trip_df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feed</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;trip_id&quot;</span><span class="p">)</span>
 
         <span class="n">trip_df</span><span class="p">[</span><span class="s2">&quot;tod_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_df</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_to_cube_time_period</span><span class="p">)</span>
-        <span class="n">inv_cube_time_periods_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">cube_time_periods</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">inv_cube_time_periods_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">cube_time_periods</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
         <span class="n">trip_df</span><span class="p">[</span><span class="s2">&quot;tod_num&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_df</span><span class="o">.</span><span class="n">tod_name</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">inv_cube_time_periods_map</span><span class="p">)</span>
-        <span class="n">trip_df</span><span class="p">[</span><span class="s2">&quot;tod_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_df</span><span class="o">.</span><span class="n">tod_name</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">cube_time_periods_name</span><span class="p">)</span>
+        <span class="n">trip_df</span><span class="p">[</span><span class="s2">&quot;tod_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_df</span><span class="o">.</span><span class="n">tod_name</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">cube_time_periods_name</span>
+        <span class="p">)</span>
 
         <span class="n">trip_df</span><span class="p">[</span><span class="s2">&quot;NAME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trip_df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">agency_id</span>
@@ -1296,6 +1340,7 @@
 <span class="sd">            a route shape</span>
 <span class="sd">        lines_list (list): a list of the line names</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">line_order</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lines_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1367,7 +1412,7 @@
 
 <span class="n">TRANSIT_LINE_FILE_GRAMMAR</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
 
-<span class="s2">?start             : program_type_line? lines</span>
+<span class="s2">start             : program_type_line? lines</span>
 <span class="s2">WHITESPACE        : /[ \t\r\n]/+</span>
 <span class="s2">STRING            : /(&quot;(?!&quot;&quot;).*?(?&lt;!\\)(\\\\)*?&quot;|&#39;(?!&#39;&#39;).*?(?&lt;!\\)(\\\\)*?&#39;)/i</span>
 <span class="s2">SEMICOLON_COMMENT : /;[^\n]*/</span>
@@ -1437,11 +1482,19 @@
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2019 Metropolitan Council
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -1452,7 +1505,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

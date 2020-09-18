@@ -1,7 +1,11 @@
-lasso.logger
+﻿lasso.logger
 ============
 
 .. automodule:: lasso.logger
+
+   
+   
+   
 
    
    
@@ -20,3 +24,6 @@ lasso.logger
    
    
    
+
+
+

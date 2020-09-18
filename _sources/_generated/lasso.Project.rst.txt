@@ -1,4 +1,4 @@
-lasso.Project
+﻿lasso.Project
 =============
 
 .. currentmodule:: lasso
@@ -30,6 +30,7 @@ lasso.Project
 
    .. autosummary::
    
+      ~Project.CALCULATED_VALUES
       ~Project.DEFAULT_PROJECT_NAME
       ~Project.STATIC_VALUES
    
