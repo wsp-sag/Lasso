@@ -212,6 +212,14 @@ class Parameters:
                     53: 1,
                     60: 1,
                 }
+        downtown_area_type_shape (str): Location of shapefile defining downtown area type.
+            Default:
+            ::
+                r"metcouncil_data/area_type/downtownzones_TAZ.shp"
+        downtown_area_type (int): Area type integer for downtown.
+            Default:
+            ::
+                5
         mrcc_roadway_class_shape (str): Shapefile of MRCC links with a property
             associated with roadway class. Default:
             ::
@@ -469,6 +477,14 @@ class Parameters:
             53: 1,
             60: 1,
         }
+
+        self.downtown_area_type_shape = os.path.join(
+            self.data_file_location,
+            "area_type",
+            "downtownzones_TAZ.shp",
+        )
+
+        self.downtown_area_type = int(5)
 
         self.osm_assgngrp_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"

@@ -314,6 +314,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         area_type_shape_variable=None,
         network_variable="area_type",
         area_type_codes_dict=None,
+        downtown_area_type_shape=None,
+        downtown_area_type=None,
         overwrite=False,
     ):
         """
@@ -327,6 +329,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             area_type_shape_variable (str): The variable name of area type in area geodadabase.
             network_variable (str): The variable name of area type in network standard.  Default to "area_type".
             area_type_codes_dict: The dictionary to map input area_type_shape_variable to network_variable
+            downtown_area_type_shape: The file path to the downtown area type boundary.
+            downtown_area_type (int): Integer value of downtown area type
             overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
 
         Returns:
@@ -393,6 +397,29 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
+        downtown_area_type_shape = (
+            downtown_area_type_shape if downtown_area_type_shape else self.parameters.downtown_area_type_shape
+        )
+
+        if not downtown_area_type_shape:
+            msg = "No downtown area type shape specified"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+        if not os.path.exists(downtown_area_type_shape):
+            msg = "File not found for downtown area type shape: {}".format(downtown_area_type_shape)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        downtown_area_type = (
+            downtown_area_type
+            if downtown_area_type
+            else self.parameters.downtown_area_type
+        )
+        if not downtown_area_type:
+            msg = "No downtown area type value specified"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
         """
         Start actual process
         """
@@ -402,6 +429,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.debug("Reading Area Type Shapefile {}".format(area_type_shape))
         area_type_gdf = gpd.read_file(area_type_shape)
         area_type_gdf = area_type_gdf.to_crs(epsg=RoadwayNetwork.CRS)
+
+        downtown_gdf = gpd.read_file(downtown_area_type_shape)
+        downtown_gdf = downtown_gdf.to_crs(epsg=RoadwayNetwork.CRS)
 
         joined_gdf = gpd.sjoin(
             centroids_gdf, area_type_gdf, how="left", op="intersects"
@@ -415,6 +445,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         WranglerLogger.debug("Area Type Codes Used: {}".format(area_type_codes_dict))
+
+        d_joined_gdf = gpd.sjoin(
+            centroids_gdf, downtown_gdf, how="left", op="intersects"
+        )
+
+        d_joined_gdf['downtown_area_type'] = (
+            d_joined_gdf['Id']
+            .fillna(-99)
+            .astype(int)
+        )
+
+        joined_gdf.loc[d_joined_gdf['downtown_area_type'] == 0, area_type_shape_variable] = downtown_area_type
+
+        WranglerLogger.debug("Downtown Area Type used boundary file: {}".format(downtown_area_type_shape))
 
         self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
 

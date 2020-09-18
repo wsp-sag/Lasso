@@ -537,8 +537,7 @@ class Project(object):
             else:
                 add_col = [
                     c
-                    for c in cube_add_df.columns
-                    if  c not "OPERATION_final"
+                    for c in cube_add_df.columns if c not in ["OPERATION_final"]
                 ]
                 # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
