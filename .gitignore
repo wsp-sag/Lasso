@@ -82,3 +82,4 @@ env/
 # large metcouncil data file
 metcouncil_data/mrcc/*.mrcc.out.matched.geojson
 .Rproj.user
+scripts/.Rhistory
