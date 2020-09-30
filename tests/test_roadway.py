@@ -128,7 +128,6 @@ def test_calculate_assign_group_rdclass(request):
     print(net.links_df[net.links_df.drive_access == 1].roadway_class.value_counts())
     ## todo write an assert that actually tests something
 
-@pytest.mark.david
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_calculate_lanes(request):
