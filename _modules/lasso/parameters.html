@@ -240,6 +240,10 @@
 <span class="sd">            Default:</span>
 <span class="sd">            ::</span>
 <span class="sd">                NAME</span>
+<span class="sd">        lanes_lookup_file (str): Lookup table of number of lanes for different data sources.</span>
+<span class="sd">            Default:</span>
+<span class="sd">            ::</span>
+<span class="sd">                r&quot;metcouncil_data/lookups/lanes.csv&quot;</span>
 <span class="sd">        mpo_counties (list): list of county names within MPO boundary.</span>
 <span class="sd">            Default:</span>
 <span class="sd">            ::</span>
@@ -590,6 +594,11 @@
             <span class="mi">7</span><span class="p">,</span>
             <span class="mi">2</span><span class="p">,</span>
         <span class="p">]</span>
+
+        <span class="c1">### Lanes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lanes_lookup_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;lookups&quot;</span><span class="p">,</span> <span class="s2">&quot;lanes.csv&quot;</span>
+        <span class="p">)</span>
 
         <span class="c1">###  TAZS</span>
 
