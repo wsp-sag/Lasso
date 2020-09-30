@@ -1237,6 +1237,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             )
         else:
             join_df[network_variable] = join_df.apply(lambda x: _set_lanes(x), axis=1)
+            self.links_df[network_variable] = join_df[network_variable]
 
         WranglerLogger.info(
             "Finished calculating number of lanes to: {}".format(network_variable)
