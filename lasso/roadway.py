@@ -27,6 +27,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         "county",
         "assign_group",
         "centroidconnect",
+        "lanes",
     ]
 
     def __init__(
@@ -215,6 +216,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_centroidconnect()
         self.calculate_mpo()
         self.calculate_assign_group_and_roadway_class()
+        self.calculate_number_of_lanes()
         self.add_counts()
         self.create_ML_variable()
         self.create_hov_corridor_variable()
@@ -1125,6 +1127,119 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.info(
             "Added variable: {} using Shared Streets Reference".format(network_variable)
+        )
+
+    def calculate_number_of_lanes(
+        self,
+        lanes_lookup_file=None,
+        network_variable="lanes",
+        overwrite=False,
+    ):
+
+        """
+        Adds number of lanes variable.
+
+        Join network with model_link_id and apply lanes heuristic
+
+        Args:
+            lanes_lookup_file (str): File path to lanes lookup file.
+            network_variable (str): Name of the lanes variable
+            overwrite (boolean): Overwrite existing values
+
+        Returns:
+            None
+        """
+
+        WranglerLogger.info("Calculating Number of Lanes")
+
+        update_lanes = False
+
+        WranglerLogger.info(
+            "Calculating Number of Lanes as network variable: '{}'".format(
+                network_variable,
+            )
+        )
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing number of lanes variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+                self.links_df.drop([network_variable], axis = 1)
+            else:
+                WranglerLogger.info(
+                    "Number of lanes variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                        network_variable
+                    )
+                )
+                update_lanes = True
+
+        """
+        Verify inputs
+        """
+
+        lanes_lookup_file = (
+            lanes_lookup_file
+            if lanes_lookup_file
+            else self.parameters.lanes_lookup_file
+        )
+        if not lanes_lookup_file:
+            msg = "'lanes_lookup_file' not found in method or lasso parameters.".format(
+                lanes_lookup_file
+            )
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        """
+        Start actual process
+        """
+        WranglerLogger.debug("Calculating Centroid Connectors")
+        self.calculate_centroidconnect()
+
+        WranglerLogger.debug(
+            "Computing number lanes using: {}".format(
+                lanes_lookup_file,
+            )
+        )
+
+        lanes_df = pd.read_csv(lanes_lookup_file)
+
+        join_df = pd.merge(
+            self.links_df,
+            lanes_df,
+            how="left",
+            on="model_link_id",
+        )
+
+        def _set_lanes(x):
+            try:
+                if x.centroidconnect == 1:
+                    return int(1)
+                elif x.ROUTE_SYS in ['04', '05', '09', '07', '10']:
+                    return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
+                elif max([x.widot, x.mndot])>0:
+                    return int(max([x.widot, x.mndot]))
+                elif x.osm_min>0:
+                    return int(x.osm_min)
+                elif x.naive>0:
+                    return int(x.naive)
+            except:
+                return int(0)
+
+        if update_lanes:
+            join_df[network_variable + "_cal"] = join_df.apply(lambda x: _set_lanes(x), axis=1)
+            self.links_df[network_variable] = np.where(
+                self.links_df[network_variable] > 0,
+                self.links_df[network_variable],
+                join_df[network_variable + "_cal"],
+            )
+        else:
+            join_df[network_variable] = join_df.apply(lambda x: _set_lanes(x), axis=1)
+
+        WranglerLogger.info(
+            "Finished calculating number of lanes to: {}".format(network_variable)
         )
 
     def add_counts(

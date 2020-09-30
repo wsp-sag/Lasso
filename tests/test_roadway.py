@@ -128,6 +128,28 @@ def test_calculate_assign_group_rdclass(request):
     print(net.links_df[net.links_df.drive_access == 1].roadway_class.value_counts())
     ## todo write an assert that actually tests something
 
+@pytest.mark.david
+@pytest.mark.roadway
+@pytest.mark.travis
+def test_calculate_lanes(request):
+    """
+    Tests that lanes are computed
+    """
+    print("\n--Starting:", request.node.name)
+
+    net = ModelRoadwayNetwork.read(
+        link_file=STPAUL_LINK_FILE,
+        node_file=STPAUL_NODE_FILE,
+        shape_file=STPAUL_SHAPE_FILE,
+        fast=True,
+    )
+    net.links_df.drop(['lanes'], axis=1)
+    net.calculate_number_of_lanes(overwrite=False)
+    assert "lanes" in net.links_df.columns
+    print("Number of Lanes Frequency for all links")
+    print(net.links_df.lanes.value_counts())
+    ## todo write an assert that actually tests something
+
 
 @pytest.mark.roadway
 @pytest.mark.travis

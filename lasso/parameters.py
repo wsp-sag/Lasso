@@ -87,6 +87,10 @@ class Parameters:
             Default:
             ::
                 NAME
+        lanes_lookup_file (str): Lookup table of number of lanes for different data sources.
+            Default:
+            ::
+                r"metcouncil_data/lookups/lanes.csv"
         mpo_counties (list): list of county names within MPO boundary.
             Default:
             ::
@@ -437,6 +441,11 @@ class Parameters:
             7,
             2,
         ]
+
+        ### Lanes
+        self.lanes_lookup_file = os.path.join(
+            self.data_file_location, "lookups", "lanes.csv"
+        )
 
         ###  TAZS
 
