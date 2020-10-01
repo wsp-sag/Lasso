@@ -1167,7 +1167,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                         network_variable
                     )
                 )
-                self.links_df.drop([network_variable], axis = 1)
+                self.links_df = self.links_df.drop([network_variable], axis=1)
             else:
                 WranglerLogger.info(
                     "Number of lanes variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
@@ -1229,15 +1229,28 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 return int(0)
 
         if update_lanes:
-            join_df[network_variable + "_cal"] = join_df.apply(lambda x: _set_lanes(x), axis=1)
+            var_name = network_variable + "_cal"
+            join_df[var_name] = join_df.apply(lambda x: _set_lanes(x), axis=1)
+            self.links_df = pd.merge(
+                self.links_df,
+                join_df[['model_link_id', var_name]],
+                how="left",
+                on="model_link_id",
+            )
             self.links_df[network_variable] = np.where(
                 self.links_df[network_variable] > 0,
                 self.links_df[network_variable],
-                join_df[network_variable + "_cal"],
+                self.links_df[var_name],
             )
+            self.links_df = self.links_df.drop([var_name], axis=1)
         else:
             join_df[network_variable] = join_df.apply(lambda x: _set_lanes(x), axis=1)
-            self.links_df[network_variable] = join_df[network_variable]
+            self.links_df = pd.merge(
+                self.links_df,
+                join_df[['model_link_id', network_variable]],
+                how="left",
+                on="model_link_id",
+            )
 
         WranglerLogger.info(
             "Finished calculating number of lanes to: {}".format(network_variable)
