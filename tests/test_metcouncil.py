@@ -34,7 +34,8 @@ def test_calculate_lanes(request):
     )
     params = Parameters()
 
-    net.links_df.drop(['lanes'], axis=1)
+    if "lanes" in net.links_df.columns:
+        net.links_df.drop(['lanes'], axis=1)
 
     l_net = metcouncil.calculate_number_of_lanes(
         roadway_net=net,
