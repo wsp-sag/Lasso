@@ -309,116 +309,137 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         osm_df = osm_df.rename(columns = {"min_lanes": "osm_min_lanes", "max_lanes": "osm_max_lanes"})
 
         tam_df = pd.read_csv(tam_tm2_attributes)
-        tam_df = tam_df[['shStReferenceId', 'lanes']].rename(columns = {"lanes": "tm2_lanes"})
+        tam_df = tam_df[['shstReferenceId', 'lanes']].rename(columns = {"lanes": "tm2_lanes"})
 
         sfcta_df = pd.read_csv(sfcta_attributes)
-        sfcta_df = sfcta_df[['shStReferenceId', 'min_lanes', 'max_lanes']].rename(
+        sfcta_df = sfcta_df[['shstReferenceId', 'min_lanes', 'max_lanes']].rename(
             columns = {"min_lanes": "sfcta_min_lanes",
                         "max_lanes": "sfcta_max_lanes"}
         )
 
         pems_df = pd.read_csv(pems_attributes)
-        pems_df = pems_df[['shStReferenceId', 'lanes']].rename(columns = {"lanes": "pems_lanes"})
+        pems_df = pems_df[['shstReferenceId', 'lanes']].rename(columns = {"lanes": "pems_lanes"})
 
         tom_df = pd.read_csv(tomtom_attributes)
-        tom_df = tom_df[['shStReferenceId', 'lanes']].rename(columns = {"lanes": "tom_lanes"})
+        tom_df = tom_df[['shstReferenceId', 'lanes']].rename(columns = {"lanes": "tom_lanes"})
 
         join_gdf = pd.merge(
-            self.links_df, osm_df, how = "left", on = "shStReferenceId"
+            self.links_df, osm_df, how = "left", on = "shstReferenceId"
         )
 
         join_gdf = pd.merge(
-            join_gdf, tam_df, how = "left", on = "shStReferenceId"
+            join_gdf, tam_df, how = "left", on = "shstReferenceId"
         )
 
         join_gdf = pd.merge(
-            join_gdf, sfcta_df, how = "left", on = "shStReferenceId"
+            join_gdf, sfcta_df, how = "left", on = "shstReferenceId"
         )
 
         join_gdf = pd.merge(
-            join_gdf, pems_df, how = "left", on = "shStReferenceId"
+            join_gdf, pems_df, how = "left", on = "shstReferenceId"
         )
 
-        join_gdf = pg.merge(
-            join_gdf, tom_df, how = "left", on = "shStReferenceId"
+        join_gdf = pd.merge(
+            join_gdf, tom_df, how = "left", on = "shstReferenceId"
         )
 
         def _determine_lanes(x):
-            try:
+                # heuristic 1
                 if pd.notna(x.pems_lanes):
                     if pd.notna(x.osm_min_lanes):
                         if x.pems_lanes == x.osm_min_lanes:
-                            return int(x.pems_lanes)
+                            if x.roadway == "motorway":
+                                return int(x.pems_lanes)
+                # heuristic 2
                 if x.county == "San Francisco":
                     if pd.notna(x.sfcta_min_lanes):
-                        if x.sfcta_min_lanes == x.sfcta_max_lanes:
-                            if x.roadway != "motorway":
-                                if x.roadway != "motorway_link":
-                                    if x.osm_min_lanes >= x.sfcta_min_lanes:
-                                        if x.osm_max_lanes <= x.sfcta_max_lanes:
-                                            return int(x.sfcta_min_lanes)
+                        if x.sfcta_min_lanes > 0:
+                            if x.sfcta_min_lanes == x.sfcta_max_lanes:
+                                if x.roadway != "motorway":
+                                    if x.roadway != "motorway_link":
+                                        if x.osm_min_lanes >= x.sfcta_min_lanes:
+                                            if x.osm_max_lanes <= x.sfcta_max_lanes:
+                                                return int(x.sfcta_min_lanes)
+                # heuristic 3
                 if pd.notna(x.pems_lanes):
                     if pd.notna(x.osm_min_lanes):
                         if x.pems_lanes >= x.osm_min_lanes:
                             if x.pems_lanes <= x.osm_max_lanes:
-                                return int(x.pems_lanes)
-                if x.roadway == "motorway":
-                    if x.roadway == "motorway_link":
-                        if pd.notna(x.osm_min_lanes):
-                            if x.osm_min_lanes <= x.tom_lanes:
-                                if x.osm_max_lanes >= x.tom_lanes:
-                                    return int(x.osm_min_lanes)
+                                if x.roadway == "motorway":
+                                    return int(x.pems_lanes)
+                # heuristic 4
+                if x.roadway in ["motorway", "motorway_link"]:
+                    if pd.notna(x.osm_min_lanes):
+                        if x.osm_min_lanes <= x.tom_lanes:
+                            if x.osm_max_lanes >= x.tom_lanes:
+                                return int(x.osm_min_lanes)
+                # heuristic 5
                 if x.county != "San Francisco":
                     if pd.notna(x.osm_min_lanes):
                         if pd.notna(x.tm2_lanes):
-                            if x.osm_min_lanes <= x.tm2_lanes:
-                                if x.osm_max_lanes >= x.tm2_lanes:
-                                    return int(x.tm2_lanes)
+                            if x.tm2_lanes > 0:
+                                if x.osm_min_lanes <= x.tm2_lanes:
+                                    if x.osm_max_lanes >= x.tm2_lanes:
+                                        return int(x.tm2_lanes)
+                # heuristic 6
                 if x.county == "San Francisco":
                     if pd.notna(x.sfcta_min_lanes):
-                        if x.sfcta_min_lanes == x.sfcta_max_lanes:
-                            if x.roadway != "motorway":
-                                if x.roadway != "motorway_link":
-                                    return int(x.sfcta_min_lanes)
-                if x.roadway.isin(["motorway", "motorway_link"]):
+                        if x.sfcta_min_lanes > 0:
+                            if x.sfcta_min_lanes == x.sfcta_max_lanes:
+                                if x.roadway != "motorway":
+                                    if x.roadway != "motorway_link":
+                                        return int(x.sfcta_min_lanes)
+                # heuristic 7
+                if x.roadway in ["motorway", "motorway_link"]:
                     if pd.notna(x.osm_min_lanes):
                         if x.osm_min_lanes == x.osm_max_lanes:
                             return int(x.osm_min_lanes)
-                if x.roadway.isin(["motorway", "motorway_link"]):
+                # heuristic 8
+                if x.roadway in ["motorway", "motorway_link"]:
                     if pd.notna(x.osm_min_lanes):
                         if (x.osm_max_lanes - x.osm_min_lanes) == 1:
                             return int(x.osm_min_lanes)
+                # heuristic 9
                 if x.roadway == "motorway":
                     if pd.notna(x.pems_lanes):
                         return int(x.pems_lanes)
+                # heuristic 10
                 if x.county == "San Francisco":
                     if pd.notna(x.sfcta_min_lanes):
-                        if x.roadway != "motorway":
-                            if x.roadway != "motorway_link":
-                                return int(x.sfcta_min_lanes)
+                        if x.sfcta_min_lanes > 0:
+                            if x.roadway != "motorway":
+                                if x.roadway != "motorway_link":
+                                    return int(x.sfcta_min_lanes)
+                # heuristic 11
                 if pd.notna(x.osm_min_lanes):
                     if x.osm_min_lanes == x.osm_max_lanes:
                         return int(x.osm_min_lanes)
+                # heuristic 12
                 if pd.notna(x.osm_min_lanes):
-                    if x.roadway.isin(["motorway", "motorway_link"]):
-                        if (x.osm_max_lanes - osm_min_lanes) >= 2:
+                    if x.roadway in ["motorway", "motorway_link"]:
+                        if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
                             return int(x.osm_min_lanes)
+                # heuristic 13
                 if pd.notna(x.osm_min_lanes):
-                    if (x.osm_max_lanes - osm_min_lanes) == 1:
+                    if (x.osm_max_lanes - x.osm_min_lanes) == 1:
                         return int(x.osm_min_lanes)
+                # heuristic 14
                 if pd.notna(x.osm_min_lanes):
-                    if (x.osm_max_lanes - osm_min_lanes) >= 2:
+                    if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
                         return int(x.osm_min_lanes)
+                # heuristic 15
                 if pd.notna(x.tm2_lanes):
-                    return int(x.tm2_lanes):
+                    if x.tm2_lanes > 0:
+                        return int(x.tm2_lanes)
+                # heuristic 16
                 if pd.notna(x.tom_lanes):
-                    return int(x.tom_lanes)
-                if x.roadway.isin(["residential", "service"]):
+                    if x.tom_lanes > 0:
+                        return int(x.tom_lanes)
+                # heuristic 17
+                if x.roadway in ["residential", "service"]:
                     return int(1)
-                else:
-                    return int(1)
-            except:
-                return int(0)
+                # heuristic 18
+                return int(1)
 
         join_gdf[network_variable] = join_gdf.apply(lambda x: _determine_lanes(x), axis = 1)
 

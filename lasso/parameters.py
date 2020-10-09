@@ -215,7 +215,7 @@ class Parameters:
         """
 
         if 'time_periods_to_time' in kwargs:
-            self.time_periods_to_time = time_periods_to_time
+            self.time_periods_to_time = kwargs.get("time_periods_to_time")
         else:
             self.time_period_to_time = {
                 "EA": ("3:00", "6:00"),
@@ -234,7 +234,7 @@ class Parameters:
         }
 
         if 'categories' in kwargs:
-            self.categories = categories
+            self.categories = kwargs.get("categories")
         else:
             self.categories = {
                 # suffix, source (in order of search)
@@ -278,22 +278,22 @@ class Parameters:
         The NAME varible should be the name of a field in shapefile.
         """
         if 'lasso_base_dir' in kwargs:
-            self.base_dir = get_base_dir(lasso_base_dir = base_dir)
+            self.base_dir = get_base_dir(lasso_base_dir = kwargs.get("lasso_base_dir"))
         else:
             self.base_dir = get_base_dir()
 
         if 'data_file_location' in kwargs:
-            self.data_files_location =  data_file_location
+            self.data_file_location =  kwargs.get("data_file_location")
         else:
             self.data_file_location = os.path.join(self.base_dir,  "mtc_data")
 
         if 'settings_location' in kwargs:
-            self.settings_location = settings_location
+            self.settings_location = kwargs.get("settings_location")
         else:
             self.settings_location = os.path.join(self.base_dir , "examples", "settings")
 
         if  'scratch_location' in kwargs:
-            self.scratch_location = scratch_location
+            self.scratch_location = kwargs.get("scratch_location")
         else:
             self.scratch_location = os.path.join(self.base_dir , "tests", "scratch")
 
@@ -332,7 +332,7 @@ class Parameters:
         )
 
         self.osm_lanes_attributes = os.path.join(
-            self.osm_lanes_attributes, "lookups", "osm_lanes_attributes.csv"
+            self.data_file_location, "lookups", "osm_lanes_attributes.csv"
         )
 
         self.legacy_tm2_attributes = os.path.join(
@@ -398,7 +398,19 @@ class Parameters:
             "segment_id",
             "managed",
             "bus_only",
-            "rail_only"
+            "rail_only",
+            "assignable",
+            "cntype",
+            "useclass",
+            "transit",
+            "tollbooth",
+            "tollseg",
+            "ft",
+            "numlanes",
+            "pemsid",
+            "pemslanes",
+            "pemsdist",
+            "tap_drive",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -451,7 +463,9 @@ class Parameters:
             "segment_id",
             "managed",
             "bus_only",
-            "rail_only"
+            "rail_only",
+            "ft",
+            "numlanes",
         ]
 
         self.float_col = [
