@@ -170,6 +170,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     def calculate_facility_type(
         self,
         network_variable = "facility_type",
+        network_variable_lanes = "numlanes",
         facility_type_dict = None
     ):
         """
@@ -193,7 +194,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         facility_type_dict = (
             facility_type_dict
             if facility_type_dict
-            else self.parameters.facility_type_dict
+            else self.parameters.osm_facility_type_dict
         )
 
         if not facility_type_dict:
@@ -205,11 +206,55 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Start actual process
         """
 
-        crosswalk_df = pd.read_csv(facility_type_dict)
+        join_gdf = self.links_df.copy()
 
-        join_gdf = pd.merge(
-            self.links_df, crosswalk_df, how = "left", on = "roadway"
-        )
+        join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: "NA" if x == None else x)
+        join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: x if type(x) == str else ','.join(map(str, x)))
+        join_gdf["oneWay_binary"] = join_gdf["oneWay"].apply(lambda x: 0 if "False" in x else 1)
+
+        def _calculate_facility_type(x):
+            # facility_type heuristics
+
+            if x.roadway == "motorway":
+                return 1
+
+            if x.roadway == "trunk":
+                if x.oneWay_binary == 1:
+                    return 2
+
+            if x.roadway in ["motorway_link", "trunk_link"]:
+                return 3
+
+            if x.roadway in ["primary", "secondary", "tertiary"]:
+                if x.oneWay_binary == 1:
+                    if x[network_variable_lanes] > 1:
+                        return 4
+
+            if x.roadway in ["trunk", "primary", "secondary", "tertiary"]:
+                if x.oneWay_binary == 0:
+                    if x[network_variable_lanes] > 1:
+                        return 5
+
+            if x.roadway == "trunk":
+                if x.oneWay_binary == 0:
+                    if x[network_variable_lanes] == 1:
+                        return 6
+
+            if x.roadway in ["primary", "secondary", "tertiary"]:
+                if x.oneWay_binary in [0,1]:
+                    return 6
+
+            if x.roadway in ["primary_link", "secondary_link", "tertiary_link"]:
+                if x.oneWay_binary in [0,1]:
+                    return 6
+
+            if x.roadway in ["residential", "residential_link"]:
+                if x.oneWay_binary in [0,1]:
+                    return 7
+
+            return 99
+
+        join_gdf[network_variable] = join_gdf.apply(lambda x : _calculate_facility_type(x), axis = 1)
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
