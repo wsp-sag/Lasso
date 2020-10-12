@@ -1217,7 +1217,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             try:
                 if x.centroidconnect == 1:
                     return int(1)
-                elif x.ROUTE_SYS in ['04', '05', '09', '07', '10']:
+                elif max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington])>0:
                     return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
                 elif max([x.widot, x.mndot])>0:
                     return int(max([x.widot, x.mndot]))
