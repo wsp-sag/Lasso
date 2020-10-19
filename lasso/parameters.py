@@ -1,6 +1,8 @@
 import os
 from .logger import WranglerLogger
 
+from pyproj import CRS
+
 def get_base_dir(lasso_base_dir = os.getcwd()):
     d = lasso_base_dir
     for i in range(3):
@@ -246,29 +248,12 @@ class Parameters:
 
         # prefix, source variable, categories
         self.properties_to_split = {
-            "trn_priority": {
-                "v": "trn_priority",
-                "time_periods": self.time_period_to_time,
-            },
-            "ttime_assert": {
-                "v": "ttime_assert",
-                "time_periods": self.time_period_to_time,
-            },
-            "lanes": {
-                "v": "lanes",
+            "numlanes": {
+                "v": "numlanes",
                 "time_periods": self.time_period_to_time,
             },
             "ML_lanes": {
                 "v": "ML_lanes",
-                "time_periods": self.time_period_to_time,
-            },
-            "price": {
-                "v": "price",
-                "time_periods": self.time_period_to_time,
-                "categories": self.categories,
-            },
-            "access": {
-                "v": "access",
                 "time_periods": self.time_period_to_time,
             },
         }
@@ -355,7 +340,21 @@ class Parameters:
             self.data_file_location, "lookups", "pems_attributes.csv"
         )
 
+        self.centroid_file = os.path.join(
+            self.data_file_location, "centroid", "centroid_node.pickle"
+        )
 
+        self.centroid_connector_link_file = os.path.join(
+            self.data_file_location, "centroid", "cc_link.pickle"
+        )
+
+        self.centroid_connector_shape_file = os.path.join(
+            self.data_file_location, "centroid", "cc_shape.pickle"
+        )
+
+        self.net_to_dbf_crosswalk = os.path.join(
+            self.settings_location, "net_to_dbf.csv"
+        )
 
         self.log_to_net_crosswalk = os.path.join(self.settings_location, "log_to_net.csv")
 
@@ -372,21 +371,15 @@ class Parameters:
             "walk_access",
             "drive_access",
             "truck_access",
-            "lanes_EA",
-            "lanes_AM",
-            "lanes_MD",
-            "lanes_PM",
-            "lanes_EV",
-            "facility_type",
+            "numlanes_EA",
+            "numlanes_AM",
+            "numlanes_MD",
+            "numlanes_PM",
+            "numlanes_EV",
             "county",
-            "centroidconnect",
             "model_node_id",
             "N",
             "osm_node_id",
-            "bike_node",
-            "transit_node",
-            "walk_node",
-            "drive_node",
             "geometry",
             "X",
             "Y",
@@ -406,11 +399,10 @@ class Parameters:
             "tollbooth",
             "tollseg",
             "ft",
-            "numlanes",
-            "pemsid",
-            "pemslanes",
-            "pemsdist",
             "tap_drive",
+            "use",
+            "tollbooth",
+            "tollseg",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -429,7 +421,7 @@ class Parameters:
             self.scratch_location, "make_complete_network_from_fixed_width_file.s"
         )
         self.output_dir = os.path.join(self.scratch_location)
-        self.output_epsg = 102646
+        self.output_proj = CRS("ESRI:102646")
 
         """
         Create all the possible headway variable combinations based on the cube time periods setting
@@ -445,20 +437,11 @@ class Parameters:
             "model_node_id",
             "A",
             "B",
-            "lanes",
-            "facility_type",
-            "county",
-            "area_type",
-            "centroidconnect",
-            "bike_facility",
+            #"county",
             "drive_access",
             "walk_access",
             "bike_access",
             "truck_access",
-            "drive_node",
-            "walk_node",
-            "bike_node",
-            "transit_node",
             "ML_lanes",
             "segment_id",
             "managed",
@@ -466,6 +449,10 @@ class Parameters:
             "rail_only",
             "ft",
             "numlanes",
+            "useclass",
+            "use",
+            "tollseg",
+            "tollbooth"
         ]
 
         self.float_col = [
