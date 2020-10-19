@@ -31,7 +31,6 @@
       ~ModelRoadwayNetwork.calculate_distance
       ~ModelRoadwayNetwork.calculate_hov
       ~ModelRoadwayNetwork.calculate_mpo
-      ~ModelRoadwayNetwork.calculate_number_of_lanes
       ~ModelRoadwayNetwork.convert_int
       ~ModelRoadwayNetwork.create_ML_variable
       ~ModelRoadwayNetwork.create_calculated_variables
