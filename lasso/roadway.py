@@ -474,6 +474,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         highest_taz_number=None,
         as_integer=True,
         overwrite=False,
+        lanes_variable="lanes",
+        number_of_lanes=1,
     ):
         """
         Calculates centroid connector variable.
@@ -481,8 +483,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Args:
             network_variable (str): Variable that should be written to in the network. Default to "centroidconnect"
             highest_taz_number (int): the max TAZ number in the network.
-            as_integer (bool): If True, will convert true/false to 1/0s.  Defauly to True.
+            as_integer (bool): If True, will convert true/false to 1/0s.  Default to True.
             overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+            lanes_variable (str): Variable that stores the number of lanes. Default to "lanes".
+            number_of_lanes (int): Number of lanes for centroid connectors. Default to 1.
 
         Returns:
             None
@@ -533,6 +537,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
+        number_of_lanes = (
+            number_of_lanes if number_of_lanes else self.parameters.centroid_connect_lanes
+        )
+
         """
         Start actual process
         """
@@ -543,6 +551,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             | (self.links_df["B"] <= highest_taz_number),
             network_variable,
         ] = True
+
+        self.links_df[lanes_variable] = number_of_lanes
 
         if as_integer:
             self.links_df[network_variable] = self.links_df[network_variable].astype(

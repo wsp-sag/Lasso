@@ -91,6 +91,10 @@ class Parameters:
             Default:
             ::
                 r"metcouncil_data/lookups/lanes.csv"
+        centroid_connect_lanes (int): Number of lanes for centroid connectors.
+            Default:
+            ::
+                1
         mpo_counties (list): list of county names within MPO boundary.
             Default:
             ::
@@ -494,6 +498,8 @@ class Parameters:
         )
 
         self.downtown_area_type = int(5)
+
+        self.centroid_connect_lanes = int(1)
 
         self.osm_assgngrp_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"

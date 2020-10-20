@@ -13,6 +13,7 @@ def calculate_number_of_lanes(
     lanes_lookup_file=None,
     network_variable="lanes",
     overwrite=False,
+    centroid_connect_lanes=1,
 ):
 
     """
@@ -25,6 +26,7 @@ def calculate_number_of_lanes(
         lanes_lookup_file (str): File path to lanes lookup file.
         network_variable (str): Name of the lanes variable
         overwrite (boolean): Overwrite existing values
+        centroid_connect_lanes (int): Number of lanes on centroid connectors
 
     Returns:
         RoadwayNetwork
@@ -68,6 +70,10 @@ def calculate_number_of_lanes(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
+    centroid_connect_lanes = (
+        centroid_connect_lanes if centroid_connect_lanes else self.parameters.centroid_connect_lanes
+    )
+
     update_lanes = False
 
     if network_variable in roadway_net.links_df:
@@ -90,7 +96,11 @@ def calculate_number_of_lanes(
     Start actual process
     """
     WranglerLogger.debug("Calculating Centroid Connectors")
-    roadway_net.calculate_centroidconnect()
+
+    if isinstance(roadway_net, ModelRoadwayNetwork):
+        roadway_net.calculate_centroidconnect(number_of_lanes=centroid_connect_lanes)
+    else:
+        roadway_net.links_df['centroidconnect'] = 0
 
     WranglerLogger.debug(
         "Computing number lanes using: {}".format(
@@ -110,7 +120,7 @@ def calculate_number_of_lanes(
     def _set_lanes(x):
         try:
             if x.centroidconnect == 1:
-                return int(1)
+                return int(centroid_connect_lanes)
             elif max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington])>0:
                 return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
             elif max([x.widot, x.mndot])>0:
