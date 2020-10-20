@@ -244,6 +244,10 @@
 <span class="sd">            Default:</span>
 <span class="sd">            ::</span>
 <span class="sd">                r&quot;metcouncil_data/lookups/lanes.csv&quot;</span>
+<span class="sd">        centroid_connect_lanes (int): Number of lanes for centroid connectors.</span>
+<span class="sd">            Default:</span>
+<span class="sd">            ::</span>
+<span class="sd">                1</span>
 <span class="sd">        mpo_counties (list): list of county names within MPO boundary.</span>
 <span class="sd">            Default:</span>
 <span class="sd">            ::</span>
@@ -647,6 +651,8 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">downtown_area_type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroid_connect_lanes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">osm_assgngrp_dict</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_file_location</span><span class="p">,</span> <span class="s2">&quot;lookups&quot;</span><span class="p">,</span> <span class="s2">&quot;osm_highway_asgngrp_crosswalk.csv&quot;</span>
