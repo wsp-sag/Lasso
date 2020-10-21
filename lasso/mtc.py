@@ -28,7 +28,7 @@ class MTC:
         roadway_network_object = None,
         #parameters = {},
         network_variable = "ft",
-        network_variable_lanes = "numlanes",
+        network_variable_lanes = "lanes",
         facility_type_dict = None
     ):
         """

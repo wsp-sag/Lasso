@@ -404,7 +404,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def create_ML_variable(
         self,
-        network_variable="ML_numlanes",
+        network_variable="ML_lanes",
         overwrite=False,
     ):
         """
@@ -543,8 +543,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         int_col_names = self.parameters.int_col
-        #if "numlanes" in int_col_names:
-        #    int_col_names.remove("numlanes")
 
         for c in list(self.links_df.columns):
             if c in int_col_names:
