@@ -77,6 +77,7 @@ class MTC:
 
         join_gdf = roadway_network_object.links_df.copy()
 
+        join_gdf["oneWay"].fillna("", inplace = True)
         join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: "NA" if x in [None, np.nan, float('nan')] else x)
         join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: x if type(x) == str else ','.join(map(str, x)))
         join_gdf["oneWay_binary"] = join_gdf["oneWay"].apply(lambda x: 0 if "False" in x else 1)
@@ -765,7 +766,7 @@ class MTC:
 
         if update_network_variable:
             roadway_network_object.links_df[network_variable] = np.where(
-                    roadway_network_object.links_df[network_variable] > 0,
+                    roadway_network_object.links_df[network_variable].notnull(),
                     roadway_network_object.links_df[network_variable],
                     0
                 )
@@ -880,6 +881,8 @@ class MTC:
             sort = False,
             ignore_index = True
         )
+
+
 
         WranglerLogger.info(
             "Finished adding centroid and centroid connectors"

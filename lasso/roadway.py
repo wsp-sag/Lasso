@@ -37,7 +37,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_mtc_df = None
         self.nodes_mtc_df = None
-        self.shapes_mtc_df = None
+        #self.shapes_mtc_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
@@ -169,7 +169,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         MTC.calculate_cntype(self)
         MTC.calculate_transit(self)
         MTC.calculate_useclass(self)
-        MTC.calculate_use(self)
+        #MTC.calculate_use(self)
 
         self.create_ML_variable()
 
@@ -404,7 +404,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def create_ML_variable(
         self,
-        network_variable="ML_lanes",
+        network_variable="ML_numlanes",
         overwrite=False,
     ):
         """
@@ -543,8 +543,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         int_col_names = self.parameters.int_col
-        if "numlanes" in int_col_names:
-            int_col_names.remove("numlanes")
+        #if "numlanes" in int_col_names:
+        #    int_col_names.remove("numlanes")
 
         for c in list(self.links_df.columns):
             if c in int_col_names:
@@ -618,21 +618,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.calculate_distance(overwrite = True)
 
         self.fill_na()
-        self.convert_int()
         WranglerLogger.info("Splitting variables by time period and category")
         self.split_properties_by_time_period_and_category()
+        self.convert_int()
 
         self.links_mtc_df = self.links_df.copy()
         self.nodes_mtc_df = self.nodes_df.copy()
-        self.shapes_mtc_df = self.shapes_df.dropna().copy()
 
         self.links_mtc_df.crs = RoadwayNetwork.CRS
         self.nodes_mtc_df.crs = RoadwayNetwork.CRS
-        self.shapes_mtc_df.crs = RoadwayNetwork.CRS
         WranglerLogger.info("Setting Coordinate Reference System to {}".format(output_proj))
         self.links_mtc_df = self.links_mtc_df.to_crs(crs = output_proj)
         self.nodes_mtc_df = self.nodes_mtc_df.to_crs(crs = output_proj)
-        self.shapes_mtc_df = self.shapes_mtc_df.to_crs(crs = output_proj)
 
         self.nodes_mtc_df["X"] = self.nodes_mtc_df.geometry.apply(
             lambda g: g.x
