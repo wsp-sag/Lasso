@@ -1049,8 +1049,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         s = s[:-1]
         s += "\n"
         s += 'FILEO NETO = "%SCENARIO_DIR%/complete_network.net" \n\n    ZONES = %zones% \n\n'
-        s += 'ROADWAY = LTRIM(TRIM(ROADWAY)) \n'
-        s += 'NAME = LTRIM(TRIM(NAME)) \n'
+        s += ';ROADWAY = LTRIM(TRIM(ROADWAY)) \n'
+        s += ';NAME = LTRIM(TRIM(NAME)) \n'
         s += '\n \nENDRUN'
 
         with open(output_cube_network_script, "w") as f:
