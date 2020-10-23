@@ -18,7 +18,6 @@ STPAUL_SHAPE_FILE = os.path.join(STPAUL_DIR, "shape.geojson")
 STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
-@pytest.mark.david
 @pytest.mark.metcouncil
 @pytest.mark.travis
 def test_calculate_lanes(request):

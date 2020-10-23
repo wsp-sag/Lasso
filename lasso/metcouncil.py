@@ -681,8 +681,6 @@ def calculate_centroidconnect(
         network_variable,
     ] = True
 
-    roadway_net.links_df[lanes_variable] = number_of_lanes
-
     if as_integer:
         roadway_net.links_df[network_variable] = roadway_net.links_df[network_variable].astype(
             int
