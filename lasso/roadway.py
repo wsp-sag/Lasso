@@ -12,7 +12,6 @@ import numpy as np
 from network_wrangler import RoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger
-from .mtc import MTC
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):
@@ -164,13 +163,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             None
         """
         WranglerLogger.info("Creating calculated roadway variables.")
-        MTC.calculate_facility_type(self)
-        MTC.calculate_assignable(self)
-        MTC.calculate_cntype(self)
-        MTC.calculate_transit(self)
-        MTC.calculate_useclass(self)
-        #MTC.calculate_use(self)
-
+        
         self.create_ML_variable()
 
     def add_variable_using_shst_reference(

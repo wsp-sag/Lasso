@@ -6,7 +6,6 @@ from .util import get_shared_streets_intersection_hash
 from .roadway import ModelRoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger, setupLogging
-from .mtc import MTC
 
 __all__ = [
     "Project",
@@ -16,7 +15,6 @@ __all__ = [
     "ModelRodwayNetwork",
     "Parameters",
     "WranglerLogger",
-    "MTC",
 ]
 
 if __name__ == "__main__":
