@@ -163,7 +163,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             None
         """
         WranglerLogger.info("Creating calculated roadway variables.")
-        
+
         self.create_ML_variable()
 
     def add_variable_using_shst_reference(
@@ -574,63 +574,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 self.nodes_df[x].fillna(0, inplace = True)
             else:
                 self.nodes_df[x].fillna("", inplace = True)
-
-    def roadway_standard_to_mtc_network(self, output_proj=None):
-        """
-        Rename and format roadway attributes to be consistent with what mtc's model is expecting.
-
-        Args:
-            output_epsg (int): epsg number of output network.
-
-        Returns:
-            None
-        """
-
-        WranglerLogger.info(
-            "Renaming roadway attributes to be consistent with what mtc's model is expecting"
-        )
-
-        """
-        Verify inputs
-        """
-
-        output_proj = output_proj if output_proj else self.parameters.output_proj
-
-        """
-        Start actual process
-        """
-        if "managed" in self.links_df.columns:
-            WranglerLogger.info("Creating managed lane network.")
-            self.create_managed_lane_network(in_place=True)
-        else:
-            WranglerLogger.info("Didn't detect managed lanes in network.")
-
-        self.create_calculated_variables()
-        self.calculate_distance(overwrite = True)
-
-        self.fill_na()
-        WranglerLogger.info("Splitting variables by time period and category")
-        self.split_properties_by_time_period_and_category()
-        self.convert_int()
-
-        self.links_mtc_df = self.links_df.copy()
-        self.nodes_mtc_df = self.nodes_df.copy()
-
-        self.links_mtc_df.crs = RoadwayNetwork.CRS
-        self.nodes_mtc_df.crs = RoadwayNetwork.CRS
-        WranglerLogger.info("Setting Coordinate Reference System to {}".format(output_proj))
-        self.links_mtc_df = self.links_mtc_df.to_crs(crs = output_proj)
-        self.nodes_mtc_df = self.nodes_mtc_df.to_crs(crs = output_proj)
-
-        self.nodes_mtc_df["X"] = self.nodes_mtc_df.geometry.apply(
-            lambda g: g.x
-        )
-        self.nodes_mtc_df["Y"] = self.nodes_mtc_df.geometry.apply(
-            lambda g: g.y
-        )
-
-        # CUBE expect node id to be N
-        self.nodes_mtc_df.rename(columns={"model_node_id": "N"}, inplace=True)
 
     def rename_variables_for_dbf(
         self,

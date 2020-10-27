@@ -11,6 +11,7 @@ import numpy as np
 
 from .parameters import Parameters
 from .logger import WranglerLogger
+from network_wrangler import RoadwayNetwork
 
 
 def calculate_facility_type(
@@ -18,7 +19,9 @@ def calculate_facility_type(
     parameters=None,
     network_variable="ft",
     network_variable_lanes="lanes",
-    facility_type_dict = None
+    facility_type_dict = None,
+    overwrite:bool = False,
+    update_network_variable: bool = False,
 ):
     """
     Calculates facility type variable.
@@ -66,6 +69,21 @@ def calculate_facility_type(
         msg = msg = "'facility_type_dict' not found in method or lasso parameters."
         WranglerLogger.error(msg)
         raise ValueError(msg)
+
+    if network_variable in roadway_network.links_df:
+        if overwrite:
+            WranglerLogger.info(
+                "Overwriting existing Variable '{}' already in network".format(
+                    network_variable
+                )
+            )
+        else:
+            WranglerLogger.info(
+                "Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                    network_variable
+                )
+            )
+            update_network_variable = True
 
     """
     Start actual process
@@ -122,7 +140,16 @@ def calculate_facility_type(
 
     join_gdf[network_variable] = join_gdf.apply(lambda x : _calculate_facility_type(x), axis = 1)
 
-    roadway_network.links_df[network_variable] = join_gdf[network_variable]
+    roadway_network.links_df[network_variable + "_cal"] = join_gdf[network_variable]
+
+    if update_network_variable:
+        roadway_network.links_df[network_variable] = np.where(
+                roadway_network.links_df[network_variable].notnull(),
+                roadway_network.links_df[network_variable],
+                roadway_network.links_df[network_variable + "_cal"]
+            )
+    else:
+        roadway_network.links_df[network_variable] = roadway_network.links_df[network_variable + "_cal"]
 
     WranglerLogger.info(
         "Finished calculating roadway class variable: {}".format(network_variable)
@@ -855,5 +882,73 @@ def add_centroid_and_centroid_connector(
     WranglerLogger.info(
         "Finished adding centroid and centroid connectors"
     )
+
+    return roadway_network
+
+def roadway_standard_to_mtc_network(
+    roadway_network = None,
+    parameters = None,
+    output_proj = None
+):
+    """
+    Rename and format roadway attributes to be consistent with what mtc's model is expecting.
+
+    Args:
+        output_epsg (int): epsg number of output network.
+
+    Returns:
+        None
+    """
+
+    WranglerLogger.info(
+        "Renaming roadway attributes to be consistent with what mtc's model is expecting"
+    )
+
+    """
+    Verify inputs
+    """
+
+    output_proj = output_proj if output_proj else parameters.output_proj
+
+    """
+    Start actual process
+    """
+    if "managed" in roadway_network.links_df.columns:
+        WranglerLogger.info("Creating managed lane network.")
+        roadway_network.create_managed_lane_network(in_place=True)
+    else:
+        WranglerLogger.info("Didn't detect managed lanes in network.")
+
+    roadway_network = calculate_facility_type(roadway_network, parameters)
+    roadway_network = calculate_assignable(roadway_network, parameters)
+    roadway_network = calculate_cntype(roadway_network, parameters)
+    roadway_network = calculate_transit(roadway_network, parameters)
+    roadway_network = calculate_useclass(roadway_network, parameters)
+
+    roadway_network.calculate_distance(overwrite = True)
+
+    roadway_network.fill_na()
+    WranglerLogger.info("Splitting variables by time period and category")
+    roadway_network.split_properties_by_time_period_and_category()
+    roadway_network.convert_int()
+
+    roadway_network.links_mtc_df = roadway_network.links_df.copy()
+    roadway_network.nodes_mtc_df = roadway_network.nodes_df.copy()
+
+    roadway_network.links_mtc_df.crs = RoadwayNetwork.CRS
+    roadway_network.nodes_mtc_df.crs = RoadwayNetwork.CRS
+    WranglerLogger.info("Setting Coordinate Reference System to {}".format(output_proj))
+    roadway_network.links_mtc_df = roadway_network.links_mtc_df.to_crs(crs = output_proj)
+    roadway_network.nodes_mtc_df = roadway_network.nodes_mtc_df.to_crs(crs = output_proj)
+
+    roadway_network.nodes_mtc_df["X"] = roadway_network.nodes_mtc_df.geometry.apply(
+        lambda g: g.x
+    )
+    roadway_network.nodes_mtc_df["Y"] = roadway_network.nodes_mtc_df.geometry.apply(
+        lambda g: g.y
+    )
+
+    # CUBE expect node id to be N
+    roadway_network.nodes_mtc_df.rename(columns={"model_node_id": "N"}, inplace=True)
 
     return roadway_network
