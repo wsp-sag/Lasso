@@ -593,7 +593,7 @@ def calculate_cntype(
     roadway_network.links_df[network_variable] = roadway_network.links_df.apply(lambda x: _calculate_cntype(x), axis = 1)
 
     WranglerLogger.info(
-        "Finished determining assignable using variable: {}".format(network_variable)
+        "Finished determining variable: {}".format(network_variable)
     )
 
     return roadway_network
@@ -604,6 +604,7 @@ def calculate_transit(
     parameters = None,
     network_variable: str = "transit",
     overwrite:bool = False,
+    update_network_variable: bool = False,
 ):
     """
     Calculates transit-only variable.
@@ -618,7 +619,7 @@ def calculate_transit(
         roadway object
     """
 
-    WranglerLogger.info("Determining assignable")
+    WranglerLogger.info("Determining transit")
 
     """
     Verify inputs
@@ -648,11 +649,11 @@ def calculate_transit(
             )
         else:
             WranglerLogger.info(
-                "Variable '{}' already in network. Returning without overwriting.".format(
+                "Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
                     network_variable
                 )
             )
-            return roadway_network
+            update_network_variable = True
 
     """
     Start actual process
@@ -663,6 +664,13 @@ def calculate_transit(
             network_variable
         )
     )
+
+    if update_network_variable:
+        roadway_network.links_df[network_variable] = np.where(
+            roadway_network.links_df[network_variable].notnull(),
+            roadway_network.links_df[network_variable],
+            0
+        )
 
     if "bus_only" in roadway_network.links_df.columns:
         roadway_network.links_df[network_variable] = np.where(
@@ -762,7 +770,7 @@ def calculate_useclass(
         roadway_network.links_df[network_variable] = 0
 
     WranglerLogger.info(
-        "Finished determining transit-only variable: {}".format(network_variable)
+        "Finished determining variable: {}".format(network_variable)
     )
 
     return roadway_network
@@ -847,6 +855,10 @@ def add_centroid_and_centroid_connector(
     centroid_connector_link_gdf = pd.read_pickle(centroid_connector_link_file)
     centroid_connector_shape_gdf = pd.read_pickle(centroid_connector_shape_file)
 
+    centroid_connector_link_gdf["lanes"] = 1
+    centroid_connector_link_gdf["ft"] = 8
+    centroid_connector_link_gdf["managed"] = 0
+
     roadway_network.nodes_df = pd.concat(
         [roadway_network.nodes_df,
         centroid_gdf[
@@ -919,8 +931,13 @@ def roadway_standard_to_mtc_network(
     else:
         WranglerLogger.info("Didn't detect managed lanes in network.")
 
-    roadway_network = calculate_facility_type(roadway_network, parameters)
-    roadway_network = calculate_assignable(roadway_network, parameters)
+    # make managed lane access and egress dummy links assignable
+    roadway_network.links_df["assignable"] = np.where(
+        roadway_network.links_df["roadway"].isin(["ml_access", "ml_egress"]),
+        1,
+        roadway_network.links_df["assignable"]
+    )
+
     roadway_network = calculate_cntype(roadway_network, parameters)
     roadway_network = calculate_transit(roadway_network, parameters)
     roadway_network = calculate_useclass(roadway_network, parameters)

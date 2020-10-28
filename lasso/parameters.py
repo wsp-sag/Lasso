@@ -459,6 +459,7 @@ class Parameters:
             "bus_only",
             "rail_only",
             "ft",
+            "assignable",
             "lanes_AM",
             "lanes_MD",
             "lanes_PM",
