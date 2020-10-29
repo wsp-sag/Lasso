@@ -362,6 +362,10 @@ class Parameters:
 
         self.log_to_net_crosswalk = os.path.join(self.settings_location, "log_to_net.csv")
 
+        self.mode_crosswalk_file = os.path.join(
+            self.data_file_location, "lookups", "gtfs_to_tm2_mode_crosswalk.csv"
+        )
+
         self.output_variables = [
             "model_link_id",
             "link_id",

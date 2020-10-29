@@ -969,3 +969,142 @@ def roadway_standard_to_mtc_network(
     roadway_network.nodes_mtc_df.rename(columns={"model_node_id": "N"}, inplace=True)
 
     return roadway_network
+
+def route_properties_gtfs_to_cube(
+    transit_network = None,
+    parameters = None,
+):
+    """
+    Prepare gtfs for cube lin file.
+
+    Does the following operations:
+    1. Combines route, frequency, trip, and shape information
+    2. Converts time of day to time periods
+    3. Calculates cube route name from gtfs route name and properties
+    4. Assigns a cube-appropriate mode number
+    5. Assigns a cube-appropriate operator number
+
+    Returns:
+        trip_df (DataFrame): DataFrame of trips with cube-appropriate values for:
+            - NAME
+            - ONEWAY
+            - OPERATOR
+            - MODE
+            - HEADWAY
+    """
+    WranglerLogger.info(
+        "Converting GTFS Standard Properties to MTC's Cube Standard"
+    )
+    # TODO edit as GTFS is consumed
+    mtc_operator_dict = {
+        "0": 3,
+        "1": 3,
+        "2": 3,
+        "3": 4,
+        "4": 2,
+        "5": 5,
+        "6": 8,
+        "7": 1,
+        "8": 1,
+        "9": 10,
+        "10": 3,
+        "11": 9,
+        "12": 3,
+        "13": 4,
+        "14": 4,
+        "15": 3,
+    }
+
+    shape_df = transit_network.feed.shapes.copy()
+    trip_df = transit_network.feed.trips.copy()
+
+    mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
+    mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type"], inplace = True)
+
+    """
+    Add information from: routes, frequencies, and routetype to trips_df
+    """
+    trip_df = pd.merge(trip_df, transit_network.feed.routes.drop("agency_raw_name", axis = 1), how="left", on="route_id")
+    trip_df = pd.merge(trip_df, transit_network.feed.frequencies, how="left", on="trip_id")
+
+    trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
+
+    trip_df["NAME"] = trip_df.apply(
+        lambda x: str(x.agency_id)
+        + "_"
+        + str(x.route_id)
+        + "_"
+        + str(x.route_short_name),
+        axis=1,
+    )
+
+    trip_df["LONGNAME"] = trip_df["route_long_name"]
+    trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
+
+    trip_df = pd.merge(
+        trip_df,
+        mode_crosswalk.drop("agency_id", axis = 1),
+        how = "left",
+        on = ["agency_raw_name", "route_type"]
+    )
+
+    trip_df['TM2_mode'].fillna(11, inplace = True)
+    trip_df['TM2_mode'] = trip_df['TM2_mode'].astype(int)
+
+
+    trip_df["ONEWAY"] = "T"
+    trip_df["OPERATOR"] = trip_df["agency_id"].map(mtc_operator_dict)
+
+    return trip_df
+
+def cube_format(transit_network, row):
+    """
+    Creates a string represnting the route in cube line file notation.
+
+    Args:
+        row: row of a DataFrame representing a cube-formatted trip, with the Attributes
+            trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY, MODE, ONEWAY, OPERATOR
+
+    Returns:
+        string representation of route in cube line file notation
+    """
+
+    s = '\nLINE NAME="{}",'.format(row.NAME)
+    s += '\n LONGNAME="{}",'.format(row.LONGNAME)
+    s += '\n USERA1=\"%s",' % (row.agency_id,)
+    s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
+    s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
+    s += "\n MODE={},".format(row.TM2_mode)
+    s += "\n ONEWAY={},".format(row.ONEWAY)
+    s += "\n OPERATOR={},".format(row.agency_id)
+    s += '\n SHORTNAME=%s,' % (row.route_short_name,)
+    s += "\n NODES={}".format(transit_network.shape_gtfs_to_cube(row))
+
+    # TODO: need NNTIME, ACCESS_C
+
+    return s
+
+def write_as_cube_lin(
+    transit_network = None,
+    parameters = None,
+    outpath: str  = None
+    ):
+    """
+    Writes the gtfs feed as a cube line file after
+    converting gtfs properties to MetCouncil cube properties.
+
+    Args:
+        outpath: File location for output cube line file.
+
+    """
+    if not outpath:
+        outpath  = os.path.join(parameters.scratch_location,"outtransit.lin")
+    trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters)
+
+    trip_cube_df["LIN"] = trip_cube_df.apply(lambda x: cube_format(transit_network, x), axis=1)
+
+    l = trip_cube_df["LIN"].tolist()
+    l = [";;<<PT>><<LINE>>;;"] + l
+
+    with open(outpath, "w") as f:
+        f.write("\n".join(l))
