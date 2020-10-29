@@ -1078,7 +1078,7 @@ def cube_format(transit_network, row):
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(row.agency_id)
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
-    s += "\n NODES={}".format(transit_network.shape_gtfs_to_cube(row))
+    s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row))
 
     # TODO: need NNTIME, ACCESS_C
 
