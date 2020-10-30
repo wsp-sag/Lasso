@@ -8,6 +8,7 @@ import pandas as pd
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 import numpy as np
+import math
 
 from .parameters import Parameters
 from .logger import WranglerLogger
@@ -1075,8 +1076,9 @@ def cube_format(transit_network, row):
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
+    s += "\n FARESYSTEM={},".format(int(row.TM2_faresystem) if ~math.isnan(row.TM2_faresystem) else "")
     s += "\n ONEWAY={},".format(row.ONEWAY)
-    s += "\n OPERATOR={},".format(row.agency_id)
+    s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else "")
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
     s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row))
 
