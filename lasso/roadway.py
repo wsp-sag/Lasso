@@ -796,7 +796,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for c in fw_df.columns:
             fw_df[c] = fw_df[c].apply(lambda x: str(x))
             fw_df["pad"] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
-            fw_df[c] = fw_df.apply(lambda x: x.pad + x[c], axis=1)
+            fw_df[c] = fw_df.apply(lambda x: x["pad"] + x[c], axis=1)
 
         return fw_df, max_width_dict
 
