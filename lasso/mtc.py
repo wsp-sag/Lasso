@@ -1076,7 +1076,8 @@ def cube_format(transit_network, row):
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
-    s += "\n FARESYSTEM={},".format(int(row.TM2_faresystem) if ~math.isnan(row.TM2_faresystem) else "")
+    if row.TM2_faresystem > 0:
+        s += "\n FARESYSTEM={},".format(int(row.TM2_faresystem))
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else "")
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
