@@ -1030,7 +1030,7 @@ def route_properties_gtfs_to_cube(
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
 
-    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-| ", "_")
+    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".")
 
     trip_df["route_long_name"] = trip_df["route_long_name"].str.slice(stop = 30)
 
@@ -1042,6 +1042,8 @@ def route_properties_gtfs_to_cube(
         + str(x.route_short_name),
         axis=1,
     )
+
+    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 30)
 
     trip_df["LONGNAME"] = trip_df["route_long_name"]
     trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
