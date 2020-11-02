@@ -1030,7 +1030,9 @@ def route_properties_gtfs_to_cube(
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
 
-    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_")
+    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-| ", "_")
+
+    trip_df["route_long_name"] = trip_df["route_long_name"].str.slice(stop = 30)
 
     trip_df["NAME"] = trip_df.apply(
         lambda x: str(x.agency_id)
