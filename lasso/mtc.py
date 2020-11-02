@@ -1030,6 +1030,8 @@ def route_properties_gtfs_to_cube(
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
 
+    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_")
+
     trip_df["NAME"] = trip_df.apply(
         lambda x: str(x.agency_id)
         + "_"
@@ -1079,7 +1081,7 @@ def cube_format(transit_network, row):
     if row.TM2_faresystem > 0:
         s += "\n FARESYSTEM={},".format(int(row.TM2_faresystem))
     s += "\n ONEWAY={},".format(row.ONEWAY)
-    s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else "")
+    s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
     s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row))
 
