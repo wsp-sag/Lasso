@@ -13,6 +13,7 @@ import math
 from .parameters import Parameters
 from .logger import WranglerLogger
 from network_wrangler import RoadwayNetwork
+from .util import geodesic_point_buffer
 
 
 def calculate_facility_type(
@@ -1117,3 +1118,130 @@ def write_as_cube_lin(
 
     with open(outpath, "w") as f:
         f.write("\n".join(l))
+
+def create_taps(
+    transit_network = None,
+    roadway_network = None,
+    parameters = None,
+    outpath: str = None,
+    ):
+    """
+    creates taps
+
+    Args:
+        transit_network: transit network object
+        roadway_network: roadway network object
+        parameters
+        outpath: output file path
+
+    Return:
+        taps nodes and taps connectors
+
+    """
+    # get stops
+    stops_df = transit_roadway.feed.stops.copy()
+    # create buffer for each stop
+    stops_df["buffer"] = stops_df.apply(lambda x: geodesic_point_buffer(stop_lat, stop_lon, 300))
+
+    # get neighbor stops within buffer - sjoin btw buffer polygons and stops
+    stops_copy_df = stops_df[["stop_id", "stop_lat", "stop_lon", "model_node_id"]].copy()
+    stops_copy_df.rename(
+        columns = {"stop_id" : "neighbor_stop_id",
+        "stop_lat" : "neighbor_stop_lat",
+        "stop_lon" : "neighbor_stop_lon",
+        "model_node_id" : "neighbor_model_node_id"},
+        inplace = True
+    )
+
+    stops_buffer_gdf = GeoDataFrame(
+        stops_df[["stop_id", "stop_lat", "stop_lon", "model_node_id", "buffer"]],
+        geometry = stops_df["buffer"],
+        crs = "EPSG:4326"
+    )
+    stops_copy_df = GeoDataFrame(
+        stops_copy_df,
+        geometry = gpd.points_from_xy(stops_copy_df.neighbor_stop_lon, stops_copy_df.neighbor_stop_lat),
+        crs = "EPSG:4326"
+    )
+
+    # stop - stop pairs
+    stops_buffer_neighbor_gdf = gpd.sjoin(stops_copy_df, stops_buffer_gdf, op = "intersects")
+
+    # drop duplicated stop-stop pairs
+    stops_buffer_neighbor_gdf = stops_buffer_neighbor_gdf[
+        stops_buffer_neighbor_gdf.neighbor_stop_id >= stops_buffer_neighbor_gdf.stop_id
+    ]
+
+    # count neighbor stops for each stop
+    stops_buffer_neighbor_num_df = pd.concat(
+        [
+        pd.DataFrame(stops_buffer_neighbor_gdf.stop_id.value_counts()).reset_index().rename(
+            columns = {"stop_id" : "neighbor_num", "index" : "stop_id"}),
+        pd.DataFrame(stops_buffer_neighbor_gdf.neighbor_stop_id.value_counts()).reset_index().rename(
+            columns = {"neighbor_stop_id" : "neighbor_num", "index" : "stop_id"})
+        ],
+        sort = False,
+        ignore_index = True
+    )
+
+    stops_buffer_neighbor_num_df = stops_buffer_neighbor_num_df.groupby("stop_id").sum().reset_index()
+
+    # double counting self
+    stops_buffer_neighbor_num_df["neighbor_num"] = stops_buffer_neighbor_num_df["neighbor_num"] - 1
+
+    # assign a TAP to every stop, this is problematic
+    taps_dict = create_tap_dict(stops_df, stops_buffer_neighbor_gdf)
+
+    stop_taps_df = pd.DataFrame(taps_dict.items(), columns = ["stops", "TAP"])
+
+    stop_taps_df = pd.merge(stops_df, stop_taps_df, how = "left", left_on = "stop_id", right_on = "stops")
+
+    tap_num_connections_df = pd.DataFrame(stop_taps_df.TAP.value_counts()).reset_index()
+    tap_num_connections_df.columns = ['TAP', 'num_connections']
+
+    # what is this trying to achieve?
+    lone_taps_df = tap_num_connections_df[tap_num_connections_df.num_connections == 1]
+    lone_tap_stops_df = pd.merge(lone_taps_df, stop_taps_df, on = "TAP", how = "inner")
+
+    test = pd.merge(lone_tap_stops_df, stop_taps_df, left_on='TAP', right_on='stops', how='left')
+    test = test[['TAP_x', 'TAP_y']]
+    test.columns = ['OldTAP', 'TAP']
+    test_dict = dict(zip(test.OldTAP, test.TAP))
+    stop_taps_df['TAP'] = stop_taps_df['TAP'].map(test_dict).fillna(stop_taps_df['TAP'])
+
+    # join tap assignment with stops
+    taps = pd.merge(stops_df[["stop_id", "stop_lat", "stop_lon"]], stop_taps_df[["stops", "TAP", "WithinRange"]],
+               how = "left", left_on = "stop_id", right_on = "stops")
+
+    # generate tap point by averaging the stops with same tap assignment
+    tap_locations = taps.groupby('TAP')['stop_lon', 'stop_lat', 'WithinRange'].mean()
+    tap_locations = tap_locations.reset_index()
+
+    tap_locations_gdf = gpd.GeoDataFrame(
+        tap_locations,
+        geometry = gpd.points_from_xy(tap_locations.stop_lon, tap_locations.stop_lat),
+        crs = "EPSG:4326"
+    )
+
+    return tap_locations_gdf
+
+def create_tap_dict(stops_df, stops_buffer_neighbor_gdf):
+    """
+    old logic, needs to be reviewed
+    """
+    taps = {}
+    for stop_id in stops_df.stop_id:
+        neighbors_df = stops_buffer_neighbor_gdf[(stops_buffer_neighbor_gdf.stop_id == stop_id) |
+                                                 (stops_buffer_neighbor_gdf.neighbor_stop_id == stop_id)].copy()
+        for _, row in neighbors_df.iterrows():
+            if row["stop_id"] == stop_id:
+                if row["neighbor_stop_id"] not in taps:
+                    taps[row["neighbor_stop_id"]] = stop_id
+                if stop_id not in taps:
+                    taps[stop_id] = stop_id
+            else:
+                if row["stop_id"] not in taps:
+                    taps[row["stop_id"]] = stop_id
+                if stop_id not in taps:
+                    taps[stop_id] = stop_id
+    return taps
