@@ -12,7 +12,7 @@ import os
 import copy
 import csv
 import datetime, time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from lark import Lark, Transformer, v_args
 from pandas import DataFrame
@@ -26,7 +26,7 @@ from .logger import WranglerLogger
 from .parameters import Parameters
 
 class CubeTransit(object):
-    """ Class for storing information about transit defined in Cube line
+    """Class for storing information about transit defined in Cube line
     files.
 
     Has the capability to:
@@ -63,12 +63,11 @@ class CubeTransit(object):
         diff_dict (dict):
     """
 
-    def __init__(self, parameters={}):
+    def __init__(self, parameters: Union[Parameters, dict] = {}):
         """
-        line_properties_dict (dict[line names]: line level attributes)
-        line_shapes_dict (dict[line names]: line shape df)
+        Constructor  for CubeTransit
 
-
+        parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters
         """
         WranglerLogger.debug("Creating a new Cube Transit instance")
 
@@ -79,7 +78,16 @@ class CubeTransit(object):
 
         self.program_type = None
 
-        self.parameters = Parameters(**parameters)
+        if type(parameters) is dict:
+            self.parameters = Parameters(**parameters)
+        elif isinstance(parameters, Parameters):
+            self.parameters = Parameters(**parameters.__dict__)
+        else:
+            msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+                parameters, type(parameters)
+            )
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
         self.source_list = []
 
@@ -88,9 +96,8 @@ class CubeTransit(object):
     def add_cube(self, transit_source: str) -> None:
         """Reads a .lin file and adds it to existing TransitNetwork instance.
 
-        Parameters
-        -----------
-        transit_source:  a string or the directory of the cube line file to be parsed
+        Args:
+            transit_source:  a string or the directory of the cube line file to be parsed
 
         """
 
@@ -119,21 +126,19 @@ class CubeTransit(object):
                 self.add_cube(lin_file)
             return
         else:
-            msg: "{} not a valid transit line string, directory, or file"
+            msg = "{} not a valid transit line string, directory, or file"
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
         WranglerLogger.debug("finished parsing cube line file")
         # WranglerLogger.debug("--Parse Tree--\n {}".format(parse_tree.pretty()))
         transformed_tree_data = CubeTransformer().transform(parse_tree)
-        # WranglerLogger.debug("--Transformed Tree Data --\n {}".format(transformed_tree_data["lines"]))
+        # WranglerLogger.debug("--Transformed Parse Tree--\n {}".format(transformed_tree_data))
 
-        line_properties_dict = {
-            k: v["line_properties"] for k, v in transformed_tree_data["lines"].items()
-        }
-        line_shapes_dict = {
-            k: v["line_shape"] for k, v in transformed_tree_data["lines"].items()
-        }
+        _line_data = transformed_tree_data["lines"]
+
+        line_properties_dict = {k: v["line_properties"] for k, v in _line_data.items()}
+        line_shapes_dict = {k: v["line_shape"] for k, v in _line_data.items()}
         new_lines = list(line_properties_dict.keys())
         """
         Before adding lines, check to see if any are overlapping with existing ones in the network
@@ -152,7 +157,8 @@ class CubeTransit(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        self.program_type = transformed_tree_data["program_type"]
+        self.program_type = transformed_tree_data.get("program_type", None)
+
         self.lines += new_lines
         self.line_properties.update(line_properties_dict)
         self.shapes.update(line_shapes_dict)
@@ -176,7 +182,7 @@ class CubeTransit(object):
 
         return tn
 
-    def evaluate_differences(self, base_transit) :
+    def evaluate_differences(self, base_transit):
         """
         1. Identifies what routes need to be updated, deleted, or added
         2. For routes being added or updated, identify if the time periods
@@ -214,8 +220,10 @@ class CubeTransit(object):
             """
             Find any additional time periods that might need to add or delete.
             """
-            base_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                base_transit.line_properties[line]
+            base_cube_time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    base_transit.line_properties[line]
+                )
             )
 
             try:
@@ -229,8 +237,10 @@ class CubeTransit(object):
 
             base_cube_time_period_number = base_cube_time_period_numbers[0]
 
-            build_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                self.line_properties[line]
+            build_cube_time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    self.line_properties[line]
+                )
             )
 
             time_periods_to_add = [
@@ -287,8 +297,10 @@ class CubeTransit(object):
         First assess if need to add multiple routes if there are multiple time periods
         """
         for line in lines_to_add:
-            time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                self.line_properties[line]
+            time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    self.line_properties[line]
+                )
             )
             if len(time_period_numbers) > 1:
                 for tp in time_period_numbers[1:]:
@@ -300,7 +312,9 @@ class CubeTransit(object):
 
         return project_card_changes
 
-    def add_additional_time_periods(self, new_time_period_number:int, orig_line_name:str)->str:
+    def add_additional_time_periods(
+        self, new_time_period_number: int, orig_line_name: str
+    ) -> str:
         """
         Copies a route to another cube time period with appropriate
         values for time-period-specific properties.
@@ -323,9 +337,12 @@ class CubeTransit(object):
             )
         )
 
-        route_id, _init_time_period, agency_id, direction_id = CubeTransit.unpack_route_name(
-            orig_line_name
-        )
+        (
+            route_id,
+            _init_time_period,
+            agency_id,
+            direction_id,
+        ) = CubeTransit.unpack_route_name(orig_line_name)
         new_time_period_name = self.parameters.cube_time_periods[new_time_period_number]
         new_tp_line_name = CubeTransit.build_route_name(
             route_id=route_id,
@@ -451,7 +468,7 @@ class CubeTransit(object):
 
         return delete_card_dict
 
-    def create_add_route_card_dict(self, line:str):
+    def create_add_route_card_dict(self, line: str):
         """
         Creates a project card change formatted dictionary for adding
         a route based on the information in self.route_properties for
@@ -515,7 +532,12 @@ class CubeTransit(object):
         return time_periods_list
 
     @staticmethod
-    def build_route_name(route_id: str = "", time_period: str = "", agency_id: str = 0, direction_id: str = 1) -> str:
+    def build_route_name(
+        route_id: str = "",
+        time_period: str = "",
+        agency_id: str = 0,
+        direction_id: str = 1,
+    ) -> str:
         """
         Create a route name by contatenating route, time period, agency, and direction
 
@@ -541,7 +563,7 @@ class CubeTransit(object):
         )
 
     @staticmethod
-    def unpack_route_name(line_name:str):
+    def unpack_route_name(line_name: str):
         """
         Unpacks route name into direction, route, agency, and time period info
 
@@ -563,7 +585,7 @@ class CubeTransit(object):
 
         return route_id, time_period, agency_id, direction_id
 
-    def calculate_start_end_times(self, line_properties_dict:dict):
+    def calculate_start_end_times(self, line_properties_dict: dict):
         """
         Calculate the start and end times of the property change
         WARNING: Doesn't take care of discongruous time periods!!!!
@@ -579,8 +601,10 @@ class CubeTransit(object):
                 self.parameters.time_period_properties_list
             )
         )
-        current_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-            line_properties_dict
+        current_cube_time_period_numbers = (
+            CubeTransit.get_time_period_numbers_from_cube_properties(
+                line_properties_dict
+            )
         )
 
         WranglerLogger.debug(
@@ -818,22 +842,36 @@ class StandardTransit(object):
             about time periods and variables.
     """
 
-    def __init__(self, ptg_feed, parameters={}):
+    def __init__(self, ptg_feed, parameters: Union[Parameters, dict] = {}):
+        """
+
+        Args:
+            ptg_feed: partridge feed object
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters
+        """
         self.feed = ptg_feed
 
         if type(parameters) is dict:
             self.parameters = Parameters(**parameters)
-        else:
+        elif isinstance(parameters, Parameters):
             self.parameters = Parameters(**parameters.__dict__)
-
+        else:
+            msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+                parameters, type(parameters)
+            )
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+            
     @staticmethod
-    def fromTransitNetwork(transit_network_object: TransitNetwork, parameters: dict = {}):
+    def fromTransitNetwork(
+        transit_network_object: TransitNetwork, parameters: Union[Parameters, dict] = {}
+    ):
         """
         RoadwayNetwork to ModelRoadwayNetwork
 
         Args:
             transit_network_object: Reference to an instance of TransitNetwork.
-            parameters (Optional): Dictionary of parameter settings. If not provided will
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will
                 use default parameters.
 
         Returns:
@@ -842,20 +880,170 @@ class StandardTransit(object):
         return StandardTransit(transit_network_object.feed, parameters=parameters)
 
     @staticmethod
-    def read_gtfs(gtfs_feed_dir: str, parameters: dict = {}):
+    def read_gtfs(gtfs_feed_dir: str, parameters: Union[Parameters, dict] = {}):
         """
         Reads GTFS files from a directory and returns a StandardTransit
         instance.
 
         Args:
             gtfs_feed_dir: location of the GTFS files
-            parameters (Optional): Dictionary of parameter settings. Of not provided will
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not provided will
                 use default parameters.
 
         Returns:
             StandardTransit instance
         """
         return StandardTransit(ptg.load_feed(gtfs_feed_dir), parameters=parameters)
+
+    def write_as_cube_lin(self, outpath: str = None):
+        """
+        Writes the gtfs feed as a cube line file after
+        converting gtfs properties to MetCouncil cube properties.
+        #MC
+        Args:
+            outpath: File location for output cube line file.
+
+        """
+        if not outpath:
+            outpath = os.path.join(self.parameters.scratch_location, "outtransit.lin")
+        trip_cube_df = self.route_properties_gtfs_to_cube(self)
+
+        trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
+
+        l = trip_cube_df["LIN"].tolist()
+
+        with open(outpath, "w") as f:
+            f.write("\n".join(l))
+
+    @staticmethod
+    def route_properties_gtfs_to_cube(self):
+        """
+        Prepare gtfs for cube lin file.
+        #MC
+        Does the following operations:
+        1. Combines route, frequency, trip, and shape information
+        2. Converts time of day to time periods
+        3. Calculates cube route name from gtfs route name and properties
+        4. Assigns a cube-appropriate mode number
+        5. Assigns a cube-appropriate operator number
+
+        Returns:
+            trip_df (DataFrame): DataFrame of trips with cube-appropriate values for:
+                - NAME
+                - ONEWAY
+                - OPERATOR
+                - MODE
+                - HEADWAY
+        """
+        WranglerLogger.info(
+            "Converting GTFS Standard Properties to MetCouncil's Cube Standard"
+        )
+        metro_operator_dict = {
+            "0": 3,
+            "1": 3,
+            "2": 3,
+            "3": 4,
+            "4": 2,
+            "5": 5,
+            "6": 8,
+            "7": 1,
+            "8": 1,
+            "9": 10,
+            "10": 3,
+            "11": 9,
+            "12": 3,
+            "13": 4,
+            "14": 4,
+            "15": 3,
+        }
+
+        shape_df = self.feed.shapes.copy()
+        trip_df = self.feed.trips.copy()
+
+        """
+        Add information from: routes, frequencies, and routetype to trips_df
+        """
+        trip_df = pd.merge(trip_df, self.feed.routes, how="left", on="route_id")
+        trip_df = pd.merge(trip_df, self.feed.frequencies, how="left", on="trip_id")
+
+        trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
+        inv_cube_time_periods_map = {
+            v: k for k, v in self.parameters.cube_time_periods.items()
+        }
+        trip_df["tod_num"] = trip_df.tod_name.map(inv_cube_time_periods_map)
+        trip_df["tod_name"] = trip_df.tod_name.map(
+            self.parameters.cube_time_periods_name
+        )
+
+        trip_df["NAME"] = trip_df.apply(
+            lambda x: x.agency_id
+            + "_"
+            + x.route_id
+            + "_"
+            + x.route_short_name
+            + "_"
+            + x.tod_name
+            + str(x.direction_id),
+            axis=1,
+        )
+
+        trip_df["LONGNAME"] = trip_df["route_long_name"]
+        trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
+        trip_df["MODE"] = trip_df.apply(self.calculate_cube_mode, axis=1)
+        trip_df["ONEWAY"] = "T"
+        trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
+
+        return trip_df
+
+    def calculate_cube_mode(self, row) -> int:
+        """
+        Assigns a cube mode number by following logic.
+        #MC
+        For rail, uses GTFS route_type variable:
+        https://developers.google.com/transit/gtfs/reference
+
+        ::
+            #             route_type : cube_mode
+            route_type_to_cube_mode = {0: 8, # Tram, Streetcar, Light rail
+                                       3: 0, # Bus; further disaggregated for cube
+                                       2: 9} # Rail
+
+        For buses, uses route id numbers and route name to find
+        express and suburban buses  as follows:
+
+        ::
+            if not cube_mode:
+                if 'express' in row['LONGNAME'].lower():
+                    cube_mode = 7  # Express
+                elif int(row['route_id'].split("-")[0]) > 99:
+                    cube_mode = 6  # Suburban Local
+                else:
+                    cube_mode = 5  # Urban Local
+
+        Args:
+            row: A DataFrame row with route_type, route_long_name, and route_id
+
+        Returns:
+            cube mode number
+        """
+        #                 route_type : cube_mode
+        route_type_to_cube_mode = {
+            0: 8,  # Tram, Streetcar, Light rail
+            3: 0,  # Bus; further disaggregated for cube
+            2: 9,
+        }  # Rail
+
+        cube_mode = route_type_to_cube_mode[row["route_type"]]
+
+        if not cube_mode:
+            if "express" in row["route_long_name"].lower():
+                cube_mode = 7  # Express
+            elif int(row["route_id"].split("-")[0]) > 99:
+                cube_mode = 6  # Suburban Local
+            else:
+                cube_mode = 5  # Urban Local
+
+        return cube_mode
 
     def time_to_cube_time_period(
         self, start_time_secs: int, as_str: bool = True, verbose: bool = False
@@ -915,8 +1103,10 @@ class StandardTransit(object):
         this_tp_num = name_to_num.get(this_tp)
 
         if not this_tp_num:
-            msg = "Cannot find time period number in {} for time period name: {}".format(
-                name_to_num, this_tp
+            msg = (
+                "Cannot find time period number in {} for time period name: {}".format(
+                    name_to_num, this_tp
+                )
             )
             WranglerLogger.error(msg)
             raise ValueError(msg)
@@ -964,6 +1154,30 @@ class StandardTransit(object):
 
         return node_list_str
 
+
+    def cube_format(self, row):
+        """
+        Creates a string represnting the route in cube line file notation.
+        #MC
+        Args:
+            row: row of a DataFrame representing a cube-formatted trip, with the Attributes
+                trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY, MODE, ONEWAY, OPERATOR
+
+        Returns:
+            string representation of route in cube line file notation
+        """
+
+        s = '\nLINE NAME="{}",'.format(row.NAME)
+        s += '\n LONGNAME="{}",'.format(row.LONGNAME)
+        s += "\n HEADWAY[{}]={},".format(row.tod_num, row.HEADWAY)
+        s += "\n MODE={},".format(row.MODE)
+        s += "\n ONEWAY={},".format(row.ONEWAY)
+        s += "\n OPERATOR={},".format(row.OPERATOR)
+        s += "\n NODES={}".format(self.shape_gtfs_to_cube(row))
+
+        return s
+
+
 class CubeTransformer(Transformer):
     """A lark-parsing Transformer which transforms the parse-tree to
     a dictionary.
@@ -978,6 +1192,7 @@ class CubeTransformer(Transformer):
             a route shape
         lines_list (list): a list of the line names
     """
+
     def __init__(self):
         self.line_order = 0
         self.lines_list = []
@@ -1049,7 +1264,7 @@ class CubeTransformer(Transformer):
 
 TRANSIT_LINE_FILE_GRAMMAR = r"""
 
-?start             : program_type_line? lines
+start             : program_type_line? lines
 WHITESPACE        : /[ \t\r\n]/+
 STRING            : /("(?!"").*?(?<!\\)(\\\\)*?"|'(?!'').*?(?<!\\)(\\\\)*?')/i
 SEMICOLON_COMMENT : /;[^\n]*/
@@ -1077,6 +1292,8 @@ TIME_PERIOD       : "1".."5"
                     | "longname"i
                     | "shortname"i
                     | ("usera"i TIME_PERIOD)
+                    | ("usern2"i)
+                    | "circular"i
                     | "vehicletype"i
                     | "operator"i
                     | "faresystem"i
