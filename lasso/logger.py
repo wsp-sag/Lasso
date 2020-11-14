@@ -8,12 +8,12 @@ WranglerLogger = logging.getLogger("WranglerLogger")
 
 
 def setupLogging(infoLogFilename, debugLogFilename, logToConsole=True):
-    """ Sets up the logger.  The infoLog is terse, just gives the bare minimum of details
-        so the network composition will be clear later.
-        The debuglog is very noisy, for debugging.
+    """Sets up the logger.  The infoLog is terse, just gives the bare minimum of details
+    so the network composition will be clear later.
+    The debuglog is very noisy, for debugging.
 
-        Pass none to either.
-        Spews it all out to console too, if logToConsole is true.
+    Pass none to either.
+    Spews it all out to console too, if logToConsole is true.
     """
     # clear handlers if any exist already
     WranglerLogger.handlers = []

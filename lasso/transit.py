@@ -27,7 +27,7 @@ from .parameters import Parameters
 
 
 class CubeTransit(object):
-    """ Class for storing information about transit defined in Cube line
+    """Class for storing information about transit defined in Cube line
     files.
 
     Has the capability to:
@@ -128,23 +128,19 @@ class CubeTransit(object):
                 self.add_cube(lin_file)
             return
         else:
-            msg= "{} not a valid transit line string, directory, or file"
+            msg = "{} not a valid transit line string, directory, or file"
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
         WranglerLogger.debug("finished parsing cube line file")
-        #WranglerLogger.debug("--Parse Tree--\n {}".format(parse_tree.pretty()))
+        # WranglerLogger.debug("--Parse Tree--\n {}".format(parse_tree.pretty()))
         transformed_tree_data = CubeTransformer().transform(parse_tree)
-        #WranglerLogger.debug("--Transformed Parse Tree--\n {}".format(transformed_tree_data))
+        # WranglerLogger.debug("--Transformed Parse Tree--\n {}".format(transformed_tree_data))
 
-        _line_data = transformed_tree_data['lines']
+        _line_data = transformed_tree_data["lines"]
 
-        line_properties_dict = {
-            k: v["line_properties"] for k, v in _line_data.items()
-        }
-        line_shapes_dict = {
-            k: v["line_shape"] for k, v in _line_data.items()
-        }
+        line_properties_dict = {k: v["line_properties"] for k, v in _line_data.items()}
+        line_shapes_dict = {k: v["line_shape"] for k, v in _line_data.items()}
         new_lines = list(line_properties_dict.keys())
         """
         Before adding lines, check to see if any are overlapping with existing ones in the network
@@ -163,7 +159,7 @@ class CubeTransit(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        self.program_type = transformed_tree_data.get("program_type",None)
+        self.program_type = transformed_tree_data.get("program_type", None)
 
         self.lines += new_lines
         self.line_properties.update(line_properties_dict)
@@ -226,8 +222,10 @@ class CubeTransit(object):
             """
             Find any additional time periods that might need to add or delete.
             """
-            base_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                base_transit.line_properties[line]
+            base_cube_time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    base_transit.line_properties[line]
+                )
             )
 
             try:
@@ -241,8 +239,10 @@ class CubeTransit(object):
 
             base_cube_time_period_number = base_cube_time_period_numbers[0]
 
-            build_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                self.line_properties[line]
+            build_cube_time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    self.line_properties[line]
+                )
             )
 
             time_periods_to_add = [
@@ -299,8 +299,10 @@ class CubeTransit(object):
         First assess if need to add multiple routes if there are multiple time periods
         """
         for line in lines_to_add:
-            time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-                self.line_properties[line]
+            time_period_numbers = (
+                CubeTransit.get_time_period_numbers_from_cube_properties(
+                    self.line_properties[line]
+                )
             )
             if len(time_period_numbers) > 1:
                 for tp in time_period_numbers[1:]:
@@ -601,8 +603,10 @@ class CubeTransit(object):
                 self.parameters.time_period_properties_list
             )
         )
-        current_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
-            line_properties_dict
+        current_cube_time_period_numbers = (
+            CubeTransit.get_time_period_numbers_from_cube_properties(
+                line_properties_dict
+            )
         )
 
         WranglerLogger.debug(
@@ -1101,8 +1105,10 @@ class StandardTransit(object):
         this_tp_num = name_to_num.get(this_tp)
 
         if not this_tp_num:
-            msg = "Cannot find time period number in {} for time period name: {}".format(
-                name_to_num, this_tp
+            msg = (
+                "Cannot find time period number in {} for time period name: {}".format(
+                    name_to_num, this_tp
+                )
             )
             WranglerLogger.error(msg)
             raise ValueError(msg)

@@ -1,0 +1,70 @@
+project: st_paul_test
+tags: ''
+dependencies: ''
+changes:
+- category: Roadway Deletion
+  links:
+    model_link_id:
+    - 281
+    - 477533
+- category: Add New Roadway
+  links:
+  - A: 3230
+    B: 3262
+    model_link_id: 999998
+    trn_priority: 0
+    lanes: 1
+    bike_facility: 3
+    drive_access: 1
+    walk_access: 1
+    bike_access: 1
+    distance: 0.10462
+    ttime_assert: 0.0
+  - A: 3262
+    B: 3230
+    model_link_id: 999997
+    trn_priority: 0
+    lanes: 1
+    bike_facility: 3
+    drive_access: 1
+    walk_access: 1
+    bike_access: 1
+    distance: 0.10462
+    ttime_assert: 0.0
+  nodes:
+  - model_node_id: 354388
+    X: -93.18389
+    Y: 44.96898
+    osm_node_id: '""'
+    drive_node: 1
+    walk_node: 0
+    bike_node: 0
+- category: Roadway Property Change
+  facility:
+    link:
+    - model_link_id:
+      - 224
+  properties:
+  - existing: 0
+    set: 1
+    property: drive_access
+  - existing: 0.0503218951
+    set: 0.10462
+    property: distance
+- category: Roadway Property Change
+  facility:
+    link:
+    - model_link_id:
+      - 280
+      - 282
+  properties:
+  - existing: 0
+    set: 1
+    property: walk_access
+  - existing: 0
+    set: 3
+    property: bike_facility
+  - existing: 0
+    set: 1
+    property: bike_access
+valid: false

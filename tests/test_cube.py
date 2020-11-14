@@ -116,7 +116,9 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-        roadway_log_file=logfilename, base_roadway_dir=BASE_ROADWAY_DIR
+        roadway_log_file=logfilename, 
+        base_roadway_dir=BASE_ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     test_project.write_project_card(os.path.join(SCRATCH_DIR, "t_roadway_pc_test.yml"))
     ## todo write an assert that actually tests something

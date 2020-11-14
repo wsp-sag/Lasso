@@ -102,9 +102,11 @@ is mainly stored in the GeoDataFrames `links_df`, `nodes_df`, and `shapes_df`.
 
 ```python
 net = RoadwayNetwork.read(
-        link_file=MY_LINK_FILE,
-        node_file=MY_NODE_FILE,
-        shape_file=MY_SHAPE_FILE,
+        link_filename=MY_LINK_FILE,
+        node_filename=MY_NODE_FILE,
+        shape_filename=MY_SHAPE_FILE,
+        shape_foreign_key ='shape_id',
+        
     )
 my_selection = {
     "link": [{"name": ["I 35E"]}],
@@ -152,10 +154,11 @@ Manages sets of project cards and tiering from a base scenario/set of networks.
 
 my_base_scenario = {
     "road_net": RoadwayNetwork.read(
-        link_file=STPAUL_LINK_FILE,
-        node_file=STPAUL_NODE_FILE,
-        shape_file=STPAUL_SHAPE_FILE,
+        link_filename=STPAUL_LINK_FILE,
+        node_filename=STPAUL_NODE_FILE,
+        shape_filename=STPAUL_SHAPE_FILE,
         fast=True,
+        shape_foreign_key ='shape_id',
     ),
     "transit_net": TransitNetwork.read(STPAUL_DIR),
 }
@@ -210,10 +213,11 @@ network out to the MetCouncil Roadway Network schema.
 ```Python
 
 net = ModelRoadwayNetwork.read(
-      link_file=STPAUL_LINK_FILE,
-      node_file=STPAUL_NODE_FILE,
-      shape_file=STPAUL_SHAPE_FILE,
+      link_filename=STPAUL_LINK_FILE,
+      node_filename=STPAUL_NODE_FILE,
+      shape_filename=STPAUL_SHAPE_FILE,
       fast=True,
+      shape_foreign_key ='shape_id',
   )
 
 net.write_roadway_as_fixedwidth()

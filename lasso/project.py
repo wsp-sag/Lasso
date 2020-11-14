@@ -134,7 +134,7 @@ class Project(object):
         Returns:
             None
         """
-        ProjectCard(self.card_data).write(filename=filename)
+        ProjectCard(self.card_data).write(out_filename=filename)
 
     @staticmethod
     def create_project(
@@ -153,6 +153,7 @@ class Project(object):
         recalculate_calculated_variables: Optional[bool] = False,
         recalculate_distance: Optional[bool] = False,
         parameters: Optional[dict] = {},
+        **kwargs,
     ):
         """
         Constructor for a Project instance.
@@ -171,10 +172,33 @@ class Project(object):
             base_roadway_network: Base roadway network object.
             base_transit_network: Base transit network object.
             build_transit_network: Build transit network object.
-            project_name:  If not provided, will default to the roadway_log_file filename if provided (or the first filename if a list is provided)
-            recalculate_calculated_variables: if reading in a base network, if this is true it will recalculate variables such as area type, etc. This only needs to be true if you are creating project cards that are changing the calculated variables.
-            recalculate_distance:  recalculate the distance variable. This only needs to be true if you are creating project cards that change the distance.
+            project_name:  If not provided, will default to the roadway_log_file filename if
+                provided (or the first filename if a list is provided)
+            recalculate_calculated_variables: if reading in a base network, if this is true it
+                will recalculate variables such as area type, etc. This only needs to be true
+                if you are creating project cards that are changing the calculated variables.
+            recalculate_distance:  recalculate the distance variable. This only needs to be
+                true if you are creating project cards that change the distance.
             parameters: dictionary of parameters
+            crs (int): coordinate reference system, ESPG number
+            node_foreign_key (str):  variable linking the node table to the link table
+            link_foreign_key (list): list of variable linking the link table to the node foreign key
+            shape_foreign_key (str): variable linking the links table and shape table
+            unique_link_ids (list): list of variables unique to each link
+            unique_node_ids (list): list of variables unique to each node
+            modes_to_network_link_variables (dict): Mapping of modes to link variables in
+                the network
+            modes_to_network_nodes_variables (dict): Mapping of modes to node variables
+                in the network
+            managed_lanes_node_id_scalar (int): Scalar values added to primary keys for nodes for
+                corresponding managed lanes.
+            managed_lanes_link_id_scalar (int): Scalar values added to primary keys for links for
+                corresponding managed lanes.
+            managed_lanes_required_attributes (list): attributes that must be specified in managed
+                lane projects.
+            keep_same_attributes_ml_and_gp (list): attributes to copy to managed lanes from parallel
+                general purpose lanes.
+
         Returns:
             A Project instance.
         """
@@ -250,8 +274,12 @@ class Project(object):
             raise ValueError(msg)
         if roadway_log_file and not project_name:
             if type(roadway_log_file) == list:
-                project_name = os.path.splitext(os.path.basename(roadway_log_file[0]))[0]
-                WranglerLogger.info("No Project Name - Using name of first log file in list")
+                project_name = os.path.splitext(os.path.basename(roadway_log_file[0]))[
+                    0
+                ]
+                WranglerLogger.info(
+                    "No Project Name - Using name of first log file in list"
+                )
             else:
                 project_name = os.path.splitext(os.path.basename(roadway_log_file))[0]
                 WranglerLogger.info("No Project Name - Using name of log file")
@@ -284,6 +312,7 @@ class Project(object):
                 recalculate_calculated_variables=recalculate_calculated_variables,
                 recalculate_distance=recalculate_distance,
                 parameters=parameters,
+                **kwargs,
             )
             base_roadway_network.split_properties_by_time_period_and_category()
         elif base_roadway_network:
@@ -328,23 +357,35 @@ class Project(object):
             with open(file) as f:
                 _content = f.readlines()
 
-                _node_lines = [x.strip().replace(";",",") for x in _content if x.startswith("N")]
+                _node_lines = [
+                    x.strip().replace(";", ",") for x in _content if x.startswith("N")
+                ]
                 WranglerLogger.debug("node lines: {}".format(_node_lines))
-                _link_lines = [x.strip().replace(";",",") for x in _content if x.startswith("L")]
+                _link_lines = [
+                    x.strip().replace(";", ",") for x in _content if x.startswith("L")
+                ]
                 WranglerLogger.debug("link lines: {}".format(_link_lines))
 
-                _nodecol = ["OBJECT", "OPERATION", "GROUP"] + _node_lines[0].split(",")[1:]
+                _nodecol = ["OBJECT", "OPERATION", "GROUP"] + _node_lines[0].split(",")[
+                    1:
+                ]
                 WranglerLogger.debug("Node Cols: {}".format(_nodecol))
-                _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[1:]
+                _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[
+                    1:
+                ]
                 WranglerLogger.debug("Link Cols: {}".format(_linkcol))
 
-                _node_df = pd.DataFrame([x.split(",") for x in _node_lines[1:]],columns = _nodecol)
+                _node_df = pd.DataFrame(
+                    [x.split(",") for x in _node_lines[1:]], columns=_nodecol
+                )
                 WranglerLogger.debug("Node DF: {}".format(_node_df))
-                _link_df = pd.DataFrame([x.split(",") for x in _link_lines[1:]],columns = _linkcol)
+                _link_df = pd.DataFrame(
+                    [x.split(",") for x in _link_lines[1:]], columns=_linkcol
+                )
                 WranglerLogger.debug("Link DF: {}".format(_link_df))
 
-                node_df = pd.concat([node_df,_node_df])
-                link_df = pd.concat([link_df,_link_df])
+                node_df = pd.concat([node_df, _node_df])
+                link_df = pd.concat([link_df, _link_df])
 
         log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
 
@@ -497,9 +538,7 @@ class Project(object):
                     return "C"
 
         def _process_deletions(link_changes_df):
-            """
-
-            """
+            """"""
             WranglerLogger.debug("Processing link deletions")
 
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
@@ -519,9 +558,7 @@ class Project(object):
         def _process_link_additions(
             link_changes_df, limit_variables_to_existing_network
         ):
-            """
-
-            """
+            """"""
             WranglerLogger.debug("Processing link additions")
             cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
             if not cube_add_df.shape[1]:
@@ -536,8 +573,7 @@ class Project(object):
                 ]
             else:
                 add_col = [
-                    c
-                    for c in cube_add_df.columns if c not in ["OPERATION_final"]
+                    c for c in cube_add_df.columns if c not in ["OPERATION_final"]
                 ]
                 # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
@@ -549,9 +585,7 @@ class Project(object):
             return {"category": "Add New Roadway", "links": add_link_properties}
 
         def _process_node_additions(node_add_df):
-            """
-
-            """
+            """"""
             WranglerLogger.debug("Processing node additions")
 
             if not node_add_df.shape[1]:
@@ -566,9 +600,7 @@ class Project(object):
             return add_nodes_dict_list
 
         def _process_single_link_change(change_row, changeable_col):
-            """
-
-            """
+            """"""
 
             #  1. Find associated base year network values
             base_df = self.base_roadway_network.links_df[
@@ -677,9 +709,7 @@ class Project(object):
             return card_df
 
         def _process_link_changes(link_changes_df, changeable_col):
-            """
-
-            """
+            """"""
             cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
             if not cube_change_df.shape[0]:
                 WranglerLogger.info("No link changes processed")

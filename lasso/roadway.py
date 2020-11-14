@@ -14,6 +14,7 @@ from network_wrangler import RoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger
 
+
 class ModelRoadwayNetwork(RoadwayNetwork):
     """
     Subclass of network_wrangler class :ref:`RoadwayNetwork <network_wrangler:RoadwayNetwork>`
@@ -33,6 +34,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         links: DataFrame,
         shapes: GeoDataFrame,
         parameters: Union[Parameters, dict] = {},
+        **kwargs,
     ):
         """
         Constructor
@@ -41,10 +43,26 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             nodes: geodataframe of nodes
             links: dataframe of links
             shapes: geodataframe of shapes
-            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
-
+            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters.
+                If not specified, will use default parameters.
+            crs (int): coordinate reference system, ESPG number
+            node_foreign_key (str):  variable linking the node table to the link table
+            link_foreign_key (list): list of variable linking the link table to the node foreign key
+            shape_foreign_key (str): variable linking the links table and shape table
+            unique_link_ids (list): list of variables unique to each link
+            unique_node_ids (list): list of variables unique to each node
+            modes_to_network_link_variables (dict): Mapping of modes to link variables in the network
+            modes_to_network_nodes_variables (dict): Mapping of modes to node variables in the network
+            managed_lanes_node_id_scalar (int): Scalar values added to primary keys for nodes for
+                corresponding managed lanes.
+            managed_lanes_link_id_scalar (int): Scalar values added to primary keys for links for
+                corresponding managed lanes.
+            managed_lanes_required_attributes (list): attributes that must be specified in managed
+                lane projects.
+            keep_same_attributes_ml_and_gp (list): attributes to copy to managed lanes from parallel
+                general purpose lanes.
         """
-        super().__init__(nodes, links, shapes)
+        super().__init__(nodes, links, shapes, **kwargs)
 
         # will have to change if want to alter them
         if type(parameters) is dict:
@@ -66,37 +84,60 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     @staticmethod
     def read(
-        link_file: str,
-        node_file: str,
-        shape_file: str,
+        link_filename: str,
+        node_filename: str,
+        shape_filename: str,
         fast: bool = False,
         recalculate_calculated_variables=False,
         recalculate_distance=False,
         parameters: Union[dict, Parameters] = {},
+        **kwargs,
     ):
         """
         Reads in links and nodes network standard.
 
         Args:
-            link_file (str): File path to link json.
-            node_file (str): File path to node geojson.
-            shape_file (str): File path to link true shape geojson
+            link_filename (str): File path to link json.
+            node_filename (str): File path to node geojson.
+            shape_filename (str): File path to link true shape geojson
             fast (bool): boolean that will skip validation to speed up read time.
             recalculate_calculated_variables (bool): calculates fields from spatial joins, etc.
             recalculate_distance (bool):  re-calculates distance.
             parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
-
+            crs (int): coordinate reference system, ESPG number
+            node_foreign_key (str):  variable linking the node table to the link table
+            link_foreign_key (list): list of variable linking the link table to the node foreign key
+            shape_foreign_key (str): variable linking the links table and shape table
+            unique_link_ids (list): list of variables unique to each link
+            unique_node_ids (list): list of variables unique to each node
+            modes_to_network_link_variables (dict): Mapping of modes to link variables in the network
+            modes_to_network_nodes_variables (dict): Mapping of modes to node variables in the network
+            managed_lanes_node_id_scalar (int): Scalar values added to primary keys for nodes for
+                corresponding managed lanes.
+            managed_lanes_link_id_scalar (int): Scalar values added to primary keys for links for
+                corresponding managed lanes.
+            managed_lanes_required_attributes (list): attributes that must be specified in managed
+                lane projects.
+            keep_same_attributes_ml_and_gp (list): attributes to copy to managed lanes from parallel
+                general purpose lanes.
         Returns:
             ModelRoadwayNetwork
         """
-        # road_net =  super().read(link_file, node_file, shape_file, fast=fast)
-        road_net = RoadwayNetwork.read(link_file, node_file, shape_file, fast=fast)
+
+        nodes_df, links_df, shapes_df = RoadwayNetwork.load_transform_network(
+            node_filename,
+            link_filename,
+            shape_filename,
+            validate_schema=not fast,
+            **kwargs,
+        )
 
         m_road_net = ModelRoadwayNetwork(
-            road_net.nodes_df,
-            road_net.links_df,
-            road_net.shapes_df,
+            nodes_df,
+            links_df,
+            shapes_df,
             parameters=parameters,
+            **kwargs,
         )
 
         if recalculate_calculated_variables:
@@ -115,7 +156,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     @staticmethod
     def from_RoadwayNetwork(
-        roadway_network_object, parameters: Union[dict, Parameters] = {}
+        roadway_network_object,
+        parameters: Union[dict, Parameters] = {},
     ):
         """
         RoadwayNetwork to ModelRoadwayNetwork
@@ -127,11 +169,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Returns:
             ModelRoadwayNetwork
         """
+
+        additional_params_dict = {
+            k: v
+            for k, v in roadway_network_object.__dict__.items()
+            if k not in ["nodes_df", "links_df", "shapes_df", "parameters"]
+        }
+
         return ModelRoadwayNetwork(
             roadway_network_object.nodes_df,
             roadway_network_object.links_df,
             roadway_network_object.shapes_df,
             parameters=parameters,
+            **additional_params_dict,
         )
 
     def split_properties_by_time_period_and_category(self, properties_to_split=None):
@@ -288,7 +338,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
         county_gdf = gpd.read_file(county_shape)
-        county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.CRS)
+        county_gdf = county_gdf.to_crs(epsg=self.crs)
         joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
 
         joined_gdf[county_shape_variable] = (
@@ -394,7 +444,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             raise ValueError(msg)
 
         downtown_area_type_shape = (
-            downtown_area_type_shape if downtown_area_type_shape else self.parameters.downtown_area_type_shape
+            downtown_area_type_shape
+            if downtown_area_type_shape
+            else self.parameters.downtown_area_type_shape
         )
 
         if not downtown_area_type_shape:
@@ -402,7 +454,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(downtown_area_type_shape):
-            msg = "File not found for downtown area type shape: {}".format(downtown_area_type_shape)
+            msg = "File not found for downtown area type shape: {}".format(
+                downtown_area_type_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -424,10 +478,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Reading Area Type Shapefile {}".format(area_type_shape))
         area_type_gdf = gpd.read_file(area_type_shape)
-        area_type_gdf = area_type_gdf.to_crs(epsg=RoadwayNetwork.CRS)
+        area_type_gdf = area_type_gdf.to_crs(epsg=self.crs)
 
         downtown_gdf = gpd.read_file(downtown_area_type_shape)
-        downtown_gdf = downtown_gdf.to_crs(epsg=RoadwayNetwork.CRS)
+        downtown_gdf = downtown_gdf.to_crs(epsg=self.crs)
 
         joined_gdf = gpd.sjoin(
             centroids_gdf, area_type_gdf, how="left", op="intersects"
@@ -446,15 +500,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             centroids_gdf, downtown_gdf, how="left", op="intersects"
         )
 
-        d_joined_gdf['downtown_area_type'] = (
-            d_joined_gdf['Id']
-            .fillna(-99)
-            .astype(int)
+        d_joined_gdf["downtown_area_type"] = d_joined_gdf["Id"].fillna(-99).astype(int)
+
+        joined_gdf.loc[
+            d_joined_gdf["downtown_area_type"] == 0, area_type_shape_variable
+        ] = downtown_area_type
+
+        WranglerLogger.debug(
+            "Downtown Area Type used boundary file: {}".format(downtown_area_type_shape)
         )
-
-        joined_gdf.loc[d_joined_gdf['downtown_area_type'] == 0, area_type_shape_variable] = downtown_area_type
-
-        WranglerLogger.debug("Downtown Area Type used boundary file: {}".format(downtown_area_type_shape))
 
         self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
 
@@ -829,7 +883,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         return join_refId_df[links_df.columns.tolist() + [field_name, "source_link_id"]]
 
     def calculate_hov(
-        self, network_variable="HOV", as_integer=True, overwrite=False,
+        self,
+        network_variable="HOV",
+        as_integer=True,
+        overwrite=False,
     ):
         """
         Calculates hov variable.
@@ -891,7 +948,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_ML_variable(
-        self, network_variable="ML_lanes", overwrite=False,
+        self,
+        network_variable="ML_lanes",
+        overwrite=False,
     ):
         """
         Created ML lanes placeholder for project to write out ML changes
@@ -929,7 +988,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_hov_corridor_variable(
-        self, network_variable="segment_id", overwrite=False,
+        self,
+        network_variable="segment_id",
+        overwrite=False,
     ):
         """
         Created hov corridor placeholder for project to write out corridor changes
@@ -968,7 +1029,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_managed_variable(
-        self, network_variable="managed", overwrite=False,
+        self,
+        network_variable="managed",
+        overwrite=False,
     ):
         """
         Created placeholder for project to write out managed
@@ -1005,6 +1068,90 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         WranglerLogger.info(
             "Finished creating managed variable: {}".format(network_variable)
         )
+
+    def calculate_centroidconnect(
+        self,
+        parameters,
+        network_variable="centroidconnect",
+        highest_taz_number=None,
+        as_integer=True,
+        overwrite=False,
+    ):
+        """
+        Calculates centroid connector variable.
+
+        Args:
+            parameters (Parameters): A Lasso Parameters, which stores input files.
+            network_variable (str): Variable that should be written to in the network. Default to "centroidconnect"
+            highest_taz_number (int): the max TAZ number in the network.
+            as_integer (bool): If True, will convert true/false to 1/0s.  Default to True.
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+        Returns:
+            RoadwayNetwork
+        """
+
+        if network_variable in self.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing Centroid Connector Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "Centroid Connector Variable '{}' already in network. Returning without overwriting.".format(
+                        network_variable
+                    )
+                )
+                return
+
+        WranglerLogger.info(
+            "Calculating Centroid Connector and adding as roadway network variable: {}".format(
+                network_variable
+            )
+        )
+        """
+        Verify inputs
+        """
+        highest_taz_number = (
+            highest_taz_number if highest_taz_number else parameters.highest_taz_number
+        )
+
+        if not highest_taz_number:
+            msg = "No highest_TAZ number specified in method variable or in parameters"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        WranglerLogger.debug(
+            "Calculating Centroid Connectors using highest TAZ number: {}".format(
+                highest_taz_number
+            )
+        )
+
+        if not network_variable:
+            msg = "No network variable specified for centroid connector"
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        """
+        Start actual process
+        """
+        self.links_df[network_variable] = False
+
+        self.links_df.loc[
+            (self.links_df["A"] <= highest_taz_number)
+            | (self.links_df["B"] <= highest_taz_number),
+            network_variable,
+        ] = True
+
+        if as_integer:
+            self.links_df[network_variable] = self.links_df[
+                network_variable
+            ].astype(int)
+        WranglerLogger.info(
+            "Finished calculating centroid connector variable: {}".format(network_variable)
+        )
+
 
     def calculate_distance(
         self, network_variable="distance", centroidconnect_only=True, overwrite=False
@@ -1154,6 +1301,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         else:
             WranglerLogger.info("Didn't detect managed lanes in network.")
 
+        self.calculate_centroidconnect(self.parameters)
         self.create_calculated_variables()
         self.calculate_distance(overwrite=True)
 
@@ -1167,10 +1315,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.nodes_metcouncil_df = self.nodes_df.copy()
 
         self.links_metcouncil_df = pd.merge(
-            self.links_metcouncil_df.drop("geometry", axis = 1),  # drop the stick geometry in links_df
+            self.links_metcouncil_df.drop(
+                "geometry", axis=1
+            ),  # drop the stick geometry in links_df
             self.shapes_df[["shape_id", "geometry"]],
-            how = "left",
-            on = "shape_id"
+            how="left",
+            on="shape_id",
         )
 
         self.links_metcouncil_df.crs = "EPSG:4326"
@@ -1366,7 +1516,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.links_metcouncil_df, output_variables=dbf_link_output_variables
         )
 
-        links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry = links_dbf_df["geometry"])
+        links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry=links_dbf_df["geometry"])
 
         WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
         nodes_dbf_df.to_file(output_node_shp)
@@ -1413,8 +1563,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         fw_df = df.drop("geometry", axis=1).copy()
         for c in fw_df.columns:
             fw_df[c] = fw_df[c].apply(lambda x: str(x))
-            fw_df['pad'] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
-            fw_df[c] = fw_df.apply(lambda x: x['pad'] + x[c], axis=1)
+            fw_df["pad"] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
+            fw_df[c] = fw_df.apply(lambda x: x["pad"] + x[c], axis=1)
 
         return fw_df, max_width_dict
 

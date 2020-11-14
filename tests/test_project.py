@@ -52,7 +52,9 @@ def test_highway_project_card(request, logfilename):
     assert type(lf) == DataFrame
 
     test_project = Project.create_project(
-        roadway_log_file=logfilename, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=logfilename, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
 
     assert type(test_project.roadway_changes) == DataFrame
@@ -66,7 +68,7 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
-@pytest.mark.elo
+
 @pytest.mark.travis
 @pytest.mark.parametrize("logfilename", [logfile_list[0]])
 def test_project_card_create_with_parameters_kw(request, logfilename):
@@ -77,6 +79,7 @@ def test_project_card_create_with_parameters_kw(request, logfilename):
         base_roadway_dir=ROADWAY_DIR,
         roadway_log_file=os.path.join(CUBE_DIR, logfilename),
         parameters={"lasso_base_dir": os.getcwd()},
+        shape_foreign_key="shape_id",
     )
 
     test_roadway_project.write_project_card()
@@ -98,7 +101,9 @@ def test_project_card_concatenate(request):
     print("Reading Whole Logfile: {}".format(whole_logfile))
     lf = Project.read_logfile(whole_logfile)
     whole_logfile_project = Project.create_project(
-        roadway_log_file=whole_logfile, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=whole_logfile, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     print(
         "\nWHOLE  Card Dict:\n  {}".format(whole_logfile_project.card_data["changes"])
@@ -107,7 +112,9 @@ def test_project_card_concatenate(request):
     print("Reading Split Logfiles: {}".format(split_logfile_list))
     lf = Project.read_logfile(split_logfile_list)
     split_logfile_project = Project.create_project(
-        roadway_log_file=split_logfile_list, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=split_logfile_list, 
+        base_roadway_dir=ROADWAY_DIR, 
+        shape_foreign_key = 'shape_id',
     )
 
     print(
@@ -131,13 +138,17 @@ def test_shp_changes(request):
     test_project = Project.create_project(
         roadway_shp_file=os.path.join(CUBE_DIR, "example_shapefile_roadway_change.shp"),
         base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_shapefile_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_shapefile_roadway_change" + ".yml",
+        )
     )
 
 
@@ -152,13 +163,17 @@ def test_csv_changes(request):
     test_project = Project.create_project(
         roadway_csv_file=os.path.join(CUBE_DIR, "example_csv_roadway_change.csv"),
         base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_csv_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_csv_roadway_change" + ".yml",
+        )
     )
 
 
@@ -170,7 +185,9 @@ def test_highway_change_project_card_valid(request, logfilename):
     print("Reading: {}".format(logfilename))
     lf = Project.read_logfile(logfilename)
     test_project = Project.create_project(
-        roadway_log_file=logfilename, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=logfilename, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
 
     test_project.write_project_card(
