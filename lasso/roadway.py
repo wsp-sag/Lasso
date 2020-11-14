@@ -193,12 +193,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 dictionary of output variable prefix mapped to the source variable and what to stratify it by
                 e.g.
                 {
-                    'trn_priority' : {'v':'trn_priority', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'ttime_assert' : {'v':'ttime_assert', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'lanes' : {'v':'lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'ML_lanes' : {'v':'ML_lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'price' : {'v':'price', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},'categories': {"sov": ["sov", "default"],"hov2": ["hov2", "default", "sov"]}},
-                    'access' : {'v':'access', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'lanes' : {'v':'lanes', 'times_periods':{"AM": ("6:00", "10:00"),"PM": ("15:00", "19:00")}},
+                    'ML_lanes' : {'v':'ML_lanes', 'times_periods':{"AM": ("6:00", "10:00"),"PM": ("15:00", "19:00")}},
+                    'use' : {'v':'use', 'times_periods':{"AM": ("6:00", "10:00"),"PM": ("15:00", "19:00")}},
                 }
 
         """
@@ -258,6 +255,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             None
         """
         WranglerLogger.info("Creating calculated roadway variables.")
+
+        #MTC
+        self.create_ML_variable()
+        #/MTC
+        #MC
         self.calculate_area_type()
         self.calculate_county()
         self.calculate_mpo()
@@ -265,6 +267,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.create_ML_variable()
         self.create_hov_corridor_variable()
         self.create_managed_variable()
+        #/MC
 
     def calculate_county(
         self,
@@ -275,6 +278,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
+        #MC
         Calculates county variable.
 
         This uses the centroid of the geometry field to determine which county it should be labeled.
@@ -365,6 +369,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         overwrite=False,
     ):
         """
+        #MC
         Calculates area type variable.
 
         This uses the centroid of the geometry field to determine which area it should be labeled.
@@ -528,7 +533,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     ):
         """
         Calculates mpo variable.
-
+        #MC
         Args:
             county_variable (str): Name of the variable where the county names are stored.  Default to "county".
             network_variable (str): Name of the variable that should be written to.  Default to "mpo".
@@ -677,7 +682,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         """
         Adds count variable.
-
+        #MC
         join the network with count node data, via SHST API node match result
 
         Args:
@@ -882,17 +887,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return join_refId_df[links_df.columns.tolist() + [field_name, "source_link_id"]]
 
-    def calculate_hov(
+    def calculate_use(
         self,
-        network_variable="HOV",
+        network_variable="use",
         as_integer=True,
         overwrite=False,
     ):
         """
-        Calculates hov variable.
+        Calculates use variable.
 
         Args:
-            network_variable (str): Variable that should be written to in the network. Default to "HOV"
+            network_variable (str): Variable that should be written to in the network. Default to "use"
             as_integer (bool): If True, will convert true/false to 1/0s.  Defauly to True.
             overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
 
@@ -909,7 +914,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 )
             else:
                 WranglerLogger.info(
-                    "hov Variable '{}' already in network. Returning without overwriting.".format(
+                    "'use' Variable '{}' already in network. Returning without overwriting.".format(
                         network_variable
                     )
                 )
@@ -932,12 +937,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start actual process
         """
+        #MTC
+        self.links_df[network_variable] = int(1)
+        #/MTC
+
         self.links_df[network_variable] = 0
 
         self.links_df.loc[
             (self.links_df["assign_group"] == 8) | (self.links_df["access"] == "hov"),
             network_variable,
         ] = 100
+        #/MC
+
 
         if as_integer:
             self.links_df[network_variable] = self.links_df[network_variable].astype(
@@ -1187,10 +1198,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
+        #MC
         if "centroidconnect" not in self.links_df:
             msg = "No variable specified for centroid connector, calculating centroidconnect first"
             WranglerLogger.error(msg)
             raise ValueError(msg)
+        #/MC
 
         """
         Start actual process
@@ -1200,6 +1213,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         temp_links_gdf.crs = "EPSG:4326"
         temp_links_gdf = temp_links_gdf.to_crs(epsg=26915)
 
+        #MTC
+        WranglerLogger.info(
+            "Calculating distance for all links".format(network_variable)
+        )
+        temp_links_gdf[network_variable] = temp_links_gdf.geometry.length / 1609.34
+        #/MTC
+        #MC
         if centroidconnect_only:
             WranglerLogger.info(
                 "Calculating {} for centroid connectors".format(network_variable)
@@ -1214,6 +1234,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 "Calculating distance for all links".format(network_variable)
             )
             temp_links_gdf[network_variable] = temp_links_gdf.geometry.length / 1609.34
+        #/MC
 
         self.links_df[network_variable] = temp_links_gdf[network_variable]
 
@@ -1222,10 +1243,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Convert integer columns
         """
 
+        #MTC
+        WranglerLogger.info(
+            "Converting variable type to mtc standard"
+        )
+
+        int_col_names = self.parameters.int_col
+        #/MTC
+        #MC
         WranglerLogger.info("Converting variable type to MetCouncil standard")
 
         if not int_col_names:
             int_col_names = self.parameters.int_col
+        #/MC
 
         ##Why are we doing this?
         # int_col_names.remove("lanes")
@@ -1266,10 +1296,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             else:
                 self.nodes_df[x].fillna("", inplace=True)
 
+
     def roadway_standard_to_met_council_network(self, output_epsg=None):
         """
         Rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
-
+        #MC
         Args:
             output_epsg (int): epsg number of output network.
 
@@ -1448,17 +1479,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        if self.nodes_metcouncil_df is None:
+        if self.nodes_mtc_df is None:
             self.roadway_standard_to_met_council_network()
 
         WranglerLogger.debug(
             "Network Link Variables: \n - {}".format(
-                "\n - ".join(self.links_metcouncil_df.columns)
+                "\n - ".join(self.links_mtc_df.columns)
             )
         )
         WranglerLogger.debug(
             "Network Node Variables: \n - {}".format(
-                "\n - ".join(self.nodes_metcouncil_df.columns)
+                "\n - ".join(self.nodes_mtc_df.columns)
             )
         )
 
@@ -1467,7 +1498,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if link_output_variables
             else [
                 c
-                for c in self.links_metcouncil_df.columns
+                for c in self.links_mtc_df.columns
                 if c in self.parameters.output_variables
             ]
         )
@@ -1477,13 +1508,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if node_output_variables
             else [
                 c
-                for c in self.nodes_metcouncil_df.columns
+                for c in self.nodes_mtc_df.columns
                 if c in self.parameters.output_variables
             ]
         )
 
         # unless specified that all the data goes to the DBF, only output A and B
         dbf_link_output_variables = (
+            #MTC
+            link_output_variables if link_output_variables else ["A", "B", "geometry"]
+            #MC
             link_output_variables if data_to_dbf else ["A", "B", "shape_id", "geometry"]
         )
 
@@ -1509,11 +1543,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.info("Renaming DBF Node Variables")
         nodes_dbf_df = self.rename_variables_for_dbf(
-            self.nodes_metcouncil_df, output_variables=node_output_variables
+            self.nodes_mtc_df, output_variables=node_output_variables
         )
         WranglerLogger.info("Renaming DBF Link Variables")
         links_dbf_df = self.rename_variables_for_dbf(
-            self.links_metcouncil_df, output_variables=dbf_link_output_variables
+            self.links_mtc_df, output_variables=dbf_link_output_variables
         )
 
         links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry=links_dbf_df["geometry"])
@@ -1529,10 +1563,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     output_link_csv, output_node_csv
                 )
             )
-            self.links_metcouncil_df[link_output_variables].to_csv(
+            self.links_mtc_df[link_output_variables].to_csv(
                 output_link_csv, index=False
             )
-            self.nodes_metcouncil_df[node_output_variables].to_csv(
+            self.nodes_mtc_df[node_output_variables].to_csv(
                 output_node_csv, index=False
             )
 
@@ -1606,17 +1640,17 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        if self.nodes_metcouncil_df is None:
-            self.roadway_standard_to_met_council_network()
+        if self.nodes_mtc_df is None:
+            self.roadway_standard_to_mtc_network()
 
         WranglerLogger.debug(
             "Network Link Variables: \n - {}".format(
-                "\n - ".join(self.links_metcouncil_df.columns)
+                "\n - ".join(self.links_mtc_df.columns)
             )
         )
         WranglerLogger.debug(
             "Network Node Variables: \n - {}".format(
-                "\n - ".join(self.nodes_metcouncil_df.columns)
+                "\n - ".join(self.nodes_mtc_df.columns)
             )
         )
 
@@ -1625,7 +1659,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if link_output_variables
             else [
                 c
-                for c in self.links_metcouncil_df.columns
+                for c in self.links_mtc_df.columns
                 if c in self.parameters.output_variables
             ]
         )
@@ -1635,7 +1669,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if node_output_variables
             else [
                 c
-                for c in self.nodes_metcouncil_df.columns
+                for c in self.nodes_mtc_df.columns
                 if c in self.parameters.output_variables
             ]
         )
@@ -1669,12 +1703,22 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         Start Process
         """
+        #MTC
+        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(
+            self.links_mtc_df[link_output_variables]
+        )
+
+        if drive_only:
+            link_ff_df = link_ff_df.loc[link_ff_df['drive_access'] == 1]
+        #/MTC
+        #MC
         link_ff_df, link_max_width_dict = self.dataframe_to_fixed_width(
             self.links_metcouncil_df[link_output_variables]
         )
 
         if drive_only:
             link_ff_df = link_ff_df.loc[link_ff_df["drive_access"] == 1]
+        #/MC
 
         WranglerLogger.info("Writing out link database")
 
@@ -1687,13 +1731,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
         link_max_width_df.to_csv(output_link_header_width_txt, index=False)
 
+        #MTC
+        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(
+            self.nodes_mtc_df[node_output_variables]
+        #/MTC
+        #MC
         node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
             self.nodes_metcouncil_df[node_output_variables]
+        #/MC
         )
         WranglerLogger.info("Writing out node database")
 
         if drive_only:
             node_ff_df = node_ff_df.loc[node_ff_df["drive_node"] == 1]
+
 
         node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
 
@@ -1712,7 +1763,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             s += " VAR=" + link_max_width_df.header.iloc[i]
 
             if (
-                self.links_metcouncil_df.dtypes.loc[link_max_width_df.header.iloc[i]]
+                self.links_mtc_df.dtypes.loc[link_max_width_df.header.iloc[i]]
                 == "O"
             ):
                 s += "(C" + str(link_max_width_df.width.iloc[i]) + ")"
@@ -1735,7 +1786,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             s += " VAR=" + node_max_width_df.header.iloc[i]
 
             if (
-                self.nodes_metcouncil_df.dtypes.loc[node_max_width_df.header.iloc[i]]
+                self.nodes_mtc_df.dtypes.loc[node_max_width_df.header.iloc[i]]
                 == "O"
             ):
                 s += "(C" + str(node_max_width_df.width.iloc[i]) + ")"
@@ -1753,9 +1804,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         s = s[:-1]
         s += "\n"
         s += 'FILEO NETO = "%SCENARIO_DIR%/complete_network.net" \n\n    ZONES = %zones% \n\n'
-        s += "ROADWAY = LTRIM(TRIM(ROADWAY)) \n"
-        s += "NAME = LTRIM(TRIM(NAME)) \n"
-        s += "\n \nENDRUN"
+        s += ';ROADWAY = LTRIM(TRIM(ROADWAY)) \n'
+        s += ';NAME = LTRIM(TRIM(NAME)) \n'
+        s += '\n \nENDRUN'
+
 
         with open(output_cube_network_script, "w") as f:
             f.write(s)

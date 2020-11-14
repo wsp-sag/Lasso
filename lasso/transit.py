@@ -25,7 +25,6 @@ from network_wrangler import TransitNetwork
 from .logger import WranglerLogger
 from .parameters import Parameters
 
-
 class CubeTransit(object):
     """Class for storing information about transit defined in Cube line
     files.
@@ -70,7 +69,6 @@ class CubeTransit(object):
 
         parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters
         """
-        print("Creating a new Cube Transit instance")
         WranglerLogger.debug("Creating a new Cube Transit instance")
 
         self.lines = []
@@ -863,7 +861,7 @@ class StandardTransit(object):
             )
             WranglerLogger.error(msg)
             raise ValueError(msg)
-
+            
     @staticmethod
     def fromTransitNetwork(
         transit_network_object: TransitNetwork, parameters: Union[Parameters, dict] = {}
@@ -901,7 +899,7 @@ class StandardTransit(object):
         """
         Writes the gtfs feed as a cube line file after
         converting gtfs properties to MetCouncil cube properties.
-
+        #MC
         Args:
             outpath: File location for output cube line file.
 
@@ -921,7 +919,7 @@ class StandardTransit(object):
     def route_properties_gtfs_to_cube(self):
         """
         Prepare gtfs for cube lin file.
-
+        #MC
         Does the following operations:
         1. Combines route, frequency, trip, and shape information
         2. Converts time of day to time periods
@@ -1000,7 +998,7 @@ class StandardTransit(object):
     def calculate_cube_mode(self, row) -> int:
         """
         Assigns a cube mode number by following logic.
-
+        #MC
         For rail, uses GTFS route_type variable:
         https://developers.google.com/transit/gtfs/reference
 
@@ -1101,7 +1099,7 @@ class StandardTransit(object):
         if as_str:
             return this_tp
 
-        name_to_num = {v: k for k, v in self.parameters.cube_time_periods.items}
+        name_to_num = {v: k for k, v in self.parameters.cube_time_periods.items()}
         this_tp_num = name_to_num.get(this_tp)
 
         if not this_tp_num:
@@ -1156,10 +1154,11 @@ class StandardTransit(object):
 
         return node_list_str
 
+
     def cube_format(self, row):
         """
         Creates a string represnting the route in cube line file notation.
-
+        #MC
         Args:
             row: row of a DataFrame representing a cube-formatted trip, with the Attributes
                 trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY, MODE, ONEWAY, OPERATOR
