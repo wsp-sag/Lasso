@@ -184,6 +184,43 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             **additional_params_dict,
         )
 
+    def split_property(self, property_name, time_periods: Mapping = None, categories: Mapping = None):
+        if params.get("time_periods") and params.get("categories"):
+
+            for time_suffix, category_suffix in itertools.product(
+                params["time_periods"], params["categories"]
+            ):
+                self.links_df[
+                    out_var + "_" + time_suffix + "_" + category_suffix
+                ] = 0
+        elif params.get("time_periods"):
+            for time_suffix in params["time_periods"]:
+                self.links_df[out_var + "_" + time_suffix] = 0
+        elif params.get("time_periods") and params.get("categories"):
+            for time_suffix, category_suffix in itertools.product(
+                params["time_periods"], params["categories"]
+            ):
+                self.links_df[
+                    out_var + "_" + category_suffix + "_" + time_suffix
+                ] = self.get_property_by_time_period_and_group(
+                    params["v"],
+                    category=params["categories"][category_suffix],
+                    time_period=params["time_periods"][time_suffix],
+                )
+        elif params.get("time_periods"):
+            for time_suffix in params["time_periods"]:
+                self.links_df[
+                    out_var + "_" + time_suffix
+                ] = self.get_property_by_time_period_and_group(
+                    params["v"],
+                    category=None,
+                    time_period=params["time_periods"][time_suffix],
+                )
+        else:
+            raise ValueError(
+                "Shoudn't have a category without a time period: {}".format(params)
+            )
+
     def split_properties_by_time_period_and_category(self, properties_to_split=None):
         """
         Splits properties by time period, assuming a variable structure of
