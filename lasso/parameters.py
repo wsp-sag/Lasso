@@ -316,6 +316,26 @@ class Parameters:
             9
         ]
 
+        self.taz_N_list = list(range(1, 10000)) + list(range(100001, 110000)) + list(range(200001, 210000)) + list(range(300001, 310000))\
+        + list(range(400001, 410000)) + list(range(500001, 510000)) + list(range(600001, 610000)) + list(range(700001, 710000))\
+        + list(range(800001, 810000)) + list(range(900001, 1000000))
+
+        self.maz_N_list = list(range(10001, 90000)) + list(range(110001, 190000)) + list(range(210001, 290000)) + list(range(310001, 390000))\
+        + list(range(410001, 490000)) + list(range(510001, 590000)) + list(range(610001, 690000)) + list(range(710001, 790000))\
+        + list(range(810001, 890000))
+
+        self.tap_N_start = {
+            "San Francisco" : 90001,
+            "San Mateo" : 190001,
+            "Santa Clara" : 290001,
+            "Alameda" : 390001,
+            "Contra Costa" : 490001,
+            "Solano" : 590001,
+            "Napa" : 690001,
+            "Sonoma" : 790001,
+            "Marin" : 890001
+        }
+
         self.osm_facility_type_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_facility_type_crosswalk.csv"
         )
@@ -354,6 +374,18 @@ class Parameters:
 
         self.centroid_connector_shape_file = os.path.join(
             self.data_file_location, "centroid", "cc_shape.pickle"
+        )
+
+        self.tap_file = os.path.join(
+            self.data_file_location, "tap", "tap_node.pickle"
+        )
+
+        self.tap_connector_link_file = os.path.join(
+            self.data_file_location, "tap", "tap_link.pickle"
+        )
+
+        self.tap_connector_shape_file = os.path.join(
+            self.data_file_location, "tap", "tap_shape.pickle"
         )
 
         self.net_to_dbf_crosswalk = os.path.join(

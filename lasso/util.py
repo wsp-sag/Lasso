@@ -74,3 +74,21 @@ def geodesic_point_buffer(lat, lon, meters):
         proj_wgs84)
     buf = Point(0, 0).buffer(meters)  # distance in meters
     return Polygon(transform(project, buf).exterior.coords[:])
+
+def create_locationreference(node, link):
+    node['X'] = node['geometry'].apply(lambda p: p.x)
+    node['Y'] = node['geometry'].apply(lambda p: p.y)
+    node['point'] = [list(xy) for xy in zip(node.X, node.Y)]
+    node_dict = dict(zip(node.model_node_id, node.point))
+
+    link['A_point'] = link['A'].map(node_dict)
+    link['B_point'] = link['B'].map(node_dict)
+    link['locationReferences'] = link.apply(lambda x: [{'sequence':1,
+                                                        'point': x['A_point'],
+                                                        'distanceToNextRef':x['length'],
+                                                        'bearing' : 0,
+                                                        'intersectionId':x['fromIntersectionId']},
+                                                                         {'sequence':2,
+                                                             'point': x['B_point'],
+                                                             'intersectionId':x['toIntersectionId']}],
+                                                   axis = 1)

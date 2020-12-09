@@ -9,11 +9,15 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 import numpy as np
 import math
+from scipy.spatial import cKDTree
+from sklearn.cluster import KMeans
+from pyproj import CRS
+from shapely.geometry import Point, LineString
 
 from .parameters import Parameters
 from .logger import WranglerLogger
 from network_wrangler import RoadwayNetwork
-from .util import geodesic_point_buffer
+from .util import geodesic_point_buffer, create_locationreference
 
 
 def calculate_facility_type(
@@ -581,6 +585,8 @@ def calculate_cntype(
             return "TAZ"
         if x.roadway == "maz":
             return "MAZ"
+        if x.roadway == "tap":
+            return "TAP"
         if x.drive_access == 1:
             return "TANA"
         elif x.walk_access == 1:
@@ -793,7 +799,7 @@ def add_centroid_and_centroid_connector(
         parameters (Parameters): Lasso parameters object
         centroid_file (str): centroid node gdf pickle filename
         centroid_connector_link_file (str): centroid connector link pickle filename
-        pems_attributes (str): centroid connector shape pickle filename
+        centroid_connector_shape_file (str): centroid connector shape pickle filename
 
     Returns:
         roadway network object
@@ -1021,7 +1027,7 @@ def route_properties_gtfs_to_cube(
     trip_df = transit_network.feed.trips.copy()
 
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
-    mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type"], inplace = True)
+    mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
     """
     Add information from: routes, frequencies, and routetype to trips_df
@@ -1049,11 +1055,17 @@ def route_properties_gtfs_to_cube(
     trip_df["LONGNAME"] = trip_df["route_long_name"]
     trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
 
+    trip_df = pd.merge(trip_df, transit_network.feed.agency[["agency_name", "agency_raw_name"]], how = "left", on = "agency_raw_name")
+
+    # identify express bus
+    trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
+    trip_df.drop("agency_name", axis = 1 , inplace = True)
+
     trip_df = pd.merge(
         trip_df,
         mode_crosswalk.drop("agency_id", axis = 1),
         how = "left",
-        on = ["agency_raw_name", "route_type"]
+        on = ["agency_raw_name", "route_type", "is_express_bus"]
     )
 
     trip_df['TM2_mode'].fillna(11, inplace = True)
@@ -1119,7 +1131,34 @@ def write_as_cube_lin(
     with open(outpath, "w") as f:
         f.write("\n".join(l))
 
-def create_taps(
+def _is_express_bus(x):
+    if x.agency_name == "AC Transit":
+        if x.route_short_name[0] not in map(str,range(1,10)):
+            if x.route_short_name != "BSD":
+                return 1
+    if x.agency_name == "County Connection":
+        if x.route_short_name[-1] == "X":
+            return 1
+    if x.agency_name == "Fairfield and Suisun Transit":
+        if x.route_short_name in ["40", "90"]:
+            return 1
+    if x.agency_name == "Golden Gate Transit":
+        if x.route_short_name in ["2", "4", "8", "10", "18", "24", "27", "37", "38", "40", "42",
+        "44", "54", "56", "58", "70", "71", "72", "72X", "76", "92", "101", "101X"]:
+            return 1
+    if x.agency_name == "VTA":
+        if int(x.route_short_name) >= 100:
+            if int(x.route_short_name) <= 200:
+                return 1
+    if x.agency_name == "SamTrans":
+        if x.route_short_name == "KX":
+            return 1
+    if x.agency_name == "WestCat (Western Contra Costa)":
+        if (x.route_short_name.startswith("J")) | (x.route_short_name.startswith("Lynx")):
+            return 1
+    return 0
+
+def create_taps_tm2(
     transit_network = None,
     roadway_network = None,
     parameters = None,
@@ -1245,3 +1284,539 @@ def create_tap_dict(stops_df, stops_buffer_neighbor_gdf):
                 if stop_id not in taps:
                     taps[stop_id] = stop_id
     return taps
+
+def create_taps_kmeans_location_based(
+    transit_network = None,
+    roadway_network = None,
+    parameters = None,
+    bus_clusters = 6000,
+    outpath: str = None,
+    ):
+    """
+    creates taps
+
+    Args:
+        transit_network: transit network object
+        roadway_network: roadway network object
+        parameters
+        outpath: output file path
+
+    Return:
+        taps nodes and taps connectors
+
+    """
+
+    # get stops
+    stops_df = transit_network.feed.stops.copy()
+    stops_df["model_node_id"] = stops_df["model_node_id"].astype(int)
+
+    # get stop types bus vs non-bus
+    # route_type 3 = bus, 5 = SF cable car, 0 = street-level light rail
+    stop_times_df = transit_network.feed.stop_times.copy()
+    stop_times_df = pd.merge(
+        stop_times_df,
+        transit_network.feed.trips[["trip_id", "route_id"]],
+        how = "left",
+        on = "trip_id"
+    )
+    stop_times_df = pd.merge(
+        stop_times_df,
+        transit_network.feed.routes[["route_id", "route_type"]],
+        how = "left",
+        on = "route_id"
+    )
+
+    stop_type_df = stop_times_df.groupby(["stop_id", "route_type"]).count().reset_index()
+
+    bus_stops_id = stop_type_df[stop_type_df.route_type.isin([0,3,5])].stop_id
+
+    nonbus_stops_id = stops_df[~stops_df.stop_id.isin(bus_stops_id)].stop_id
+
+    # use K-means cluster to locate TAPs based on node coordination
+    stops_df = pd.merge(
+        stops_df,
+        roadway_network.nodes_df[["model_node_id", "X", "Y"]],
+        how = "left",
+        on = "model_node_id"
+    )
+
+    bus_stops_df = stops_df[stops_df.stop_id.isin(bus_stops_id)].copy()
+    nonbus_stops_df = stops_df[stops_df.stop_id.isin(nonbus_stops_id)].copy()
+
+    kmeans = KMeans(n_clusters = bus_clusters)
+    kmeans.fit(bus_stops_df[["X", "Y"]])
+
+    taps_gdf = DataFrame(
+        {"tap_id" : range(0, bus_clusters),
+         "X" : kmeans.cluster_centers_[:, 0],
+         "Y" : kmeans.cluster_centers_[:, 1],
+        })
+
+    bus_stops_df["tap_id"] = kmeans.labels_
+    nonbus_stops_df["tap_id"] = range(bus_clusters, bus_clusters + len(nonbus_stops_df))
+
+    taps_gdf = pd.concat([taps_gdf, nonbus_stops_df[["tap_id","X", "Y"]]], sort = False, ignore_index = True)
+
+    taps_gdf = GeoDataFrame(
+        taps_gdf,
+        geometry = gpd.points_from_xy(taps_gdf.X, taps_gdf.Y),
+        crs = "EPSG:4326"
+    )
+
+    stops_taps_df = pd.concat([bus_stops_df, nonbus_stops_df], ignore_index = True, sort = False)
+
+    return taps_gdf, stops_taps_df
+
+def create_taps_kmeans_frequency_based(
+    transit_network = None,
+    roadway_network = None,
+    parameters = None,
+    bus_clusters = 6000,
+    outpath: str = None,
+    ):
+    """
+    creates taps
+
+    Args:
+        transit_network: transit network object
+        roadway_network: roadway network object
+        parameters
+        outpath: output file path
+
+    Return:
+        taps nodes and taps connectors
+
+    """
+
+    # get stops
+    stops_df = transit_network.feed.stops.copy()
+    stops_df["model_node_id"] = stops_df["model_node_id"].astype(int)
+
+    # get stop types bus vs non-bus
+    # route_type 3 = bus, 5 = SF cable car, 0 = street-level light rail
+    stop_times_df = transit_network.feed.stop_times.copy()
+    stop_times_df = pd.merge(
+        stop_times_df,
+        transit_network.feed.trips[["trip_id", "route_id"]],
+        how = "left",
+        on = "trip_id"
+    )
+    stop_times_df = pd.merge(
+        stop_times_df,
+        transit_network.feed.routes[["route_id", "route_type"]],
+        how = "left",
+        on = "route_id"
+    )
+
+    stop_type_df = stop_times_df.groupby(["stop_id", "route_type"]).count().reset_index()
+
+    bus_stops_id = stop_type_df[stop_type_df.route_type.isin([0,3,5])].stop_id
+
+    nonbus_stops_id = stops_df[~stops_df.stop_id.isin(bus_stops_id)].stop_id
+
+    # use K-means cluster to locate TAPs based on node coordination
+    stops_df = pd.merge(
+        stops_df,
+        roadway_network.nodes_df[["model_node_id", "X", "Y"]],
+        how = "left",
+        on = "model_node_id"
+    )
+
+    bus_stops_df = stops_df[stops_df.stop_id.isin(bus_stops_id)].copy()
+    nonbus_stops_df = stops_df[stops_df.stop_id.isin(nonbus_stops_id)].copy()
+
+    # count number of trips at each bus stop
+    stop_trip_num_df = pd.merge(
+        bus_stops_df,
+        transit_network.feed.stop_times[["stop_id", "trip_id"]],
+        how = "left",
+        on = "stop_id"
+    )
+
+    frequencies_df = transit_network.feed.frequencies.copy()
+    frequencies_df["duration"] = np.where(
+        frequencies_df.start_time < frequencies_df.end_time,
+        frequencies_df.end_time - frequencies_df.start_time,
+        frequencies_df.end_time - frequencies_df.start_time + 24 * 3600
+    )
+    frequencies_df["num_trip"] = frequencies_df["duration"] / frequencies_df["headway_secs"]
+
+    stop_trip_num_df = pd.merge(
+        stop_trip_num_df,
+        frequencies_df[["trip_id", "num_trip"]],
+        how = "left",
+        on = "trip_id"
+    )
+
+    stop_trip_num_df = stop_trip_num_df.groupby(["stop_id"])["num_trip"].sum().reset_index()
+
+    bus_stops_df = pd.merge(
+        bus_stops_df,
+        stop_trip_num_df[["stop_id", "num_trip"]],
+        how = "left",
+        on = "stop_id"
+    )
+
+    kmeans = KMeans(n_clusters = bus_clusters)
+    kmeans.fit(bus_stops_df[["X", "Y"]], sample_weight = bus_stops_df["num_trip"])
+
+    taps_gdf = DataFrame(
+        {"tap_id" : range(0, bus_clusters),
+         "X" : kmeans.cluster_centers_[:, 0],
+         "Y" : kmeans.cluster_centers_[:, 1],
+        })
+
+    bus_stops_df["tap_id"] = kmeans.labels_
+    nonbus_stops_df["tap_id"] = range(bus_clusters, bus_clusters + len(nonbus_stops_df))
+
+    taps_gdf = pd.concat([taps_gdf, nonbus_stops_df[["tap_id","X", "Y"]]], sort = False, ignore_index = True)
+
+    taps_gdf = GeoDataFrame(
+        taps_gdf,
+        geometry = gpd.points_from_xy(taps_gdf.X, taps_gdf.Y),
+        crs = "EPSG:4326"
+    )
+
+    stops_taps_df = pd.concat([bus_stops_df, nonbus_stops_df], ignore_index = True, sort = False)
+
+    return taps_gdf, stops_taps_df
+
+def snap_stop_to_node(stops, node_gdf):
+
+    """
+    map gtfs stops to roadway nodes
+
+    Parameters:
+    ------------
+    stops
+    network nodes
+
+    return
+    ------------
+    stops with network nodes id
+    """
+
+    print('snapping gtfs stops to roadway node osmid...')
+
+    node_non_c_gdf = node_gdf.copy()
+    node_non_c_gdf = node_non_c_gdf.to_crs(CRS('epsg:26915'))
+    node_non_c_gdf['X'] = node_non_c_gdf.geometry.map(lambda g:g.x)
+    node_non_c_gdf['Y'] = node_non_c_gdf.geometry.map(lambda g:g.y)
+    inventory_node_ref = node_non_c_gdf[['X', 'Y']].values
+    tree = cKDTree(inventory_node_ref)
+
+    stop_df = stops.copy()
+    stop_df['geometry'] = [Point(xy) for xy in zip(stop_df['stop_lon'], stop_df['stop_lat'])]
+    stop_df = gpd.GeoDataFrame(stop_df)
+    stop_df.crs = CRS("EPSG:4326")
+    stop_df = stop_df.to_crs(CRS('epsg:26915'))
+    stop_df['X'] = stop_df['geometry'].apply(lambda p: p.x)
+    stop_df['Y'] = stop_df['geometry'].apply(lambda p: p.y)
+
+    for i in range(len(stop_df)):
+        point = stop_df.iloc[i][['X', 'Y']].values
+        dd, ii = tree.query(point, k = 1)
+        add_snap_gdf = gpd.GeoDataFrame(node_non_c_gdf.iloc[ii]).transpose().reset_index(drop = True)
+        add_snap_gdf['stop_id'] = stop_df.iloc[i]['stop_id']
+        if i == 0:
+            stop_to_node_gdf = add_snap_gdf.copy()
+        else:
+            stop_to_node_gdf = stop_to_node_gdf.append(add_snap_gdf, ignore_index=True, sort=False)
+
+    stop_df.drop(['X','Y'], axis = 1, inplace = True)
+    stop_to_node_gdf = pd.merge(stop_df, stop_to_node_gdf, how = 'left', on = 'stop_id')
+
+    column_list = ["stop_id", 'osm_node_id', 'shst_node_id', "model_node_id"]
+
+    return stop_to_node_gdf[column_list]
+
+def create_taps_kmeans(
+    transit_network = None,
+    roadway_network = None,
+    parameters = None,
+    clusters = 6000,
+    outpath: str = None,
+    ):
+    """
+    creates taps
+
+    Args:
+        transit_network: transit network object
+        roadway_network: roadway network object
+        parameters
+        outpath: output file path
+
+    Return:
+        taps nodes and taps connectors
+
+    """
+
+    # get stops
+    stops_df = transit_network.feed.stops.copy()
+    stops_df["model_node_id"] = stops_df["model_node_id"].astype(int)
+
+    # use K-means cluster to locate TAPs based on node coordination
+    stops_df = pd.merge(
+        stops_df,
+        roadway_network.nodes_df[["model_node_id", "X", "Y"]],
+        how = "left",
+        on = "model_node_id"
+    )
+
+    kmeans = KMeans(n_clusters = clusters)
+    kmeans.fit(stops_df[["X", "Y"]])
+
+    taps_gdf = DataFrame(
+        {"tap_id" : range(0, clusters),
+         "X" : kmeans.cluster_centers_[:, 0],
+         "Y" : kmeans.cluster_centers_[:, 1],
+        })
+
+    stops_df["tap_id"] = kmeans.labels_
+
+    taps_gdf = GeoDataFrame(
+        taps_gdf,
+        geometry = gpd.points_from_xy(taps_gdf.X, taps_gdf.Y),
+        crs = "EPSG:4326"
+    )
+
+    return taps_gdf, stops_df
+
+def create_tap_nodes_and_links(
+    transit_network = None,
+    roadway_network = None,
+    parameters = None,
+    num_taps = 6000,
+    ):
+
+    taps_gdf, stop_tap_df = create_taps_kmeans(
+        transit_network = transit_network,
+        roadway_network = roadway_network,
+        parameters = parameters,
+        clusters = num_taps,
+    )
+
+    # check if centroids are added, because need to number tap links
+    if "taz" not in roadway_network.links_df.roadway.unique():
+        roadway_network = add_centroid_and_centroid_connector(
+            roadway_network = roadway_network,
+            parameters = parameters
+        )
+
+    # numbering tap nodes
+    county_gdf = gpd.read_file(parameters.county_shape)
+    county_gdf = county_gdf.to_crs("EPSG:4326")
+
+    tap_nodes_gdf = gpd.sjoin(
+        taps_gdf,
+        county_gdf[["NAME", "geometry"]].rename(columns = {"NAME" : "county"}),
+        how = "left",
+        op = "intersects"
+    )
+
+    tap_nodes_gdf["county"].fillna("Marin", inplace = True)
+
+    tap_nodes_gdf["tap_node_county_start"] = tap_nodes_gdf["county"].map(parameters.tap_N_start)
+    tap_nodes_gdf["model_node_id"] = tap_nodes_gdf.groupby(["county"]).cumcount()
+
+    tap_nodes_gdf["model_node_id"] = tap_nodes_gdf["model_node_id"] + tap_nodes_gdf["tap_node_county_start"]
+
+    # tap shapes
+    tap_shapes_gdf = pd.merge(stop_tap_df,
+                  tap_nodes_gdf[["tap_id", "X", "Y"]].rename(columns = {"X" : "tap_X", "Y" : "tap_Y"}),
+                  how = 'left',
+                  on = ["tap_id"])
+
+    tap_shapes_gdf["id"] = range(1, 1 + len(tap_shapes_gdf))
+    tap_shapes_gdf["id"] = tap_shapes_gdf["id"].apply(lambda x : "tap_" + str(x))
+    tap_shapes_gdf["shstGeometryId"] = tap_shapes_gdf["id"]
+
+    tap_shapes_gdf["geometry"] = tap_shapes_gdf.apply(
+        lambda x: LineString([Point(x.X, x.Y), Point(x.tap_X, x.tap_Y)]),
+        axis = 1
+    )
+
+    tap_shapes_gdf = gpd.GeoDataFrame(
+        tap_shapes_gdf,
+        geometry = tap_shapes_gdf["geometry"],
+        crs = "EPSG:4326"
+    )
+
+    # tap links
+    tap_links_gdf = tap_shapes_gdf.copy()
+    tap_links_gdf.rename(columns = {"model_node_id" : "A"}, inplace = True)
+
+    tap_dict = dict(zip(tap_nodes_gdf.tap_id, tap_nodes_gdf.model_node_id))
+    tap_links_gdf["B"] = tap_links_gdf["tap_id"].map(tap_dict)
+
+    tap_links_gdf = pd.merge(
+        tap_links_gdf,
+        tap_nodes_gdf[["tap_id", "county"]],
+        how = "left",
+        on = "tap_id"
+    )
+
+    tap_links_gdf_copy = tap_links_gdf.copy()
+    tap_links_gdf_copy.rename(columns = {"A" : "B", "B" : "A"}, inplace = True)
+
+    tap_links_gdf = pd.concat(
+        [tap_links_gdf, tap_links_gdf_copy],
+        sort = False,
+        ignore_index = True
+    )
+
+    tap_links_gdf["roadway"] = "tap"
+
+    tap_links_gdf["walk_access"] = 1
+
+    # numbering tap links
+    county_last_link_id_df = roadway_network.links_df.groupby("county")["model_link_id"].max().reset_index().rename(
+    columns = {"model_link_id" : "county_last_id"})
+
+    tap_links_gdf = pd.merge(
+        tap_links_gdf,
+        county_last_link_id_df,
+        how = "left",
+        on = "county"
+    )
+
+    tap_links_gdf["model_link_id"] = tap_links_gdf.groupby(["county"]).cumcount() + 1
+
+    tap_links_gdf["model_link_id"] = tap_links_gdf["model_link_id"] + tap_links_gdf["county_last_id"]
+
+    geom_length = tap_links_gdf[['geometry']].copy()
+    geom_length = geom_length.to_crs(epsg = 26915)
+    geom_length["length"] = geom_length.length
+
+    tap_links_gdf["length"] = geom_length["length"]
+
+    tap_links_gdf["fromIntersectionId"] = np.nan
+    tap_links_gdf["toIntersectionId"] = np.nan
+
+    all_node_gdf = pd.concat([roadway_network.nodes_df,
+                         tap_nodes_gdf],
+                        sort = False,
+                        ignore_index = True)
+
+    create_locationreference(all_node_gdf, tap_links_gdf)
+
+    return tap_nodes_gdf, tap_links_gdf, tap_shapes_gdf
+
+def add_tap_and_tap_connector(
+    roadway_network = None,
+    parameters = None,
+    tap_file: str = None,
+    tap_connector_link_file: str = None,
+    tap_connector_shape_file: str = None,
+):
+    """
+    Add centorid and centroid connectors from pickles.
+
+    Args:
+        roadway_network (RoadwayNetwork): Input Wrangler roadway network
+        parameters (Parameters): Lasso parameters object
+        tap_file (str): tap node gdf pickle filename
+        tap_connector_link_file (str): tap connector link pickle filename
+        tap_connector_shape_file (str): tap connector shape pickle filename
+
+    Returns:
+        roadway network object
+
+    """
+
+    WranglerLogger.info("Adding tap and tap connector to standard network")
+
+    """
+    Verify inputs
+    """
+    if type(parameters) is dict:
+        parameters = Parameters(**parameters)
+    elif isinstance(parameters, Parameters):
+        parameters = Parameters(**parameters.__dict__)
+    else:
+        msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+            parameters, type(parameters)
+        )
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if not roadway_network:
+        msg = "'roadway_network' is missing from the method call.".format(roadway_network)
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    tap_file = (
+        tap_file
+        if tap_file
+        else parameters.tap_file
+    )
+
+    tap_connector_link_file = (
+        tap_connector_link_file
+        if tap_connector_link_file
+        else parameters.tap_connector_link_file
+    )
+
+    if not tap_connector_link_file:
+        msg = "'tap_connector_link_file' not found in method or lasso parameters."
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    tap_connector_shape_file = (
+        tap_connector_shape_file
+        if tap_connector_shape_file
+        else parameters.tap_connector_shape_file
+    )
+
+    if not tap_connector_shape_file:
+        msg = "'tap_connector_shape_file' not found in method or lasso parameters."
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    """
+    Start actual process
+    """
+
+    tap_gdf = pd.read_pickle(tap_file)
+    tap_connector_link_gdf = pd.read_pickle(tap_connector_link_file)
+    tap_connector_shape_gdf = pd.read_pickle(tap_connector_shape_file)
+
+    tap_connector_link_gdf["lanes"] = 1
+    tap_connector_link_gdf["ft"] = 8
+    tap_connector_link_gdf["managed"] = 0
+
+    roadway_network.nodes_df = pd.concat(
+        [roadway_network.nodes_df,
+        tap_gdf[
+            list(set(roadway_network.nodes_df.columns) &
+            set(tap_gdf.columns))
+        ]],
+        sort = False,
+        ignore_index = True
+    )
+
+    roadway_network.links_df = pd.concat(
+        [roadway_network.links_df,
+        tap_connector_link_gdf[
+            list(set(roadway_network.links_df.columns) &
+            set(tap_connector_link_gdf.columns))
+        ]],
+        sort = False,
+        ignore_index = True
+    )
+
+    roadway_network.shapes_df = pd.concat(
+        [roadway_network.shapes_df,
+        tap_connector_shape_gdf[
+            list(set(roadway_network.shapes_df.columns) &
+            set(tap_connector_shape_gdf.columns))
+        ]],
+        sort = False,
+        ignore_index = True
+    )
+
+    WranglerLogger.info(
+        "Finished adding tap and tap connectors"
+    )
+
+    return roadway_network
