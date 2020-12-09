@@ -92,3 +92,39 @@ def create_locationreference(node, link):
                                                              'point': x['B_point'],
                                                              'intersectionId':x['toIntersectionId']}],
                                                    axis = 1)
+
+def column_name_to_parts(c, parameters=None):
+
+    if not parameters:
+        from .parameters import Parameters
+
+        parameters = Parameters()
+
+    if c[0:2] == "ML":
+        managed = True
+    else:
+        managed = False
+
+    time_period = None
+    category = None
+
+    if c.split("_")[0] not in parameters.properties_to_split.keys():
+        return c, None, None, managed
+
+    tps = parameters.time_period_to_time.keys()
+    cats = parameters.categories.keys()
+
+    if c.split("_")[-1] in tps:
+        time_period = c.split("_")[-1]
+        base_name = c.split(time_period)[-2][:-1]
+        if c.split("_")[-2] in cats:
+            category = c.split("_")[-2]
+            base_name = c.split(category)[-2][:-1]
+    elif c.split("_")[-1] in cats:
+        category = c.split("_")[-1]
+        base_name = c.split(category)[-2][:-1]
+    else:
+        msg = "Can't split property correctly: {}".format(c)
+        WranglerLogger.error(msg)
+
+    return base_name, time_period, category, managed
