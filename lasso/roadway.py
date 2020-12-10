@@ -1712,6 +1712,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         if drive_only:
             link_ff_df = link_ff_df.loc[link_ff_df['drive_access'] == 1]
         #/MTC
+        """
         #MC
         link_ff_df, link_max_width_dict = self.dataframe_to_fixed_width(
             self.links_metcouncil_df[link_output_variables]
@@ -1720,7 +1721,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         if drive_only:
             link_ff_df = link_ff_df.loc[link_ff_df["drive_access"] == 1]
         #/MC
-
+        """
         WranglerLogger.info("Writing out link database")
 
         link_ff_df.to_csv(output_link_txt, sep=";", index=False, header=False)
@@ -1737,11 +1738,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.nodes_mtc_df[node_output_variables]
         )
         #/MTC
+        """
         #MC
         node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
             self.nodes_metcouncil_df[node_output_variables]
-        #/MC
         )
+        #/MC
+        """
         WranglerLogger.info("Writing out node database")
 
         if drive_only:
