@@ -960,8 +960,8 @@ def roadway_standard_to_mtc_network(
     roadway_network.links_mtc_df = roadway_network.links_df.copy()
     roadway_network.nodes_mtc_df = roadway_network.nodes_df.copy()
 
-    roadway_network.links_mtc_df.crs = RoadwayNetwork.CRS
-    roadway_network.nodes_mtc_df.crs = RoadwayNetwork.CRS
+    roadway_network.links_mtc_df.crs = roadway_network.crs
+    roadway_network.nodes_mtc_df.crs = roadway_network.crs
     WranglerLogger.info("Setting Coordinate Reference System to {}".format(output_proj))
     roadway_network.links_mtc_df = roadway_network.links_mtc_df.to_crs(crs = output_proj)
     roadway_network.nodes_mtc_df = roadway_network.nodes_mtc_df.to_crs(crs = output_proj)

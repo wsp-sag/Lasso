@@ -400,12 +400,12 @@ class Parameters:
             self.base_dir = get_base_dir(lasso_base_dir=kwargs.get("lasso_base_dir"))
         else:
             self.base_dir = get_base_dir()
-
+        """
         if "data_file_location" in kwargs:
             self.data_file_location = kwargs.get("data_file_location")
         else:
             self.data_file_location = os.path.join(self.base_dir, "metcouncil_data")
-
+        """
 
          #--------
         if "settings_location" in kwargs:
@@ -493,8 +493,10 @@ class Parameters:
             "Marin" : 890001
         }
 
-        #MTC        self.osm_facility_type_dict = os.path.join(
+        #MTC
+        self.osm_facility_type_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_facility_type_crosswalk.csv"
+        )
         #MC
         ### Lanes
         self.lanes_lookup_file = os.path.join(
@@ -514,6 +516,7 @@ class Parameters:
 
         self.legacy_tm2_attributes = os.path.join(
             self.data_file_location, "lookups", "legacy_tm2_attributes.csv"
+        )
         ###
         ### AREA TYPE - MC
         self.area_type_shape = os.path.join(
@@ -583,6 +586,7 @@ class Parameters:
 
         self.centroid_file = os.path.join(
             self.data_file_location, "centroid", "centroid_node.pickle"
+        )
         ####
         ###MC
         self.widot_shst_data = os.path.join(
@@ -752,7 +756,7 @@ class Parameters:
             "lanes_NT",
             "roadway_class",
             "assign_group",
-            "county",
+            #"county",
             "area_type",
             "trn_priority",
             "AADT",

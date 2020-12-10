@@ -1165,13 +1165,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
 
     def calculate_distance(
-        self, network_variable="distance", centroidconnect_only=True, overwrite=False
+        self, network_variable="distance", centroidconnect_only=False, overwrite=False
     ):
         """
         calculate link distance in miles
 
         Args:
-            centroidconnect_only (Bool):  True if calculating distance for centroidconnectors only.  Default to True.
+            centroidconnect_only (Bool):  True if calculating distance for centroidconnectors only.  Default to False.
             overwrite (Bool): True if overwriting existing variable in network.  Default to False.
 
         Returns:
@@ -1199,7 +1199,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         #MC
-        if "centroidconnect" not in self.links_df:
+        if ("centroidconnect" not in self.links_df) & ("taz" not in self.links_df.roadway.unique()):
             msg = "No variable specified for centroid connector, calculating centroidconnect first"
             WranglerLogger.error(msg)
             raise ValueError(msg)
@@ -1251,12 +1251,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         int_col_names = self.parameters.int_col
         #/MTC
         #MC
+        """
         WranglerLogger.info("Converting variable type to MetCouncil standard")
 
         if not int_col_names:
             int_col_names = self.parameters.int_col
         #/MC
-
+        """
         ##Why are we doing this?
         # int_col_names.remove("lanes")
 
@@ -1518,7 +1519,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             #MTC
             link_output_variables if link_output_variables else ["A", "B", "geometry"]
             #MC
-            link_output_variables if data_to_dbf else ["A", "B", "shape_id", "geometry"]
+            #link_output_variables if data_to_dbf else ["A", "B", "shape_id", "geometry"]
         )
 
         output_link_shp = (
@@ -1704,7 +1705,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Start Process
         """
         #MTC
-        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_with(
+        link_ff_df, link_max_width_dict = self.dataframe_to_fixed_width(
             self.links_mtc_df[link_output_variables]
         )
 
@@ -1732,8 +1733,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         link_max_width_df.to_csv(output_link_header_width_txt, index=False)
 
         #MTC
-        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_with(
+        node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
             self.nodes_mtc_df[node_output_variables]
+        )
         #/MTC
         #MC
         node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
