@@ -344,7 +344,7 @@ class Parameters:
             "5": "EV",
         }
 
-
+        """
         #MC
         self.route_type_bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
 
@@ -352,7 +352,7 @@ class Parameters:
 
         self.cube_time_periods = {"1": "AM", "2": "MD"}
         self.cube_time_periods_name = {"AM": "pk", "MD": "op"}
-
+        """
         if "categories" in kwargs:
             self.categories = kwargs.get("categories")
         else:
@@ -660,11 +660,11 @@ class Parameters:
             #"roadway",
             #"name",
             #MC
-            "shape_id",
-            "distance",
-            "roadway",
-            "name",
-            "roadway_class",
+            #"shape_id",
+            #"distance",
+            #"roadway",
+            #"name",
+            #"roadway_class",
             ####
             "bike_access",
             "walk_access",
