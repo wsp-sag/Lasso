@@ -656,7 +656,7 @@ class Parameters:
             "B",
             "shstGeometryId",
             #MTC
-            #"distance",
+            "distance",
             #"roadway",
             #"name",
             #MC
