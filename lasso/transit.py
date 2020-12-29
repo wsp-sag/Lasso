@@ -973,6 +973,11 @@ class StandardTransit(object):
             self.parameters.cube_time_periods_name
         )
 
+        # add shape_id to name when N most common pattern is used for routes*tod*direction
+        trip_df["shp_id"] = trip_df.groupby(["route_id", "tod_name", "direction_id"]).cumcount()
+        trip_df["shp_id"] = trip_df["shp_id"].astype(str)
+        trip_df["shp_id"] = "shp" + trip_df["shp_id"]
+
         trip_df["NAME"] = trip_df.apply(
             lambda x: x.agency_id
             + "_"
@@ -981,11 +986,21 @@ class StandardTransit(object):
             + x.route_short_name
             + "_"
             + x.tod_name
-            + str(x.direction_id),
+            + "_"
+            + "dir"
+            + str(x.direction_id)
+            + "_"
+            + x.shp_id,
             axis=1,
         )
 
+        # CUBE max string length
+        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 30)
+
         trip_df["LONGNAME"] = trip_df["route_long_name"]
+        # CUBE max string length
+        trip_df["LONGNAME"] = trip_df["LONGNAME"].str.slice(stop = 30)
+
         trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
         trip_df["MODE"] = trip_df.apply(self.calculate_cube_mode, axis=1)
         trip_df["ONEWAY"] = "T"
