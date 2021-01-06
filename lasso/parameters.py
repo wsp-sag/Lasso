@@ -706,6 +706,7 @@ class Parameters:
             "tap_drive",
             "tollbooth",
             "tollseg",
+            "farezone",
             ####
             #MC
             "bike_facility",
@@ -808,7 +809,8 @@ class Parameters:
             "useclass_PM",
             "useclass_EV",
             "tollseg",
-            "tollbooth"
+            "tollbooth",
+            "farezone",
         ]
 
         self.float_col = [

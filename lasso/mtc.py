@@ -783,6 +783,93 @@ def calculate_useclass(
 
     return roadway_network
 
+#TODO develop the algorithm to replicate the FAREZONE node values from the old network
+def calculate_farezone(
+    roadway_network=None,
+    transit_network=None,
+    parameters=None,
+    network_variable: str = "farezone",
+    overwrite:bool = False,
+):
+    """
+    Calculates farezone variable.
+
+    Args:
+        roadway_network (RoadwayNetwork): Input Wrangler roadway network
+        transit_network (CubeTransit): Input Wrangler transit network
+        parameters (Parameters): Lasso parameters object
+        network_variable (str): Variable that should be written to in the network. Default to "farezone"
+        overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+    Returns:
+        roadway object
+    """
+
+    WranglerLogger.info("Determining farezone")
+
+    """
+    Verify inputs
+    """
+    if type(parameters) is dict:
+        parameters = Parameters(**parameters)
+    elif isinstance(parameters, Parameters):
+        parameters = Parameters(**parameters.__dict__)
+    else:
+        msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+            parameters, type(parameters)
+        )
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if not roadway_network:
+        msg = "'roadway_network' is missing from the method call.".format(roadway_network)
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if not transit_network:
+        msg = "'transit_network' is missing from the method call.".format(transit_network)
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if network_variable in roadway_network.links_df:
+        if overwrite:
+            WranglerLogger.info(
+                "Overwriting existing Variable '{}' already in network".format(
+                    network_variable
+                )
+            )
+        else:
+            WranglerLogger.info(
+                "Variable '{}' already in network. Returning without overwriting.".format(
+                    network_variable
+                )
+            )
+            return roadway_network
+
+    """
+    Start actual process
+    """
+
+    WranglerLogger.info(
+        "Calculating and adding roadway network variable: {}".format(
+            network_variable
+        )
+    )
+
+    stop_nodes_df = transit_network.feed.stops.model_node_id.to_list()
+
+    # TODO this logic needs to be revised
+    def _calculate_farezone(x):
+        if x.model_node_id in stop_nodes_df:
+            return 1
+
+    roadway_network.nodes_df[network_variable] = roadway_network.nodes_df.apply(lambda x: _calculate_farezone(x), axis = 1)
+
+    WranglerLogger.info(
+        "Finished determining variable: {}".format(network_variable)
+    )
+
+    return roadway_network
 
 def add_centroid_and_centroid_connector(
     roadway_network = None,
@@ -1033,29 +1120,43 @@ def route_properties_gtfs_to_cube(
     Add information from: routes, frequencies, and routetype to trips_df
     """
     trip_df = pd.merge(trip_df, transit_network.feed.routes.drop("agency_raw_name", axis = 1), how="left", on="route_id")
+
     trip_df = pd.merge(trip_df, transit_network.feed.frequencies, how="left", on="trip_id")
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
+    trip_df["tod_name"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period)
 
-    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.slice(stop = 50)
+    # add shape_id to name when N most common pattern is used for routes*tod*direction
+    trip_df["shp_id"] = trip_df.groupby(["route_id", "tod", "direction_id"]).cumcount()
+    trip_df["shp_id"] = trip_df["shp_id"].astype(str)
+    trip_df["shp_id"] = "s" + trip_df["shp_id"]
 
-    trip_df["route_long_name"] = trip_df["route_long_name"].str.slice(stop = 50)
+    trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.replace(",", "_").str.slice(stop = 50)
+
+    trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
 
     trip_df["NAME"] = trip_df.apply(
         lambda x: str(x.agency_id)
         + "_"
         + str(x.route_id)
         + "_"
-        + str(x.route_short_name),
+        #+ str(x.route_short_name)
+        #+ "_"
+        + x.tod_name
+        + "_"
+        + "d"
+        + str(int(x.direction_id))
+        + "_"
+        + x.shp_id,
         axis=1,
     )
 
-    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
+    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 30)
 
     trip_df["LONGNAME"] = trip_df["route_long_name"]
     trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
 
-    trip_df = pd.merge(trip_df, transit_network.feed.agency[["agency_name", "agency_raw_name"]], how = "left", on = "agency_raw_name")
+    trip_df = pd.merge(trip_df, transit_network.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
 
     # identify express bus
     trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
@@ -1091,7 +1192,7 @@ def cube_format(transit_network, row):
 
     s = '\nLINE NAME="{}",'.format(row.NAME)
     s += '\n LONGNAME="{}",'.format(row.LONGNAME)
-    s += '\n USERA1=\"%s",' % (row.agency_id,)
+    s += '\n USERA1=\"%s",' % (row.agency_id if row.agency_id != "nan" else row.agency_raw_name)
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
