@@ -1,4 +1,3 @@
-
 """
 Structures data overlaps as dataclasses with good defaults and helper methods. 
 
@@ -7,58 +6,18 @@ Example:
 """
 
 import os
-from dataclasses import dataclass
-from typing import Any, Union, List, String, Dict, Tuple, Set, Mapping, Collection, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Union, List, Dict, Tuple, Set, Mapping, Collection, Sequence
 
-from pd import DataFrame
-from gpd import GeoDataFrame
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+from pandas import DataFrame
+from geopandas import GeoDataFrame
 
+from network_wranger import update_df
 
-def update_df(base_df: DataFrame, update_df: DataFrame, merge_key: str, update_fields: Collection = [], overwrite: bool=False):
-    """
-    Updates specific fields of a dataframe with another dataframe using a key column.
-
-    Args:
-        base_df: DataFrame to be updated
-        update_df: DataFrame with with updated values
-        merge_key: column to merge on (i.e. model_link_id)
-        update_fields: list of fields to update values for
-        overwrite: if true, will copy over entire column. Otherwise, will only overwrite blank or NaN values.
-
-    Returns: Dataframe with updated values
-    """
-
-    if not set(update_fields).issubset(base_df.columns):
-        raise ValueError("Update fields: {} not in base_df: {}".format(update_fields,base_df.columns))
-    if not set(update_fields).issubset(update_df.columns):
-        raise ValueError("Update fields: {} not in update_df: {}".format(update_fields,update_df.columns))
-    if not merge_key in base_df.columns:
-        raise ValueError("Merge key: {} not in base_df: {}".format(merge_key, base_df.columns))
-    if not merge_key in update_df.columns:
-        raise ValueError("Merge key: {} not in update_df: {}".format(merge_key, update_df.columns))
-
-    if overwrite:
-      suffixes = ["-orig",None]
-    else:
-      base_df.loc[:,update_fields] = base_df.loc[:,update_fields].replace(r'^\s*$', np.nan, regex=True)
-      suffixes = [None,"-update"]
-    #print("base_df2:\n",base_df)
-    merged_df = base_df.merge(
-        update_df[update_fields+[merge_key]],
-        on=merge_key,
-        how="left",
-        suffixes=suffixes,
-    )
-    #print("merged_df:\n",merged_df)
-    if overwrite:
-      merged_df = merged_df.drop(columns=[c+"-orig" for c in update_fields])
-    else:
-      for c in update_fields:
-        #print(merged_df.apply(lambda row: row[c+"-update"] if not row[c] else row[c],axis=1))
-        merged_df.loc[merged_df[c].isna(),c] = merged_df.loc[merged_df[c].isna(),c+"-update"]
-      merged_df = merged_df.drop(columns=[c+"-update" for c in update_fields])
-    #print("merged_df-updated:\n",merged_df)
-    return merged_df
+from .logger import WranglerLogger
 
 @dataclass
 class FieldMapping:
@@ -67,32 +26,43 @@ class FieldMapping:
     Attributes:
         input_csv_filename: csv file with lookup values.
         input_csv_has_header: Boolean indicating if the input file has a header row.
-        input_csv_fields: collection of length 2 indicating what fields to reference 
+        input_csv_fields: collection of length 2 indicating what fields to reference
             for the (original field name, new field name).
         field_mapping: Mapping from original to target field names in a dataframe
     """
+
     input_csv_filename: str = None
     input_csv_has_header: bool = False
-    input_csv_fields: Collection[Union[int,str]] = None
-    field_mapping: Mapping[str,str] = {}
+    input_csv_fields: Collection[Union[int, str]] = None
+    field_mapping: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.input_csv_filename:
-            if not len(self.input_csv_fields)==2:
-                raise ValueError("Must specify which fields to reference for the original ane new field names")
-            import csv
+            if not len(self.input_csv_fields) == 2:
+                raise ValueError(
+                    "Must specify which fields to reference for the original ane new field names"
+                )
             self.read_csv_mapping()
 
-    def self.read_csv_mapping()
-        with open(self.input_csv_filename, mode='r') as infile:
-            if self.input_csv_has_header: 
+    def read_csv_mapping(self):
+        import csv
+
+        with open(self.input_csv_filename, mode="r") as infile:
+            if self.input_csv_has_header:
                 reader = csv.DictReader(infile)
             else:
                 reader = csv.reader(infile)
             for row in reader:
-                if self.field_mapping.get(reader[self.input_csv_fields[0]]):
-                    raise ValueError("Field rename csv {} has duplicate entry for field: {}".format(self.input_csv_filename, reader[self.input_csv_fields[0]]))
-                self.field_mapping[reader[self.input_csv_fields[0]]] = reader[self.input_csv_fields[1]]]
+                if self.field_mapping.get(row[self.input_csv_fields[0]]):
+                    raise ValueError(
+                        "Field rename csv {} has duplicate entry for field: {}".format(
+                            self.input_csv_filename,
+                            row[self.input_csv_fields[0]],
+                        )
+                    )
+                self.field_mapping[row[self.input_csv_fields[0]]] = row[
+                    self.input_csv_fields[1]
+                ]
 
 
 @dataclass
@@ -101,97 +71,175 @@ class ValueLookup:
 
     Attributes:
         input_csv_filename: csv file with lookup values.
+        input_geojson_filename: geojson file with lookup values.
+        input_dbf_filename: dbf file with lookup values. 
         input_csv_has_header: Boolean indicating if the input file has a header row.
-        input_csv_key_field: Column with the lookup key in the csv file. Either the 
+        input_key_field: Column with the lookup key in the csv file. Either the
             field name (if has a header) or column number (starting at 1).
         target_df_key_field: Target dataframe field name with the lookup key.
-        field_mapping: Mapping from the csv field (indicated by int or string) and 
+        field_mapping: Mapping from the csv field (indicated by int or string) and
             target df field.
-        overwrite: If True, the variables will be overwritten. 
+        update_method: update method to use in network_wrangler.update_df. One of "overwrite all", 
+            "update if found", or "update nan". Defaults to "update if found"
         value_mapping: Mapping of the target field name to a mapping of the key/values
     """
+
     input_csv_filename: str = None
     input_csv_has_header: bool = True
-    input_csv_key_field: Union[str,int] = None
+    input_geojson_filename: str = None
+    input_dbf_filename: str = None
+    input_key_field: Union[str, int] = None
     target_df_key_field: str = None
-    field_mapping: Mapping[Union[str,int],str] = {} # csv_field, output/target_field
-    overwrite: bool = True
+    field_mapping: Mapping[Union[str, int], str] = field(
+        default_factory=dict
+    )  # input csv/json_field, output/target_field
+    update_method: str = "update if found"
     mapping_df: DataFrame = None
 
     def __post_init__(self):
-        for csv_field,df_field in self.field_mapping.items():
-            if not self.value_mappings.get(df_field):
-                self.value_mappings[df_field] = {}
+        input_files = [self.input_csv_filename,self.input_geojson_filename, self.input_dbf_filename]
+        if input_files.count(None)<2:
+            msg = "ValueLookup should have input_csv_filename OR input_geojson_filename OR input_dbf_filename but >1 specified: {}".format(input_files)
+            WranglerLogger.error(msg)
+            ValueError(msg)
+
+        self.check_fields()
+
+    def check_fields(self):
+        """
+        Read header of mapping file and check to make sure key field and mapping fields
+        are columns.
+        """
+        if self.input_csv_filename and self.input_csv_has_header:
+            cols = pd.read_csv(self.input_csv_filename,nrows=0).columns.tolist()
+        elif self.input_geojson_filename:
+            cols = gpd.read_file(self.input_geojson_filename,nrows=0).columns.tolist()
+        elif self.input_dbf_filename:
+            cols = gpd.read_file(self.input_dbf_filename,nrows=0).columns.tolist()
+        else:
+            raise ValueError("Must have an input file for mapping, none found")
+
+        
+        _input_file_name = next((x for x in [self.input_csv_filename,self.input_geojson_filename, self.input_dbf_filename] if x is not None),"No filename")
+
+        _necessary_fields = set([self.input_key_field] + list(self.field_mapping.keys()))
+        _missing_csv_fields = list(set(_necessary_fields) - set(cols))
+
+        if _missing_csv_fields:
+            raise ValueError(
+                "Missing the following requiredfields in the lookup GEOJSON/CSV/DBF file {},\
+                which are specified: {}".format(
+                    _input_file_name, _missing_csv_fields
+                )
+            )
+
+    def read_mapping(self):
         if self.input_csv_filename:
             self.read_csv_mapping()
+        elif self.input_geojson_filename:
+            self.read_mapping_geopandas(self.input_geojson_filename)
+        elif self.input_dbf_filename:
+            self.read_mapping_geopandas(self.input_dbf_filename)
+        else:
+            WranglerLogger.warning("Value Mapping has no input file to read as a mapping")
 
-    def self.read_csv_mapping():
+        
+    def read_mapping_geopandas(self, input_filename):
+        if not os.path.exists(input_filename):
+            raise ValueError(
+                "File {} does not exist but was specified as a value lookup file".format(
+                    self.input_geojson_filename
+                )
+            )
+
+        gdf = gpd.read_file(input_filename)
+
+        if self.field_mapping:
+            usecols=[self.input_key_field] + list(self.field_mapping.keys())
+            self.mapping_df = gdf[usecols]
+        else:
+            self.mapping_df = gdf
+
+
+    def read_csv_mapping(self):
         if not os.path.exists(self.input_csv_filename):
-            raise ValueError("File {} does not exist but was specified as a value lookup file".format(self.input_csv_filename))
-        self.mapping_df = pd.read_csv(
-            self.input_csv_filename, 
-            header=None if not self.input_csv_has_header else:header=0, 
-            usecols=[self.input_csv_key_field]+list(self.field_mapping.keys()),
-        )
-    
+            raise ValueError(
+                "File {} does not exist but was specified as a value lookup file".format(
+                    self.input_csv_filename
+                )
+            )
+        if not self.input_csv_has_header:
+            _h = None
+        else:
+            _h = 0
 
-    def self.apply_mapping(target_df, overwrite= None):
+        if self.field_mapping:
+            self.mapping_df = pd.read_csv(
+                self.input_csv_filename,
+                header=_h,
+                usecols=[self.input_key_field] + list(self.field_mapping.keys()),
+            )
+        else:
+            self.mapping_df = pd.read_csv(
+                self.input_csv_filename,
+                header=_h,
+            )
+
+    def apply_mapping(self, target_df: DataFrame, update_method: str = None):
         """
         Apply a mapping to a pandas dataframe for a specific field.
 
         Args:
-            target_df: pandas dataframe to apply mapping to. 
+            target_df: pandas DataFrame to apply mapping to.
+            update_method: update method to use in network_wrangler.update_df. One of "overwrite all", 
+            "update if found", or "update nan". Defaults to class instance value which defaults to "update if found"
 
-        Returns a merged dataframe.
+        Returns a merged DataFrame.
         """
+        if self.mapping_df == None:
+            self.read_mapping()
 
-        if overwrite == None: overwrite = self.overwrite
+        if update_method == None:
+            update_method = self.update_method
 
-        if overwrite:
-            WranglerLogger.info(
-                "Overwriting existing variables '{}' already in network".format(
-                    df_field
-                )
-            )
-            out_df = pd.merge(
-                target_gdf,
-                self.mapping_df.rename(
-                    columns=self.field_mapping
-                ),
-                how="left",
-                on_left=self.target_df_key_field,
-                on_right=self.input_csv_key_field,
-            )
-            return out_df
-        else:
-            WranglerLogger.info(
-                "Variable '{}' will be updated for some rows. Returning without overwriting for rows with values.".format(
-                    df_field
-                )
-            )
-        
+        overwrite_fields = [v for v in list(self.field_mapping.values()) if v in target_df.columns]
+        out_df = update_df(
+            target_df, 
+            self.mapping_df.rename(columns=self.field_mapping), 
+            left_on=self.target_df_key_field,
+            right_on=self.input_key_field, 
+            update_fields =  list(self.field_mapping.values),
+            method = update_method,
+        )
 
 @dataclass
-class GeographicOverlay:
-    shapefile_filename: str = None
-    variable_mapping: Mapping[str,str] # target,overlay
+class PolygonOverlay:
+    input_filename: str = None
+    field_mapping: Mapping[str, str] = field(default_factory=dict)  # target,overlay
     overwrite: bool = True
     gdf: GeoDataFrame = None
-    added_id: str = '' #"LINK_ID"
+    added_id: str = ""  # "LINK_ID"
 
     def __post_init__(self):
-        if not os.path.exists(self.shapefile):
-            raise ValueError("File {} does not exist but was specified as a geographic overlap file".format(self.shapefile))
-        self.read_shapefile()
-        if added_id:
-            self.add_id(added_id)
+        if not os.path.exists(self.input_filename):
+            raise ValueError(
+                "File {} does not exist but was specified as a geographic overlap file".format(
+                    self.shapefile_filename
+                )
+            )
+        self.read_shapefile_to_gdf()
+        if self.added_id:
+            self.add_id(self.added_id)
 
-    def self.read_shapefile_to_gdf(shapefile_filename: str = None):
-        if not shapefile_filename: shapefile_filename = self.shapefile_filename
-        self.gdf = gpd.read_file(mrcc_roadway_class_shape)
-        WranglerLogger.debug("Read shapefile {} with columns\n{}".format(shapefile_filename,self.gdfcolumns))
+    def read_file_to_gdf(self, input_filename: str = None):
+        if not input_filename:
+            input_filename = self.input_filename
+        self.gdf = gpd.read_file(input_filename)
+        WranglerLogger.debug(
+            "Read file {} with columns\n{}".format(
+                input_filename, self.gdf.columns
+            )
+        )
 
-    def self.add_id(added_id)
-        gdf[added_id] = range(1, 1 + len(self.gdf))
-
-
+    def add_id(self, added_id):
+        self.gdf[added_id] = range(1, 1 + len(self.gdf))

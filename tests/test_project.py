@@ -52,7 +52,7 @@ def test_highway_project_card(request, logfilename):
     assert type(lf) == DataFrame
 
     test_project = Project.create_project(
-        roadway_log_file=logfilename, 
+        roadway_log_file=logfilename,
         base_roadway_dir=ROADWAY_DIR,
         shape_foreign_key="shape_id",
     )
@@ -101,7 +101,7 @@ def test_project_card_concatenate(request):
     print("Reading Whole Logfile: {}".format(whole_logfile))
     lf = Project.read_logfile(whole_logfile)
     whole_logfile_project = Project.create_project(
-        roadway_log_file=whole_logfile, 
+        roadway_log_file=whole_logfile,
         base_roadway_dir=ROADWAY_DIR,
         shape_foreign_key="shape_id",
     )
@@ -112,9 +112,9 @@ def test_project_card_concatenate(request):
     print("Reading Split Logfiles: {}".format(split_logfile_list))
     lf = Project.read_logfile(split_logfile_list)
     split_logfile_project = Project.create_project(
-        roadway_log_file=split_logfile_list, 
-        base_roadway_dir=ROADWAY_DIR, 
-        shape_foreign_key = 'shape_id',
+        roadway_log_file=split_logfile_list,
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
 
     print(
@@ -185,7 +185,7 @@ def test_highway_change_project_card_valid(request, logfilename):
     print("Reading: {}".format(logfilename))
     lf = Project.read_logfile(logfilename)
     test_project = Project.create_project(
-        roadway_log_file=logfilename, 
+        roadway_log_file=logfilename,
         base_roadway_dir=ROADWAY_DIR,
         shape_foreign_key="shape_id",
     )

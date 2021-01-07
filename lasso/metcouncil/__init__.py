@@ -1,75 +1,19 @@
 import os
-from ..parameters import Parameters, FileParameters, NetworkModelParameters, TransitNetworkModelParameters, RoadwayNetworkModelParameters,DemandModelParameters
+from ..parameters import Parameters
+from ..logger import WranglerLogger
 
-from metcouncil import *
-import defaults
+from .metcouncil import *
+from .defaults import MC_DEFAULT_PARAMS 
 
 
+msg = "[metcouncil.__init__.MC_DEFAULT_PARAMS] Initializing parameters with these MetCouncil defaults:\n      {}".format(MC_DEFAULT_PARAMS)
+WranglerLogger.debug(msg)
+print(msg)
 
-def initialize_metcouncil_added_data(**kwargs):
-    
+mc_parameters = Parameters.initialize(MC_DEFAULT_PARAMS)
 
-def initialize_metcouncil_parameters(**kwargs):
-    """Initializes a Parameters data class with default MetCouncil parameters which 
-    can be overwritten by including a keyword argument from any of the parameters 
-    classes.
+msg = "[metcouncil.__init__.mc_parameters] MetCouncil parameters:      {}".format(mc_parameters)
+WranglerLogger.debug(msg)
+print(msg)
 
-    Args:
-        kwarg: a keyword argument of any of the parameters classes in parameters.py 
-        which will be used to add-to or overwrite any defaults. 
-
-    Returns: Parameters data class with MetCouncil parameters. 
-    """
-
-    file_parameters = FileParameters(
-        **defaults.MC_FILE_PS.update(
-            {
-                k:v for k,v in kwargs if k in vars(FileParameters).keys()
-            }
-        )
-    )
-    
-    
-    network_model_parameters = NetworkModelParameters(
-        **defaults.MC_NETWORK_MODEL_PS.update(
-            {
-                k:v for k,v in kwargs if k in vars(NetworkModelParameters).keys()
-            }
-        )
-    )
-  
-    roadway_network_parameters = RoadwayNetworkModelParameters(
-        network_model_parameters,
-        **defaults.MC_ROADWAY_MODEL_PS.update(
-            {
-                k:v for k,v in kwargs if k in vars(RoadwayNetworkModelParameters).keys()
-            }
-        )
-    )
-    
-    transit_network_parameters = TransitNetworkModelParameters(
-        network_model_parameters,
-        **defaults.MC_TRANSIT_NETWORK_MODEL_PS.update(
-            {
-                k:v for k,v in kwargs if k in vars(TransitNetworkModelParameters).keys()
-            }
-        )
-    )
-
-    demand_model_parameters = DemandModelParameters(
-        network_model_parameters,
-        **defaults.DEMAND_MODEL_PS.update(
-            {
-                k:v for k,v in kwargs if k in vars(DemandModelParameters).keys()
-            }
-        )
-    )
-
-    parameters = Parameters(
-        file_ps = file_parameters,
-        roadway_network_ps = roadway_network_parameters,
-        transit_network_ps= transit_network_parameters,
-        demand_model_ps= demand_model_parameters,
-    )
-
-    return metcouncil_parameters
+WranglerLogger.info("Initialized Default MetCouncil Parameters")

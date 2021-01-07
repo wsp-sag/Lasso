@@ -116,7 +116,7 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
     print("\n--Starting:", request.node.name)
 
     test_project = Project.create_project(
-        roadway_log_file=logfilename, 
+        roadway_log_file=logfilename,
         base_roadway_dir=BASE_ROADWAY_DIR,
         shape_foreign_key="shape_id",
     )
