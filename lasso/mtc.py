@@ -856,7 +856,7 @@ def calculate_farezone(
         )
     )
 
-    stop_nodes_df = transit_network.feed.stops.model_node_id.to_list()
+    stop_nodes_df = list(map(int, transit_network.feed.stops.model_node_id.tolist()))
 
     # TODO this logic needs to be revised
     def _calculate_farezone(x):
@@ -1172,9 +1172,9 @@ def route_properties_gtfs_to_cube(
     trip_df['TM2_mode'].fillna(11, inplace = True)
     trip_df['TM2_mode'] = trip_df['TM2_mode'].astype(int)
 
-
     trip_df["ONEWAY"] = "T"
-    trip_df["OPERATOR"] = trip_df["agency_id"].map(mtc_operator_dict)
+
+    trip_df["agency_id"].fillna("", inplace = True)
 
     return trip_df
 
@@ -1192,7 +1192,7 @@ def cube_format(transit_network, row):
 
     s = '\nLINE NAME="{}",'.format(row.NAME)
     s += '\n LONGNAME="{}",'.format(row.LONGNAME)
-    s += '\n USERA1=\"%s",' % (row.agency_id if row.agency_id != "nan" else row.agency_raw_name)
+    s += '\n USERA1=\"%s",' % (row.agency_id if row.agency_id != "" else row.agency_raw_name)
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
