@@ -142,6 +142,12 @@ def calculate_facility_type(
             if x.oneWay_binary in [0,1]:
                 return 7
 
+        if x.roadway in ["taz", "maz", "tap"]:
+            return 8
+
+        if x.roadway in ["ml_access", "ml_egress"]:
+            return 8
+
         return 99
 
     join_gdf[network_variable] = join_gdf.apply(lambda x : _calculate_facility_type(x), axis = 1)
@@ -1036,6 +1042,7 @@ def roadway_standard_to_mtc_network(
     roadway_network = calculate_cntype(roadway_network, parameters)
     roadway_network = calculate_transit(roadway_network, parameters)
     roadway_network = calculate_useclass(roadway_network, parameters)
+    roadway_network = calculate_facility_type(roadway_network, parameters, update_network_variable = True)
 
     roadway_network.calculate_distance(overwrite = True)
 
