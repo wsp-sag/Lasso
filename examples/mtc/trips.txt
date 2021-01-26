@@ -1,0 +1,37 @@
+service_id,trip_headsign,direction_id,block_id,wheelchair_accessible,bikes_allowed,agency_raw_name,trip_short_name,original_trip_id,trip_bikes_allowed,trip_type,drt_max_travel_time,drt_avg_travel_time,drt_advance_book_min,drt_pickup_message,drt_drop_off_message,continuous_pickup_message,continuous_drop_off_message,route_id,trip_id,shape_id
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,538,27091,1608
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,538,27099,1608
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,538,27135,1608
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,538,27170,1608
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,538,27211,1608
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,540,27093,1609
+WD,Kaiser - UC BART as Route 8,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,539,27097,1610
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,540,27100,1609
+WD,Kaiser - UC BART as Route 8,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,539,27107,1610
+WD,Kaiser - UC BART as Route 8,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,539,27140,1610
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,540,27171,1609
+WD,Kaiser - UC BART as Route 8,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,539,27179,1610
+WD,Kaiser - UC BART as Route 8,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,539,27212,1610
+WD,Union Landing - UC BART as Route 4,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,541,27104,1611
+WD,Union Landing - UC BART as Route 4,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,541,27137,1611
+WD,Union Landing - UC BART as Route 4,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,541,27175,1611
+WD,Union Landing - UC BART as Route 4,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,541,27215,1611
+WD,Union Landing - UC BART as Route 3,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,542,27106,1612
+WD,Union Landing - UC BART as Route 3,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,542,27139,1612
+WD,Union Landing - UC BART as Route 3,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,542,27177,1612
+WD,Union Landing - UC BART as Route 3,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,542,27217,1612
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,543,27094,1613
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,543,27101,1613
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,543,27136,1613
+WD,UCB & Dyer - Union Landing,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,543,27173,1613
+WD,UCB & Dyer - UC BART,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,543,27213,1613
+WD,Loop,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,544,27134,1614
+WD,Loop,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,544,27141,1614
+WD,Loop,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,544,27178,1614
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,545,27096,1615
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,545,27105,1615
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,545,27138,1615
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,545,27176,1615
+WD,Kaiser - UC BART as Route 2,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,545,27216,1615
+WD,UC BART,1.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,546,27102,1616
+WD,UCB & Rocklin,0.0,,1.0,1.0,Union_City_Transit_Aug-01-2015 to Jun-30-2017,,,,,,,,,,,,546,27174,1617

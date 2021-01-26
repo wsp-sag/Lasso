@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_raw_name,agency_phone,agency_fare_url,agency_email
+UCT,Union City Transit,http://www.uctransit.org,America/Los_Angeles,EN,Union_City_Transit_Aug-01-2015 to Jun-30-2017,510-471-1411,http://www.unioncity.org/departments/transit/fares/fares-information,transit@unioncity.org
