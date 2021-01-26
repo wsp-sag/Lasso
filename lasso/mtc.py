@@ -1735,6 +1735,8 @@ def create_tap_nodes_and_links(
                   how = 'left',
                   on = ["tap_id"])
 
+    tap_shapes_gdf.drop_duplicates(subset = ["model_node_id", "tap_id"], inplace = True)
+
     tap_shapes_gdf["id"] = range(1, 1 + len(tap_shapes_gdf))
     tap_shapes_gdf["id"] = tap_shapes_gdf["id"].apply(lambda x : "tap_" + str(x))
     tap_shapes_gdf["shstGeometryId"] = tap_shapes_gdf["id"]
