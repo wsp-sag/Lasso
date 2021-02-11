@@ -796,6 +796,7 @@ def calculate_farezone(
     parameters=None,
     network_variable: str = "farezone",
     overwrite:bool = False,
+    update_network_variable: bool = False,
 ):
     """
     Calculates farezone variable.
@@ -846,11 +847,11 @@ def calculate_farezone(
             )
         else:
             WranglerLogger.info(
-                "Variable '{}' already in network. Returning without overwriting.".format(
+                "Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
                     network_variable
                 )
             )
-            return roadway_network
+            update_network_variable = True
 
     """
     Start actual process
@@ -862,20 +863,281 @@ def calculate_farezone(
         )
     )
 
-    stop_nodes_df = list(map(int, transit_network.feed.stops.model_node_id.tolist()))
+    # get the agency names for each stop
+    stops_df = transit_network.feed.stops.copy()
+    stop_times_df = transit_network.feed.stop_times.copy()
 
-    # TODO this logic needs to be revised
-    def _calculate_farezone(x):
-        if x.model_node_id in stop_nodes_df:
-            return 1
+    stop_times_df = pd.merge(stop_times_df,
+                             transit_network.feed.trips[["trip_id", "agency_raw_name"]],
+                             how = "left",
+                             on = "trip_id")
 
-    roadway_network.nodes_df[network_variable] = roadway_network.nodes_df.apply(lambda x: _calculate_farezone(x), axis = 1)
+    stops_df = pd.merge(stops_df,
+                        stop_times_df.drop_duplicates(subset = ["stop_id"])[["stop_id", "agency_raw_name"]],
+                        how = "left",
+                        on = ["stop_id"])
+
+    stop_with_zone_id_df = stops_df[stops_df.zone_id.notnull()].copy()
+
+    model_node_zone_df = stop_with_zone_id_df.groupby(
+        ["model_node_id", "agency_raw_name", "zone_id"]
+    ).count().reset_index()[
+        ["model_node_id", "agency_raw_name", "zone_id"]
+    ]
+
+    # most stop nodes serve only one agency, but some serve multiple
+    unique_model_node_zone_df = pd.DataFrame(
+        {"model_node_id" : model_node_zone_df.model_node_id.value_counts().keys(),
+         "count" : model_node_zone_df.model_node_id.value_counts().values}
+    )
+
+    unique_model_node_zone_df = unique_model_node_zone_df[unique_model_node_zone_df["count"] == 1].copy()
+
+    unique_model_node_zone_df = pd.merge(
+        unique_model_node_zone_df.drop(["count"], axis = 1),
+        model_node_zone_df,
+        how = "left",
+        on = "model_node_id"
+    )
+
+    unique_zone_df = unique_model_node_zone_df.groupby(
+        ["agency_raw_name", "zone_id"]
+    ).count().reset_index()[["agency_raw_name", "zone_id"]]
+
+    unique_zone_df[network_variable] = range(1, 1+len(unique_zone_df))
+
+    unique_model_node_zone_df = pd.merge(
+        unique_model_node_zone_df,
+        unique_zone_df,
+        how = "left",
+        on = ["agency_raw_name", "zone_id"]
+    )
+
+    non_unique_model_node_zone_df = model_node_zone_df[
+        ~model_node_zone_df.model_node_id.isin(
+            unique_model_node_zone_df.model_node_id
+            )
+        ].copy()
+
+    non_unique_zone_df = non_unique_model_node_zone_df.drop_duplicates(
+        subset=["model_node_id"]
+    ).copy()
+
+    non_unique_zone_df[network_variable] = range(
+        unique_model_node_zone_df[network_variable].max() + 1,
+        unique_model_node_zone_df[network_variable].max() + 1 + len(non_unique_zone_df)
+    )
+
+    non_unique_model_node_zone_df = pd.merge(
+        non_unique_model_node_zone_df,
+        non_unique_zone_df[["model_node_id", network_variable]],
+        how ="left",
+        on = "model_node_id"
+    )
+
+    final_model_node_zone_df = pd.concat(
+        [unique_model_node_zone_df, non_unique_model_node_zone_df],
+        sort = False,
+        ignore_index = True
+    )
+
+    final_model_node_zone_df = final_model_node_zone_df.drop_duplicates(
+        subset = ["model_node_id", network_variable]
+    )
+
+    final_model_node_zone_df["model_node_id"] = final_model_node_zone_df["model_node_id"].astype(int)
+
+    roadway_network.nodes_df = pd.merge(
+        roadway_network.nodes_df,
+        final_model_node_zone_df[["model_node_id", network_variable]].rename(
+            columns = {network_variable : network_variable + "_cal"}
+        ),
+        how = "left",
+        on = "model_node_id"
+    )
+
+    if update_network_variable:
+        roadway_network.nodes_df[network_variable] = np.where(
+                roadway_network.nodes_df[network_variable].notnull(),
+                roadway_network.nodes_df[network_variable],
+                roadway_network.nodes_df[network_variable + "_cal"]
+        )
+    else:
+        roadway_network.nodes_df[network_variable] = roadway_network.nodes_df[network_variable + "_cal"]
+
+    roadway_network.nodes_df.drop(network_variable + "_cal", axis = 1, inplace = True)
 
     WranglerLogger.info(
         "Finished determining variable: {}".format(network_variable)
     )
 
     return roadway_network
+
+def create_fare_matrix(
+    roadway_network=None,
+    transit_network=None,
+    parameters=None,
+    outpath: str = None,
+):
+    """
+    create
+
+    """
+
+    if not outpath:
+        outpath  = os.path.join(parameters.scratch_location)
+
+    # read fare_attributes and fare_rules from parameters
+    # TODO debug i/o fare as part of transit object
+
+    fare_attributes_df = pd.read_csv(parameters.fare_attributes_file)
+    fare_rules_df = pd.read_csv(parameters.fare_rules_file)
+
+    ##
+    fare_df = pd.merge(
+        fare_attributes_df,
+        fare_rules_df,
+        how = "left",
+        on = ["fare_id", "agency_raw_name"])
+
+    zonal_fare_df = fare_df[((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " ")].copy()
+    flat_fare_df = fare_df[~(((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " "))].copy()
+    flat_fare_df = flat_fare_df[flat_fare_df.route_id.notnull()]
+
+    # get the agency names for each stop
+    stops_df = transit_network.feed.stops.copy()
+    stop_times_df = transit_network.feed.stop_times.copy()
+
+    stop_times_df = pd.merge(stop_times_df,
+                             transit_network.feed.trips[["trip_id", "agency_raw_name"]],
+                             how = "left",
+                             on = "trip_id")
+
+    stops_df = pd.merge(stops_df,
+                        stop_times_df.drop_duplicates(subset = ["stop_id"])[["stop_id", "agency_raw_name"]],
+                        how = "left",
+                        on = ["stop_id"])
+
+    stop_with_zone_id_df = stops_df[stops_df.zone_id.notnull()].copy()
+
+    model_node_zone_df = stop_with_zone_id_df.groupby(
+        ["model_node_id", "agency_raw_name", "zone_id"]
+    ).count().reset_index()[
+        ["model_node_id", "agency_raw_name", "zone_id"]
+    ]
+
+    model_node_zone_df["model_node_id"] = model_node_zone_df["model_node_id"].astype(int)
+
+    final_zone_farezone_df = pd.merge(
+        model_node_zone_df,
+        roadway_network.nodes_df[["model_node_id", "farezone"]],
+        how = "left",
+        on = "model_node_id"
+    )
+
+    final_zone_farezone_df = final_zone_farezone_df.drop_duplicates(subset = ["agency_raw_name", "zone_id", "farezone"])
+
+    zonal_fare_df = pd.merge(
+        zonal_fare_df,
+        final_zone_farezone_df[["agency_raw_name", "zone_id", "farezone"]].rename(
+            columns = {"farezone" : "origin_farezone", "zone_id" : "origin_id"}
+        ),
+        how = "left",
+        on = ["origin_id", "agency_raw_name"]
+    )
+
+    zonal_fare_df = pd.merge(
+        zonal_fare_df,
+        final_zone_farezone_df[["agency_raw_name", "zone_id", "farezone"]].rename(
+            columns = {"farezone" : "destination_farezone", "zone_id" : "destination_id"}
+        ),
+        how = "left",
+        on = ["destination_id", "agency_raw_name"]
+    )
+
+    zonal_fare_df = zonal_fare_df[
+        (zonal_fare_df.origin_farezone.notnull()) &
+        (zonal_fare_df.destination_farezone.notnull())]
+
+    zonal_fare_system_df = pd.DataFrame(
+        {"agency_raw_name" : zonal_fare_df.agency_raw_name.unique(),
+         "faresystem" : range(1, 1+len(zonal_fare_df.agency_raw_name.unique()))}
+    )
+
+    zonal_fare_df = pd.merge(
+        zonal_fare_df,
+        zonal_fare_system_df,
+        how = "left",
+        on = "agency_raw_name"
+    )
+
+    flat_fare_system_df = flat_fare_df.groupby(["agency_raw_name", "fare_id", "price"])['transfers'].count().reset_index().drop('transfers', axis = 1)
+    flat_fare_system_df["faresystem"] = range(
+        zonal_fare_system_df.faresystem.max() + 1,
+        zonal_fare_system_df.faresystem.max() + 1 + len(flat_fare_system_df)
+    )
+
+    flat_fare_df = pd.merge(
+        flat_fare_df,
+        flat_fare_system_df[["agency_raw_name", "fare_id", "faresystem"]],
+        how = "left",
+        on = ["agency_raw_name", "fare_id"]
+    )
+    flat_fare_df["route_id"] = flat_fare_df["route_id"].astype(int)
+
+    # write out fare system file
+    fare_file = os.path.join(outpath, "fares.far")
+    far = cube_fare_format(zonal_fare_system_df, flat_fare_system_df)
+    with open(fare_file, "w") as f:
+        f.write(far)
+
+    # write out fare matrix file
+    fare_matrix_file = os.path.join(outpath, "fareMatrix.txt")
+    write_fare_matrix(zonal_fare_df, fare_matrix_file, parameters)
+
+    # write out faresystem - route crosswalk
+    faresystem_crosswalk_file = parameters.faresystem_crosswalk_file
+    faresystem_crosswalk_df = pd.concat(
+        [zonal_fare_system_df,
+        flat_fare_df[["agency_raw_name", "route_id", "route_id_original", "faresystem"]]],
+        sort = False,
+        ignore_index = True
+    )
+    faresystem_crosswalk_df.to_csv(
+        faresystem_crosswalk_file,
+        index = False
+    )
+
+    return zonal_fare_df, flat_fare_df
+
+def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
+    """
+    Create a .far file
+    """
+    fare_system_df = pd.concat(
+        [zonal_fare_system_df, flat_fare_system_df],
+        sort = False,
+        ignore_index = True
+    )
+
+    far = ""
+    for i in range(len(zonal_fare_system_df)):
+        row = zonal_fare_system_df.iloc[i]
+        far += "FARESYSTEM NUMBER={}".format(row["faresystem"])
+        far += ',NAME=\"%s"'%(row["agency_raw_name"])
+        far += ",STRUCTURE=FROMTO,FAREMATRIX=FMI.1.{},".format(row["faresystem"])
+        far += "FAREZONES=NI.FAREZONE,FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(0, len(fare_system_df))))
+        far += "\n"
+
+    for i in range(len(flat_fare_system_df)):
+        row = flat_fare_system_df.iloc[i]
+        far += "FARESYSTEM NUMBER={}".format(row["faresystem"])
+        far += ',NAME=\"%s"'%(row["agency_raw_name"])
+        far += ",STRUCTURE=FLAT,IBOARDFARE={},".format(row["price"])
+        far += "FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(row["price"], len(fare_system_df))))
+        far += "\n"
+
+    return far
 
 def add_centroid_and_centroid_connector(
     roadway_network = None,
@@ -1123,6 +1385,8 @@ def route_properties_gtfs_to_cube(
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
+    faresystem_crosswalk = pd.read_csv(parameters.faresystem_crosswalk_file)
+
     """
     Add information from: routes, frequencies, and routetype to trips_df
     """
@@ -1182,6 +1446,26 @@ def route_properties_gtfs_to_cube(
     trip_df["ONEWAY"] = "T"
 
     trip_df["agency_id"].fillna("", inplace = True)
+
+    trip_df.info()
+    # faresystem
+    zonal_fare_dict = faresystem_crosswalk[faresystem_crosswalk.route_id.isnull()].copy()
+    zonal_fare_dict = dict(zip(zonal_fare_dict.agency_raw_name, zonal_fare_dict.faresystem))
+
+    trip_df = pd.merge(
+        trip_df,
+        faresystem_crosswalk,
+        how = "left",
+        on = ["agency_raw_name", "route_id"]
+    )
+
+    trip_df["faresystem"] = np.where(
+        trip_df["faresystem"].isnull(),
+        trip_df["agency_raw_name"].map(zonal_fare_dict),
+        trip_df["faresystem"]
+    )
+
+    trip_df.info()
 
     return trip_df
 
@@ -1930,3 +2214,30 @@ def add_tap_and_tap_connector(
     )
 
     return roadway_network
+
+def write_fare_matrix(
+    zonal_fare_df,
+    output_filename,
+    parameters=None,
+    output_variables:list=None
+    ):
+    """
+    write out zonal fare matrix to simple text
+    """
+
+    output_variables = (
+        output_variables if output_variables else parameters.fare_matrix_output_variables
+    )
+
+    output_df = zonal_fare_df[output_variables].copy()
+
+    for c in output_df.columns:
+        if c not in parameters.float_col:
+            output_df[c] = output_df[c].astype(int)
+
+    output_df.to_csv(
+        output_filename,
+        index = False,
+        header = False,
+        sep = " "
+    )
