@@ -1083,7 +1083,8 @@ def create_fare_matrix(
         how = "left",
         on = ["agency_raw_name", "fare_id"]
     )
-    flat_fare_df["route_id"] = flat_fare_df["route_id"].astype(int)
+    flat_fare_df["route_id"] = flat_fare_df["route_id"].astype(int).astype(str)
+    flat_fare_df.drop_duplicates(["route_id"], inplace = True)
 
     # write out fare system file
     fare_file = os.path.join(outpath, "fares.far")
@@ -1385,7 +1386,9 @@ def route_properties_gtfs_to_cube(
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
-    faresystem_crosswalk = pd.read_csv(parameters.faresystem_crosswalk_file)
+    faresystem_crosswalk = pd.read_csv(parameters.faresystem_crosswalk_file,
+        dtype = {"route_id" : "object"}
+    )
 
     """
     Add information from: routes, frequencies, and routetype to trips_df
@@ -1447,7 +1450,6 @@ def route_properties_gtfs_to_cube(
 
     trip_df["agency_id"].fillna("", inplace = True)
 
-    trip_df.info()
     # faresystem
     zonal_fare_dict = faresystem_crosswalk[faresystem_crosswalk.route_id.isnull()].copy()
     zonal_fare_dict = dict(zip(zonal_fare_dict.agency_raw_name, zonal_fare_dict.faresystem))
@@ -1465,7 +1467,8 @@ def route_properties_gtfs_to_cube(
         trip_df["faresystem"]
     )
 
-    trip_df.info()
+    # GTFS fare info is incomplete
+    trip_df["faresystem"].fillna(99,inplace = True)
 
     return trip_df
 
@@ -1488,7 +1491,7 @@ def cube_format(transit_network, row):
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
     if row.TM2_faresystem > 0:
-        s += "\n FARESYSTEM={},".format(int(row.TM2_faresystem))
+        s += "\n FARESYSTEM={},".format(int(row.faresystem))
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
