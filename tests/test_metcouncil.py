@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-from lasso import Parameters, ModelRoadwayNetwork, metcouncil
+from lasso import Parameters, ModelRoadwayNetwork
+import metcouncil
 from lasso.metcouncil import mc_parameters
 
 """

@@ -678,7 +678,7 @@ class Project(object):
                     }
                 if p_time_period:
                     _d["time"] = list(
-                        self.parameters.time_period_to_time[p_time_period]
+                        self.parameters.network_ps.time_period_to_time[p_time_period]
                     )
                     if p_category:
                         _d["category"] = p_category

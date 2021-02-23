@@ -1,6 +1,9 @@
 pytest
+nbconvert~=5.6.0
+pytest_notebook
 recommonmark
 sphinx
 sphinx-autodoc-typehints
 sphinx_rtd_theme
 black
+

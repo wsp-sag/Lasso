@@ -5,16 +5,18 @@
 import os
 import copy
 
-from ..data import GeographicOverlay, FieldMapping, ValueLookup
-
+from ..data import PolygonOverlay,FieldMapping, ValueLookup, FieldError
+from ..logger import WranglerLogger
+from .metcouncil import roadway_standard_to_met_council_network
 
 _MC_DEFAULT_PARAMS = {}
 
+# Add a name for identification purposes
 _MC_DEFAULT_PARAMS["name"] = "MetCouncil Defaults"
 
-# Add nested dicts...
-
+# Add nested dicts
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]={}
+_MC_DEFAULT_PARAMS["counts"]={}
 _MC_DEFAULT_PARAMS["roadway_overlays"] = {}
 _MC_DEFAULT_PARAMS["lookups"]={}
 ############################
@@ -48,6 +50,8 @@ _MC_DEFAULT_PARAMS["time_period_abbr_to_time"] = {
 ############################
 # ROADWAY NETWORK
 ############################
+
+_MC_DEFAULT_PARAMS["create_model_network"] = roadway_standard_to_met_council_network
 
 _MC_DEFAULT_PARAMS["highest_taz"] = 3100
 
@@ -341,7 +345,7 @@ _MC_DEFAULT_PARAMS["roadway_overlays"]["downtown_area_type"] = PolygonOverlay(
 # The area type code used in the MetCouncil cube network.
 # source https://metrocouncil.org/Planning/Publications-And-Resources/Thrive-MSP-2040-Plan-(1)/7_ThriveMSP2040_LandUsePoliciesbyCD.aspx
 MC_AREA_TYPE_CODE_MAP = {
-    "downtown": 5 # downtown
+    "downtown": 5, # downtown
     23: 4,  # urban center
     24: 3,  # urban center
     25: 2,  # urban
@@ -357,25 +361,18 @@ MC_AREA_TYPE_CODE_MAP = {
 
 ### COUNTS
 
-#    MNDOT
-MC_MNDOT_COUNTS_SHAPEFILE = os.path.join(
-    _MC_DEFAULT_PARAMS["data_directory"],
-    "count_mn",
-    "AADT_2017_Count_Locations.shp",
-)
-
 MC_MNDOT_COUNTS_SHST_MATCH = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "count_mn", "mn_count_ShSt_API_match.csv"
 )
 
-MC_MNDOT_COUNTS_SHST_VARIABLE_MAP = {"AADT_mn": "AADT"}
-
-#    WIDOT
-MC_WIDOT_COUNTS_SHAPEFILE = os.path.join(
-    _MC_DEFAULT_PARAMS["data_directory"],
-    "Wisconsin_Lanes_Counts_Median",
-    "TRADAS_(counts).shp",
+_MC_DEFAULT_PARAMS["counts"]["mn_2017_counts"] = ValueLookup(
+    input_filename = MC_MNDOT_COUNTS_SHST_MATCH,
+    input_csv_has_header = True,
+    input_key_field = "shstReferenceId",
+    target_df_key_field = "shstReferenceId",
+    field_mapping = {"AADT_mn": "count_daily"},
 )
+
 
 MC_WIDOT_COUNTS_SHST_MATCH = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"],
@@ -383,7 +380,22 @@ MC_WIDOT_COUNTS_SHST_MATCH = os.path.join(
     "wi_count_ShSt_API_match.csv",
 )
 
-MC_MNDOT_COUNTS_SHST_VARIABLE_MAP = {"AADT_wi": "AADT"}
+_MC_DEFAULT_PARAMS["counts"]["wi_2017_counts"] = ValueLookup(
+    input_filename = MC_WIDOT_COUNTS_SHST_MATCH,
+    input_csv_has_header = True,
+    input_key_field = "shstReferenceId",
+    target_df_key_field = "shstReferenceId",
+    field_mapping = {"AADT_wi": "count_daily"},
+)
+
+_MC_DEFAULT_PARAMS["time_period_vol_split"] = {
+    "AM": 0.25,
+    "MD": 0.25,
+    "PM": 0.25,
+    "NT": 0.25,
+}
+
+_MC_DEFAULT_PARAMS["count_fields_to_split_by_tod"] = {"count_daily": "count_"}
 
 
 ### ROADWAY_CLASS
@@ -394,8 +406,8 @@ MC_MRCC_SHAPEFILE = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "mrcc", "trans_mrcc_centerlines.shp"
 )
 
-MC_MRCC_GEOGRAPHIC_OVERLAY = GeographicOverlay(
-    shapefile_filename=MC_MRCC_SHAPEFILE,
+MC_MRCC_GEOGRAPHIC_OVERLAY = PolygonOverlay(
+    input_filename=MC_MRCC_SHAPEFILE,
     added_id="LINK_ID",
 )
 
@@ -405,7 +417,7 @@ MRCC_SHST_MATCH_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "mrcc", "mrcc.out.matched.csv"
 )
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_shst_2_pp_link_id"] = ValueLookup(
-    input_csv_filename = MRCC_SHST_MATCH_CSV,
+    input_filename = MRCC_SHST_MATCH_CSV,
     input_csv_has_header = True,
     input_key_field = "shstGeometryId",
     target_df_key_field = "shstGeometryId",
@@ -418,7 +430,7 @@ MRCC_ROUTESYS_MATCH_DBF = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "mrcc", "trans_mrcc_centerlines.dbf"
 )
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["pp_link_id_2_route_sys"] = ValueLookup(
-    input_dbf_filename = MRCC_ROUTESYS_MATCH_DBF,
+    input_filename = MRCC_ROUTESYS_MATCH_DBF,
     input_key_field = "LINK_ID",
     target_df_key_field = "mrcc_link_id",
     field_mapping = {"ROUTE_SYS": "mrcc_route_sys"},
@@ -430,7 +442,7 @@ WIDOT_SHST_MATCH_GEOJSON = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_shst_2_link_id"] = ValueLookup(
-    input_geojson_filename = WIDOT_SHST_MATCH_GEOJSON,
+    input_filename = WIDOT_SHST_MATCH_GEOJSON,
     input_key_field = "shstGeometryId",
     target_df_key_field = "shstGeometryId",
     field_mapping = {"pp_link_id": "widot_link_id", "score": "widot_score"},
@@ -442,17 +454,18 @@ MC_WIDOT_DBF = os.path.join(
 
 try:
     _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_id_2_rdwy_ctgy"] = ValueLookup(
-        input_dbf_filename = MC_WIDOT_DBF,
+        input_filename = MC_WIDOT_DBF,
         input_key_field = "LINK_ID",
         target_df_key_field = "widot_link_id",
         field_mapping = {"RDWY_CTGY_": "widot_rdwy_ctgy"},
     )
-except:
+except FieldError:
+    WranglerLogger.info("Adding an ID field to {} and retrying the ValueLookup initialization.".format(MC_WIDOT_DBF))
     from .metcouncil import add_id_field_to_shapefile
     outfile_filename = add_id_field_to_shapefile(MC_WIDOT_DBF.replace(".dbf",".shp"),"LINK_ID")
 
     _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_id_2_rdwy_ctgy"] = ValueLookup(
-        input_dbf_filename = outfile_filename.replace(".shp",".dbf"),
+        input_filename = outfile_filename.replace(".shp",".dbf"),
         input_key_field = "LINK_ID",
         target_df_key_field = "widot_link_id",
         field_mapping = {"RDWY_CTGY_": "widot_rdwy_ctgy"},
@@ -465,7 +478,7 @@ except:
 
 #   OSM
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["osm_roadway_assigngrp_mapping"] = ValueLookup(
-    input_csv_filename=os.path.join(
+    input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
         "osm_highway_asgngrp_crosswalk.csv",
@@ -477,11 +490,10 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["osm_roadway_assigngrp_mapping"] = V
         "assign_group": "assignment_group_osm",
         "roadway_class": "roadway_class_osm",
     },
-    overwrite=True,
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_roadway_assigngrp_mapping"] = ValueLookup(
-    input_csv_filename=os.path.join(
+    input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
         "mrcc_route_sys_asgngrp_crosswalk.csv",
@@ -493,11 +505,10 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_roadway_assigngrp_mapping"] = 
         "assign_group": "assignment_group_mrcc",
         "roadway_class": "roadway_class_mrcc",
     },
-    overwrite=True,
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_roadway_assigngrp_mapping"] = ValueLookup(
-    input_csv_filename=os.path.join(
+    input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
         "widot_ctgy_asgngrp_crosswalk.csv",
@@ -509,10 +520,9 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_roadway_assigngrp_mapping"] =
         "assign_group": "assignment_group_widot",
         "roadway_class": "roadway_class_widot",
     },
-    overwrite=True,
 )
 
-### LANES
+### LANES ###
 
 MC_LANES_LOOKUP_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"],
@@ -534,7 +544,7 @@ MC_NET_DBF_CROSSWALK_CSV = os.path.join(
 )
 
 MC_NET_DBF_CROSSWALK = FieldMapping(
-    input_csv_filename=MC_NET_DBF_CROSSWALK_CSV,
+    input_filename=MC_NET_DBF_CROSSWALK_CSV,
     input_csv_has_header=True,
     input_csv_fields=("net", "dbf"),
 )
@@ -543,9 +553,8 @@ MC_LOG_TO_NET_CROSSWALK_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "lookups", "log_to_net.csv"
 )
 
-
 MC_LOG_TO_NET_CROSSWALK = FieldMapping(
-    input_csv_filename=MC_LOG_TO_NET_CROSSWALK_CSV,
+    input_filename=MC_LOG_TO_NET_CROSSWALK_CSV,
     input_csv_has_header=True,
     input_csv_fields=("log", "net"),
 )
@@ -562,6 +571,5 @@ MC_ROUTE_TYPE_MODE_LOOKUP = {
     0: 8,
     2: 9,
 }
-
 
 MC_DEFAULT_PARAMS =  copy.deepcopy(_MC_DEFAULT_PARAMS)

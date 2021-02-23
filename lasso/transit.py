@@ -379,7 +379,7 @@ class CubeTransit(object):
         ]
 
         not_this_tp_properties_list = list(
-            set(self.parameters.time_period_properties_list)
+            set(self.parameters.transit_network_ps.time_period_properties_list)
             - set(this_time_period_properties_list)
         )
 
@@ -599,8 +599,8 @@ class CubeTransit(object):
         end_time_m = 0 * 60
 
         WranglerLogger.debug(
-            "parameters.time_period_properties_list: {}".format(
-                self.parameters.time_period_properties_list
+            "parameters.transit_network_ps.time_period_properties_list: {}".format(
+                self.parameters.transit_network_ps.time_period_properties_list
             )
         )
         current_cube_time_period_numbers = (
@@ -618,7 +618,7 @@ class CubeTransit(object):
         for tp in current_cube_time_period_numbers:
             time_period_name = self.parameters.cube_time_periods[tp]
             WranglerLogger.debug("time_period_name:{}".format(time_period_name))
-            _start_time, _end_time = self.parameters.time_period_to_time[
+            _start_time, _end_time = self.parameters.network_ps.time_period_to_time[
                 time_period_name
             ]
 
@@ -715,7 +715,7 @@ class CubeTransit(object):
         ]
 
         not_this_tp_properties_list = list(
-            set(self.parameters.time_period_properties_list)
+            set(self.parameters.transit_network_ps.time_period_properties_list)
             - set(this_time_period_properties_list)
         )
 
@@ -970,11 +970,11 @@ class StandardTransit(object):
 
         trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
         inv_cube_time_periods_map = {
-            v: k for k, v in self.parameters.cube_time_periods.items()
+            v: k for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items()
         }
         trip_df["tod_num"] = trip_df.tod_name.map(inv_cube_time_periods_map)
         trip_df["tod_name"] = trip_df.tod_name.map(
-            self.parameters.cube_time_periods_name
+            self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr
         )
 
         trip_df["NAME"] = trip_df.apply(
@@ -1061,9 +1061,9 @@ class StandardTransit(object):
 
         Returns:
             this_tp_num: if as_str is False, returns the numeric
-                time period
-            this_tp: if as_str is True, returns the Cube time period
-                name abbreviation
+                time period from `TransitNetworkModelParameters.transit_time_periods`
+            this_tp: if as_str is True, returns the network time period
+                name abbreviation from `NetworkModelParameters.network_time_period_abbr`
         """
         from .util import hhmmss_to_datetime, secs_to_datetime
 
@@ -1073,7 +1073,7 @@ class StandardTransit(object):
 
         # set initial time as the time that spans midnight
         this_tp = "NA"
-        for tp_name, _times in self.parameters.time_period_to_time.items():
+        for tp_name, _times in self.parameters.network_model_ps.time_period_abbr_to_time.items():
             _start_time, _end_time = _times
             _dt_start_time = hhmmss_to_datetime(_start_time)
             _dt_end_time = hhmmss_to_datetime(_end_time)
@@ -1081,7 +1081,7 @@ class StandardTransit(object):
                 this_tp = tp_name
                 break
 
-        for tp_name, _times in self.parameters.time_period_to_time.items():
+        for tp_name, _times in self.parameters.network_model_ps.time_period_abbr_to_time.items():
             _start_time, _end_time = _times
             _dt_start_time = hhmmss_to_datetime(_start_time)
             if start_time_dt >= _dt_start_time:
@@ -1101,7 +1101,7 @@ class StandardTransit(object):
         if as_str:
             return this_tp
 
-        name_to_num = {v: k for k, v in self.parameters.cube_time_periods.items}
+        name_to_num = {v: k for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items}
         this_tp_num = name_to_num.get(this_tp)
 
         if not this_tp_num:

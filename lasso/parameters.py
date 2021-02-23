@@ -20,7 +20,7 @@ from typing import (
     Collection,
     Sequence,
 )
-from .data import GeographicOverlay, ValueLookup, FieldMapping
+from .data import PolygonOverlay, ValueLookup, FieldMapping
 from .logger import WranglerLogger
 
 
@@ -47,6 +47,9 @@ class NetworkModelParameters:
         time period_abbr_to_names: Maps time period abbreviations to names.
         time_periods_to_time: Maps time period abbreviations used in
             Cube to time of days used on transit/gtfs and highway network standard.
+        network_time_period_abbr: list of network time period abbreviations, 
+            e.g. ["AM","MD","PM","NT]. Defaults to being calculated as 
+            `list(self.time_period_abbr_to_names.keys())`.
 
     """
 
@@ -66,6 +69,7 @@ class NetworkModelParameters:
             "NT": ("19:00", "6:00"),
         }
     )
+    network_time_period_abbr: Collection[Any] = None
 
     def __post_init__(self):
         if not set(self.time_period_abbr_to_names.keys()) == set(
@@ -79,6 +83,8 @@ class NetworkModelParameters:
                     )
                 )
             )
+        if not self.network_time_period_abbr:
+            self.network_time_period_abbr = list(self.time_period_abbr_to_names.keys())
 
 
 @dataclass
@@ -106,6 +112,12 @@ class RoadwayNetworkModelParameters:
         field_type: maps important field types. (e.g., int, str, float )
         roadway_value_lookups: dictionary of ValueLookup data classes or dictionaries 
         output_fields: lists fields to output in the roadway network.
+        create_model_network: function to create model network.
+        counts: mapping of count names and count files to be added. 
+        time_period_vol_split: dictionary mapping time period abbreviations to basic assumptions about 
+            fractions of daily volumes associated with them. 
+        count_fields_to_split_by_tod: a mapping of fields to split counts for by time_period_vol_split mapping, and 
+            the prefix to use for the resulting fields. 
     """
 
     network_model_parameters: NetworkModelParameters
@@ -142,7 +154,10 @@ class RoadwayNetworkModelParameters:
     field_type: Mapping[str,Any] = field(default_factory = dict)
     roadway_value_lookups: Mapping[str,Any] = field(default_factory = dict)
     output_fields: Collection[str] = field(default_factory=list)
-
+    create_model_network: str = None
+    counts: Mapping[str,ValueLookup] = field(default_factory=dict)
+    time_period_vol_split: Mapping[str,float] = field(default_factory=dict)
+    count_tod_split_fields: Mapping[str,str] = field(default_factory=dict)
     # def __update__(self):
     # add an override so nested variables are updated not overwritten
 
@@ -201,19 +216,23 @@ class TransitNetworkModelParameters:
     """
 
     Attributes:
-        network_model_parameters: NetworkModelParameters
-        transit_time_periods:
-        transit_to_network_time_periods: Maps cube time period numbers used in
+        network_model_parameters: NetworkModelParameters instance
+        transit_network_model_to_general_network_time_period_abbr: Maps cube time period numbers used in
                 transit line files to the time period abbreviations in ttime_period_abbr_to_time
-                dictionary.
+                dictionary. Defaults to `{"1": "AM", "2": "MD"}`.
+        transit_time_periods: Collection of transit network model time periods used in line files. Defaults
+            to `self.transit_network_model_to_general_network_time_period_abbr.keys()`, or ['1','2].
+        time_varying_properties: a set of transit properties that vary over time period. 
+            Defaults to {"HEADWAY", "FREQ"}.
+        time_period_properties_list: a collection of time_varying_properties for each time period 
+            in `transit_time_periods`. e.g. {"HEADWAY[1]","HEADWAY[2]"} If not specified, will be calculated. 
 
     """
 
     network_model_parameters: NetworkModelParameters
-    transit_to_network_time_periods: Mapping[Any, Any] = field(
+    transit_network_model_to_general_network_time_period_abbr: Mapping[Any, Any] = field(
         default_factory=lambda: {"1": "AM", "2": "MD"},
     )
-    # cube_time_periods
     transit_time_periods: Set = None
     time_varying_properties: Set[str] = field(
         default_factory=lambda: {"HEADWAY", "FREQ"},
@@ -221,13 +240,24 @@ class TransitNetworkModelParameters:
     time_period_properties_list: Set[str] = None
 
     def __post_init__(self):
-        if not set(self.transit_to_network_time_periods.values()).issubset(
+        """
+        Checks parameter compatibility and sets defaults.
+
+        Checks that the following parameters are compatible:
+         - `network_model_parameters.time_period_abbr_to_time` and 
+            `transit_network_model_to_general_network_time_period_abbr.values()`
+        
+        If not already filled, will calculate the default values for: 
+         - transit_time_periods  
+         - time_period_properties_list  
+        """
+        if not set(self.transit_network_model_to_general_network_time_period_abbr.values()).issubset(
             set(self.network_model_parameters.time_period_abbr_to_time.keys())
         ):
             raise (
                 ValueError(
                     "specified transit_to_network_time_periods: {} does not align with specified network time periods {}".format(
-                        self.transit_to_network_time_periods,
+                        self.transit_network_model_to_general_network_time_period_abbr,
                         self.network_model_parameters.time_period_abbr_to_time.keys(),
                     )
                 )
@@ -235,7 +265,7 @@ class TransitNetworkModelParameters:
 
         if not self.transit_time_periods:
             self.transit_time_periods = list(
-                self.transit_to_network_time_periods.keys()
+                self.transit_network_model_to_general_network_time_period_abbr.keys()
             )
 
         if not self.time_period_properties_list:
@@ -255,10 +285,11 @@ class DemandModelParameters:
     at runtime.
 
     Attributes:
-        network_model_parameters
-        demand_time_periods: list of time period abbreviations used by the demand model
+        network_model_parameters: Instance of NetworkModelParameters
+        demand_time_periods: list of time period abbreviations used by the demand model, e.g. `["pk","op"]`. 
+            If not set, will default to `network_to_demand_time_periods.values()`
         network_to_demand_time_periods: mapping of network model time period abbreviations
-            to demand model time period abbreviations
+            to demand model time period abbreviations. Defaults to `{"AM": "pk", "MD": "op"}`.
 
     """
 
@@ -267,7 +298,6 @@ class DemandModelParameters:
     network_to_demand_time_periods: Dict = field(
         default_factory=lambda: {"AM": "pk", "MD": "op"},
     )
-    # cube_time_periods_name =
 
     def __post_init__(self):
         if not set(self.network_to_demand_time_periods.keys()).issubset(
@@ -323,6 +353,7 @@ class FileParameters:
             Defaults to be relative to output directory unless output_relative is False.
         output_relative: bool = True: If set to true, will assume output files are relative filenames to
             the output directory on instantiation.
+        output_espg: projection for any output geographic files to be written in defaults to 26915
 
     """
 
@@ -345,6 +376,7 @@ class FileParameters:
     output_link_shp_filename: str = "links.shp"
     output_node_shp_filename: str = "nodes.shp"
     output_relative: bool = True
+    output_espg: int = 26915
 
     def __post_init__(self):
         if not self.scratch_directory:
@@ -399,7 +431,7 @@ class Parameters:
     transit_network_ps: TransitNetworkModelParameters = None
     roadway_network_ps: RoadwayNetworkModelParameters = None
     demand_model_ps: DemandModelParameters = None
-    geographic_overlays: Collection[GeographicOverlay] = field(default_factory=list)
+    geographic_overlays: Collection[PolygonOverlay] = field(default_factory=list)
     name: str = "Class Default"
 
     def __str__(self):
@@ -429,11 +461,6 @@ class Parameters:
         """
         if not flat_dict:
             WranglerLogger.debug("No parameter keywords to sort into parameter type; will be returning empty dictionaries.")
-        print("vars(RoadwayNetworkModelParameters).keys(): {}".format(vars(RoadwayNetworkModelParameters).keys()))
-
-        print("vars(DemandModelParameters).keys(): ", vars(DemandModelParameters).keys())
-        print("DemandModelParameters.__dataclass_fields__.keys(): ", DemandModelParameters.__dataclass_fields__.keys())
-
 
         nested_dict = {}
         nested_dict["file"] = {
@@ -460,11 +487,6 @@ class Parameters:
             k: v
             for k, v in flat_dict.items()
             if k in DemandModelParameters.__dataclass_fields__.keys()
-        }
-        nested_dict["lasso process"] = {
-            k: v
-            for k, v in flat_dict.items()
-            if k in LassoProcessParameters.__dataclass_fields__.keys()
         }
         nested_dict["base"] = {
             k: v

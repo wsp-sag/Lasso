@@ -6,7 +6,7 @@ from .util import get_shared_streets_intersection_hash
 from .roadway import ModelRoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger, setupLogging
-from .data import update_df, FieldMapping, ValueLookup, GeographicOverlay
+from .data import update_df, FieldMapping, ValueLookup, PolygonOverlay
 
 __all__ = [
     "Project",
@@ -18,7 +18,7 @@ __all__ = [
     "update_df",
     "FieldMapping",
     "ValueLookup",
-    "GeographicOverlay",
+    "PolygoncOverlay",
 ]
 
 if __name__ == "__main__":
