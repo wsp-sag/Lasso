@@ -797,6 +797,7 @@ def calculate_farezone(
     network_variable: str = "farezone",
     overwrite:bool = False,
     update_network_variable: bool = False,
+    use_old: bool = False,
 ):
     """
     Calculates farezone variable.
@@ -862,6 +863,18 @@ def calculate_farezone(
             network_variable
         )
     )
+
+    if use_old:
+
+        stop_nodes_df = list(map(int, transit_network.feed.stops.model_node_id.tolist()))
+
+        def _calculate_farezone(x):
+            if x.model_node_id in stop_nodes_df:
+                return 1
+
+        roadway_network.nodes_df[network_variable] = roadway_network.nodes_df.apply(lambda x: _calculate_farezone(x), axis = 1)
+
+        return roadway_network
 
     # get the agency names for each stop
     stops_df = transit_network.feed.stops.copy()
@@ -1223,6 +1236,13 @@ def add_centroid_and_centroid_connector(
     centroid_connector_link_gdf["ft"] = 8
     centroid_connector_link_gdf["managed"] = 0
 
+    centroid_gdf["X"] = centroid_gdf.geometry.apply(
+        lambda g: g.x
+    )
+    centroid_gdf["Y"] = centroid_gdf.geometry.apply(
+        lambda g: g.y
+    )
+
     roadway_network.nodes_df = pd.concat(
         [roadway_network.nodes_df,
         centroid_gdf[
@@ -1316,6 +1336,13 @@ def roadway_standard_to_mtc_network(
 
     roadway_network.links_mtc_df = roadway_network.links_df.copy()
     roadway_network.nodes_mtc_df = roadway_network.nodes_df.copy()
+
+    roadway_network.links_mtc_df = pd.merge(
+        roadway_network.links_mtc_df.drop("geometry", axis = 1),
+        roadway_network.shapes_df[["id", "geometry"]],
+        how = "left",
+        on = "id"
+    )
 
     roadway_network.links_mtc_df.crs = roadway_network.crs
     roadway_network.nodes_mtc_df.crs = roadway_network.crs
@@ -2181,6 +2208,13 @@ def add_tap_and_tap_connector(
     tap_connector_link_gdf["lanes"] = 1
     tap_connector_link_gdf["ft"] = 8
     tap_connector_link_gdf["managed"] = 0
+
+    tap_gdf["X"] = tap_gdf.geometry.apply(
+        lambda g: g.x
+    )
+    tap_gdf["Y"] = tap_gdf.geometry.apply(
+        lambda g: g.y
+    )
 
     roadway_network.nodes_df = pd.concat(
         [roadway_network.nodes_df,

@@ -1264,6 +1264,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for c in list(set(self.links_df.columns) & set(int_col_names)):
             try:
                 self.links_df[c] = self.links_df[c].replace(np.nan, 0)
+                self.links_df[c] = self.links_df[c].replace("", 0)
                 self.links_df[c] = self.links_df[c].astype(int)
             except:
                 self.links_df[c] = self.links_df[c].astype(float)
