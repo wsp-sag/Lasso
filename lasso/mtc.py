@@ -986,7 +986,7 @@ def calculate_farezone(
 
     return roadway_network
 
-def create_fare_matrix(
+def write_cube_fare_files(
     roadway_network=None,
     transit_network=None,
     parameters=None,
@@ -1000,22 +1000,20 @@ def create_fare_matrix(
     if not outpath:
         outpath  = os.path.join(parameters.scratch_location)
 
-    # read fare_attributes and fare_rules from parameters
-    # TODO debug i/o fare as part of transit object
+    # read fare_attributes and fare_rules
+    # TODO debug partridge i/o fare as part of transit object
 
-    fare_attributes_df = pd.read_csv(parameters.fare_attributes_file)
-    fare_rules_df = pd.read_csv(parameters.fare_rules_file)
+    fare_attributes_df = pd.read_csv(os.path.join(outpath, "fare_attributes.txt"))
+    fare_rules_df = pd.read_csv(os.path.join(outpath, "fare_rules.txt"))
 
-    ##
     fare_df = pd.merge(
         fare_attributes_df,
         fare_rules_df,
-        how = "left",
+        how = "outer",
         on = ["fare_id", "agency_raw_name"])
 
     zonal_fare_df = fare_df[((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " ")].copy()
     flat_fare_df = fare_df[~(((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " "))].copy()
-    flat_fare_df = flat_fare_df[flat_fare_df.route_id.notnull()]
 
     # get the agency names for each stop
     stops_df = transit_network.feed.stops.copy()
@@ -1096,8 +1094,9 @@ def create_fare_matrix(
         how = "left",
         on = ["agency_raw_name", "fare_id"]
     )
-    flat_fare_df["route_id"] = flat_fare_df["route_id"].astype(int).astype(str)
-    flat_fare_df.drop_duplicates(["route_id"], inplace = True)
+
+    flat_fare_df.drop_duplicates(["route_id", "agency_raw_name"], inplace = True)
+    flat_fare_df["route_id"] = flat_fare_df["route_id"].fillna(0).astype(int).astype(str)
 
     # write out fare system file
     fare_file = os.path.join(outpath, "fares.far")
@@ -1110,7 +1109,7 @@ def create_fare_matrix(
     write_fare_matrix(zonal_fare_df, fare_matrix_file, parameters)
 
     # write out faresystem - route crosswalk
-    faresystem_crosswalk_file = parameters.faresystem_crosswalk_file
+    faresystem_crosswalk_file = os.path.join(outpath, "faresystem_crosswalk.txt")
     faresystem_crosswalk_df = pd.concat(
         [zonal_fare_system_df,
         flat_fare_df[["agency_raw_name", "route_id", "route_id_original", "faresystem"]]],
@@ -1121,8 +1120,6 @@ def create_fare_matrix(
         faresystem_crosswalk_file,
         index = False
     )
-
-    return zonal_fare_df, flat_fare_df
 
 def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
     """
@@ -1365,6 +1362,7 @@ def roadway_standard_to_mtc_network(
 def route_properties_gtfs_to_cube(
     transit_network = None,
     parameters = None,
+    outpath: str = None
 ):
     """
     Prepare gtfs for cube lin file.
@@ -1413,7 +1411,7 @@ def route_properties_gtfs_to_cube(
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
-    faresystem_crosswalk = pd.read_csv(parameters.faresystem_crosswalk_file,
+    faresystem_crosswalk = pd.read_csv(os.path.join(outpath, "faresystem_crosswalk.txt"),
         dtype = {"route_id" : "object"}
     )
 
@@ -1478,7 +1476,9 @@ def route_properties_gtfs_to_cube(
     trip_df["agency_id"].fillna("", inplace = True)
 
     # faresystem
-    zonal_fare_dict = faresystem_crosswalk[faresystem_crosswalk.route_id.isnull()].copy()
+    zonal_fare_dict = faresystem_crosswalk[
+        (faresystem_crosswalk.route_id_original.isnull())
+    ].copy()
     zonal_fare_dict = dict(zip(zonal_fare_dict.agency_raw_name, zonal_fare_dict.faresystem))
 
     trip_df = pd.merge(
@@ -1517,8 +1517,7 @@ def cube_format(transit_network, row):
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
     s += "\n MODE={},".format(row.TM2_mode)
-    if row.TM2_faresystem > 0:
-        s += "\n FARESYSTEM={},".format(int(row.faresystem))
+    s += "\n FARESYSTEM={},".format(int(row.faresystem))
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=%s,' % (row.route_short_name,)
@@ -1543,7 +1542,7 @@ def write_as_cube_lin(
     """
     if not outpath:
         outpath  = os.path.join(parameters.scratch_location,"outtransit.lin")
-    trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters)
+    trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters, outpath)
 
     trip_cube_df["LIN"] = trip_cube_df.apply(lambda x: cube_format(transit_network, x), axis=1)
 

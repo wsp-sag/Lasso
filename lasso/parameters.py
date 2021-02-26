@@ -439,6 +439,7 @@ class Parameters:
             }
 
         #MC
+        """
         self.county_code_dict = {
             "Anoka": 1,
             "Carver": 2,
@@ -461,6 +462,7 @@ class Parameters:
             "St. Croix": 21,
             "Wright": 22,
         }
+        """
 
         self.mpo_counties = [
             1,
@@ -731,6 +733,8 @@ class Parameters:
         )
         self.output_dir = os.path.join(self.scratch_location)
         self.output_proj = CRS("ESRI:102646")
+
+        self.fare_matrix_output_variables = ["faresystem", "origin_farezone", "destination_farezone", "price"]
 
         """
         Create all the possible headway variable combinations based on the cube time periods setting
