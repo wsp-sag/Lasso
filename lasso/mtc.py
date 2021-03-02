@@ -1434,6 +1434,13 @@ def route_properties_gtfs_to_cube(
 
     trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
 
+    # make tri-delta-transit name shorter
+    trip_df["agency_id"] = np.where(
+        trip_df.agency_id == "tri-delta-transit",
+        "tri-delta",
+        trip_df.agency_id
+    )
+
     trip_df["NAME"] = trip_df.apply(
         lambda x: str(x.agency_id)
         + "_"
@@ -1450,7 +1457,7 @@ def route_properties_gtfs_to_cube(
         axis=1,
     )
 
-    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 30)
+    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
 
     trip_df["LONGNAME"] = trip_df["route_long_name"]
     trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
