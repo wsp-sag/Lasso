@@ -497,10 +497,10 @@ class CubeTransit(object):
             "category": "New Transit Service",
             "facility": {
                 "route_id": line.split("_")[1],
-                "direction_id": int(line.strip('"')[-1]),
+                "direction_id": int(line.strip('_')[-2]),
                 "start_time": start_time_str,
                 "end_time": end_time_str,
-                "agency_id": int(line.strip('"')[0]),
+                "agency_id": line.strip('_')[0],
             },
             "properties": standard_properties + [routing_properties],
         }
@@ -638,8 +638,8 @@ class CubeTransit(object):
             msg = "Start time ({}) is after end time ({})".format(
                 start_time_m, end_time_m
             )
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+            #WranglerLogger.error(msg)
+            #raise ValueError(msg)
 
         start_time_str = "{:02d}:{:02d}".format(*divmod(start_time_m, 60))
         end_time_str = "{:02d}:{:02d}".format(*divmod(end_time_m, 60))
@@ -778,8 +778,8 @@ class CubeTransit(object):
 
         shape_change_list = []
 
-        base_node_list = shape_build.node.tolist()
-        build_node_list = shape_base.node.tolist()
+        base_node_list = shape_base.node.tolist()
+        build_node_list = shape_build.node.tolist()
 
         sort_len = max(len(base_node_list), len(build_node_list))
 
@@ -1237,7 +1237,7 @@ class CubeTransformer(Transformer):
     def lin_attr_name(self, args):
         attr_name = args[0].value.upper()
         # WranglerLogger.debug(".......args {}".format(args))
-        if attr_name in ["USERA", "FREQ", "HEADWAY"]:
+        if attr_name in ["FREQ", "HEADWAY"]:
             attr_name = attr_name + "[" + str(args[2]) + "]"
         return attr_name
 
@@ -1291,8 +1291,8 @@ TIME_PERIOD       : "1".."5"
                     | "xyspeed"i
                     | "longname"i
                     | "shortname"i
-                    | ("usera"i TIME_PERIOD)
-                    | ("usern2"i)
+                    | ("usera1"i)
+                    | ("usera2"i)
                     | "circular"i
                     | "vehicletype"i
                     | "operator"i
