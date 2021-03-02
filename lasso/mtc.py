@@ -839,7 +839,7 @@ def calculate_farezone(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
-    if network_variable in roadway_network.links_df:
+    if network_variable in roadway_network.nodes_df:
         if overwrite:
             WranglerLogger.info(
                 "Overwriting existing Variable '{}' already in network".format(
@@ -1411,7 +1411,7 @@ def route_properties_gtfs_to_cube(
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
-    faresystem_crosswalk = pd.read_csv(os.path.join(outpath, "faresystem_crosswalk.txt"),
+    faresystem_crosswalk = pd.read_csv(os.path.join(os.path.dirname(outpath), "faresystem_crosswalk.txt"),
         dtype = {"route_id" : "object"}
     )
 
