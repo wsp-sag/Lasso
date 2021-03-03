@@ -1200,9 +1200,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         #MC
         if ("centroidconnect" not in self.links_df) & ("taz" not in self.links_df.roadway.unique()):
-            msg = "No variable specified for centroid connector, calculating centroidconnect first"
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+            if centroidconnect_only:
+                msg = "No variable specified for centroid connector, calculating centroidconnect first"
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
         #/MC
 
         """
