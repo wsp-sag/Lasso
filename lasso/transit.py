@@ -1113,7 +1113,7 @@ class StandardTransit(object):
 
         return this_tp_num
 
-    def shape_gtfs_to_cube(self, row):
+    def shape_gtfs_to_cube(self, row, add_nntime = False):
         """
         Creates a list of nodes that for the route in appropriate
         cube format.
@@ -1140,13 +1140,25 @@ class StandardTransit(object):
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
 
+        trip_stop_times_df["NNTIME"] = trip_stop_times_df["departure_time"].diff() / 60
+        trip_stop_times_df["NNTIME"].fillna(-1, inplace = True)
+
         # node list
         node_list_str = ""
         for nodeIdx in range(len(trip_node_list)):
             if trip_node_list[nodeIdx] in stop_node_id_list:
-                node_list_str += "\n %s" % (trip_node_list[nodeIdx])
+                stop_seq = trip_stop_times_df.loc[
+                    trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx], "stop_sequence"].iloc[0]
+                if (add_nntime) & (stop_seq > 1):
+                    nntime = ", NNTIME=%s" % (trip_stop_times_df.loc[
+                        trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx], "NNTIME"].iloc[0])
+                else:
+                    nntime = ""
+                node_list_str += "\n %s%s" % (trip_node_list[nodeIdx], nntime)
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
+                    if (add_nntime) & (stop_seq > 1):
+                        node_list_str += " N="
             else:
                 node_list_str += "\n -%s" % (trip_node_list[nodeIdx])
                 if nodeIdx < (len(trip_node_list) - 1):
@@ -1298,7 +1310,7 @@ TIME_PERIOD       : "1".."5"
                     | "operator"i
                     | "faresystem"i
 
-attr_value        : BOOLEAN | STRING | SIGNED_INT
+attr_value        : BOOLEAN | STRING | SIGNED_INT | FLOAT
 
 nodes             : lin_node+
 lin_node          : ("N" | "NODES")? "="? NODE_NUM ","? SEMICOLON_COMMENT? lin_nodeattr*
@@ -1318,6 +1330,7 @@ opmode_attr       : ( (opmode_attr_name "=" attr_value) ","?  )
 opmode_attr_name  : "number" | "name" | "longname"
 
 %import common.SIGNED_INT
+%import common.FLOAT
 %import common.WS
 %ignore WS
 

@@ -1528,7 +1528,11 @@ def cube_format(transit_network, row):
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=\"%s",' % (row.route_short_name,)
-    s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row))
+    if row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail"]:
+        add_nntime = True
+    else:
+        add_nntime = False
+    s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row, add_nntime))
 
     # TODO: need NNTIME, ACCESS_C
 
