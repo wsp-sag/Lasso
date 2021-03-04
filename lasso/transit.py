@@ -970,7 +970,8 @@ class StandardTransit(object):
 
         trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
         inv_cube_time_periods_map = {
-            v: k for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items()
+            v: k
+            for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items()
         }
         trip_df["tod_num"] = trip_df.tod_name.map(inv_cube_time_periods_map)
         trip_df["tod_name"] = trip_df.tod_name.map(
@@ -1073,7 +1074,10 @@ class StandardTransit(object):
 
         # set initial time as the time that spans midnight
         this_tp = "NA"
-        for tp_name, _times in self.parameters.network_model_ps.time_period_abbr_to_time.items():
+        for (
+            tp_name,
+            _times,
+        ) in self.parameters.network_model_ps.time_period_abbr_to_time.items():
             _start_time, _end_time = _times
             _dt_start_time = hhmmss_to_datetime(_start_time)
             _dt_end_time = hhmmss_to_datetime(_end_time)
@@ -1081,7 +1085,10 @@ class StandardTransit(object):
                 this_tp = tp_name
                 break
 
-        for tp_name, _times in self.parameters.network_model_ps.time_period_abbr_to_time.items():
+        for (
+            tp_name,
+            _times,
+        ) in self.parameters.network_model_ps.time_period_abbr_to_time.items():
             _start_time, _end_time = _times
             _dt_start_time = hhmmss_to_datetime(_start_time)
             if start_time_dt >= _dt_start_time:
@@ -1101,7 +1108,10 @@ class StandardTransit(object):
         if as_str:
             return this_tp
 
-        name_to_num = {v: k for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items}
+        name_to_num = {
+            v: k
+            for k, v in self.parameters.transit_network_ps.transit_network_model_to_general_network_time_period_abbr.items
+        }
         this_tp_num = name_to_num.get(this_tp)
 
         if not this_tp_num:

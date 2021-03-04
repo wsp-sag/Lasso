@@ -47,8 +47,8 @@ class NetworkModelParameters:
         time period_abbr_to_names: Maps time period abbreviations to names.
         time_periods_to_time: Maps time period abbreviations used in
             Cube to time of days used on transit/gtfs and highway network standard.
-        network_time_period_abbr: list of network time period abbreviations, 
-            e.g. ["AM","MD","PM","NT]. Defaults to being calculated as 
+        network_time_period_abbr: list of network time period abbreviations,
+            e.g. ["AM","MD","PM","NT]. Defaults to being calculated as
             `list(self.time_period_abbr_to_names.keys())`.
 
     """
@@ -86,6 +86,15 @@ class NetworkModelParameters:
         if not self.network_time_period_abbr:
             self.network_time_period_abbr = list(self.time_period_abbr_to_names.keys())
 
+    def __str__(self):
+        _header = "[NetworkModelParameters]"
+        _hide_vars = []
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
+
 
 @dataclass
 class RoadwayNetworkModelParameters:
@@ -108,16 +117,22 @@ class RoadwayNetworkModelParameters:
             network links act as centroid connectors.
         centroid_connector_properties: maps properties in the standard network format with
             values to assert upon centroid connectors. Defaults to {"centroidconnect":1, "lanes": 1}
-        additional_centroid_connector_properties: adds additional properties to centroid connectors. 
+        additional_centroid_connector_properties: adds additional properties to centroid connectors.
         field_type: maps important field types. (e.g., int, str, float )
-        roadway_value_lookups: dictionary of ValueLookup data classes or dictionaries 
+        roadway_value_lookups: dictionary of ValueLookup data classes or dictionaries
+        roadway_field_mappings: dictionary of FieldMapping data classes or dictionaries
         output_fields: lists fields to output in the roadway network.
-        create_model_network: function to create model network.
-        counts: mapping of count names and count files to be added. 
-        time_period_vol_split: dictionary mapping time period abbreviations to basic assumptions about 
-            fractions of daily volumes associated with them. 
-        count_fields_to_split_by_tod: a mapping of fields to split counts for by time_period_vol_split mapping, and 
-            the prefix to use for the resulting fields. 
+        required_fields_links: list of fields that must be in link output. ["A", "B", "shape_id", "geometry"]
+        required_fields_nodes: list of fields that must be in node output. Defaults to ["N", "x", "y", "geometry"]
+        counts: mapping of count names and count files to be added.
+        time_period_vol_split: dictionary mapping time period abbreviations to basic assumptions about
+            fractions of daily volumes associated with them.
+        count_fields_to_split_by_tod: a mapping of fields to split counts for by time_period_vol_split mapping, and
+            the prefix to use for the resulting fields.
+        network_build_script_type: If specified, will output a script to the output
+                directory which will rebuild the network in the. Should be one of ["CUBE_HWYNET"].
+                Defaults to None.
+        output_espg: int = 26915
     """
 
     network_model_parameters: NetworkModelParameters
@@ -150,30 +165,40 @@ class RoadwayNetworkModelParameters:
     centroid_connector_properties: Mapping[str, Any] = field(
         default_factory=lambda: {"centroidconnect": 1, "lanes": 1}
     )
-    additional_centroid_connector_properties: Mapping[str,Any] = field(default_factory=dict)
-    field_type: Mapping[str,Any] = field(default_factory = dict)
-    roadway_value_lookups: Mapping[str,Any] = field(default_factory = dict)
+    additional_centroid_connector_properties: Mapping[str, Any] = field(
+        default_factory=dict
+    )
+    field_type: Mapping[str, Any] = field(default_factory=dict)
+    roadway_value_lookups: Mapping[str, Any] = field(default_factory=dict)
+    roadway_field_mappings: Mapping[str, Any] = field(default_factory=dict)
     output_fields: Collection[str] = field(default_factory=list)
-    create_model_network: str = None
-    counts: Mapping[str,ValueLookup] = field(default_factory=dict)
-    time_period_vol_split: Mapping[str,float] = field(default_factory=dict)
-    count_tod_split_fields: Mapping[str,str] = field(default_factory=dict)
+    required_fields_links: Collection[str] = field(
+        default_factory=lambda: ["A", "B", "shape_id", "geometry"]
+    )
+    required_fields_nodes: Collection[str] = field(
+        default_factory=lambda: ["N", "x", "y", "geometry"]
+    )
+    counts: Mapping[str, ValueLookup] = field(default_factory=dict)
+    time_period_vol_split: Mapping[str, float] = field(default_factory=dict)
+    count_tod_split_fields: Mapping[str, str] = field(default_factory=dict)
+    network_build_script_type: str = None
+    output_espg: int = 26915
     # def __update__(self):
     # add an override so nested variables are updated not overwritten
 
     def __post_init__(self):
         assert set(list(self.field_type.values())).issubset(set([int, str, float]))
-        
+
         # more than one method of split properties is specified
         if self.properties_to_split and (
             self.properties_to_split_by_network_time_periods
             or self.properties_to_split_by_category_groupings
         ):
-            raise ValueError(
-                "Both properties_to_split and at least one of (properties_to_split_by_category_groupings or properties_to_split_by_category_groupings) provided. Should be either/or."
+            WranglerLogger.warning(
+                "Both properties_to_split and at least one of (properties_to_split_by_category_groupings or properties_to_split_by_category_groupings) provided. Will overwrite properties_to_split."
             )
 
-        # create standard properties to split form lists
+        # create standard properties to split from lists
         if not self.properties_to_split:
             self.properties_to_split = {
                 k: {"v": k}
@@ -211,6 +236,16 @@ class RoadwayNetworkModelParameters:
                 },
             }
 
+    def __str__(self):
+        _header = "[RoadwayNetworkModelParameters]"
+        _hide_vars = []
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
+
+
 @dataclass
 class TransitNetworkModelParameters:
     """
@@ -222,15 +257,17 @@ class TransitNetworkModelParameters:
                 dictionary. Defaults to `{"1": "AM", "2": "MD"}`.
         transit_time_periods: Collection of transit network model time periods used in line files. Defaults
             to `self.transit_network_model_to_general_network_time_period_abbr.keys()`, or ['1','2].
-        time_varying_properties: a set of transit properties that vary over time period. 
+        time_varying_properties: a set of transit properties that vary over time period.
             Defaults to {"HEADWAY", "FREQ"}.
-        time_period_properties_list: a collection of time_varying_properties for each time period 
-            in `transit_time_periods`. e.g. {"HEADWAY[1]","HEADWAY[2]"} If not specified, will be calculated. 
+        time_period_properties_list: a collection of time_varying_properties for each time period
+            in `transit_time_periods`. e.g. {"HEADWAY[1]","HEADWAY[2]"} If not specified, will be calculated.
 
     """
 
     network_model_parameters: NetworkModelParameters
-    transit_network_model_to_general_network_time_period_abbr: Mapping[Any, Any] = field(
+    transit_network_model_to_general_network_time_period_abbr: Mapping[
+        Any, Any
+    ] = field(
         default_factory=lambda: {"1": "AM", "2": "MD"},
     )
     transit_time_periods: Set = None
@@ -244,16 +281,16 @@ class TransitNetworkModelParameters:
         Checks parameter compatibility and sets defaults.
 
         Checks that the following parameters are compatible:
-         - `network_model_parameters.time_period_abbr_to_time` and 
+         - `network_model_parameters.time_period_abbr_to_time` and
             `transit_network_model_to_general_network_time_period_abbr.values()`
-        
-        If not already filled, will calculate the default values for: 
-         - transit_time_periods  
-         - time_period_properties_list  
+
+        If not already filled, will calculate the default values for:
+         - transit_time_periods
+         - time_period_properties_list
         """
-        if not set(self.transit_network_model_to_general_network_time_period_abbr.values()).issubset(
-            set(self.network_model_parameters.time_period_abbr_to_time.keys())
-        ):
+        if not set(
+            self.transit_network_model_to_general_network_time_period_abbr.values()
+        ).issubset(set(self.network_model_parameters.time_period_abbr_to_time.keys())):
             raise (
                 ValueError(
                     "specified transit_to_network_time_periods: {} does not align with specified network time periods {}".format(
@@ -275,6 +312,15 @@ class TransitNetworkModelParameters:
                 for t in self.transit_time_periods
             ]
 
+    def __str__(self):
+        _header = "[TransitNetworkModelParameters]"
+        _hide_vars = []
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
+
 
 @dataclass
 class DemandModelParameters:
@@ -286,7 +332,7 @@ class DemandModelParameters:
 
     Attributes:
         network_model_parameters: Instance of NetworkModelParameters
-        demand_time_periods: list of time period abbreviations used by the demand model, e.g. `["pk","op"]`. 
+        demand_time_periods: list of time period abbreviations used by the demand model, e.g. `["pk","op"]`.
             If not set, will default to `network_to_demand_time_periods.values()`
         network_to_demand_time_periods: mapping of network model time period abbreviations
             to demand model time period abbreviations. Defaults to `{"AM": "pk", "MD": "op"}`.
@@ -314,6 +360,15 @@ class DemandModelParameters:
         if not self.demand_time_periods:
             self.demand_time_periods = set(self.network_to_demand_time_periods.values())
 
+    def __str__(self):
+        _header = "[DemandModelParameters]"
+        _hide_vars = []
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
+
 
 @dataclass
 class FileParameters:
@@ -328,29 +383,8 @@ class FileParameters:
         settings_location: Directory location for run-level settings. Defaults to examples/settings
         shape_foreign_key: join field between link_df/link.json and shape_df/shape.geojson
         output_directory: Directory location for output and log files.
-        output_link_csv_filename: Output csv filename containing links.
-            Defaults to be relative to output directory unless output_relative is False. Default is links.csv.
-        output_node_csv_filename: Output csv filename containing nodes.
-            Defaults to be relative to output directory unless output_relative is False. Default is nodes.csv.
-        output_link_txt_filename: Output fixed width text filename containing links.
-            Defaults to be relative t output directory unless output_relative is False. Default is links.txt.
-        output_node_txt_filename: Output fixed width text filename containing nodes.
-            Defaults to be relative to output directory unless output_relative is False. Default is nodes.txt.
-        output_link_fixed_width_header_filename: Output fixed width text filename containing headers
-            for links.
-           Defaults to be relative to output directory unless output_relative is False.
-            Defaults to "links_header_width.txt".
-        output_node_fixed_width_header_filename: Output fixed width text filename containing headers
-            for nodes.
-            Defaults to be relative to output directory unless output_relative is False.
-            "nodes_header_width.txt"
-        output_cube_network_script_filename: Output cube script for processing fixed width files.
-            Defaults to be relative to output directory unless output_relative is False.
-            Defaults "make_complete_network_from_fixed_width_file.s"
-        output_link_shp_filename: Output shapefile filename containing links. Default is links.shp.
-            Defaults to be relative to output directory unless output_relative is False.
-        output_node_shp_filename: Output shapefile filename containing nodes. Default is nodes.shp.
-            Defaults to be relative to output directory unless output_relative is False.
+        output_basename_links: Defaults to "links_out"
+        output_basename_nodes: Defaults to "nodes_out"
         output_relative: bool = True: If set to true, will assume output files are relative filenames to
             the output directory on instantiation.
         output_espg: projection for any output geographic files to be written in defaults to 26915
@@ -360,23 +394,13 @@ class FileParameters:
     lasso_base_directory: str = get_base_dir()
     settings_location: str = os.path.join(get_base_dir(), "examples", "settings")
     data_directory: str = None
-    value_lookups: Mapping[str,ValueLookup] = field(default_factory=dict)
+    value_lookups: Mapping[str, ValueLookup] = field(default_factory=dict)
     scratch_directory: str = None
     shape_foreign_key: str = "id"
     output_directory: str = None
-    output_link_csv_filename: str = "links.csv"
-    output_node_csv_filename: str = "nodes.csv"
-    output_link_txt_filename: str = "links.txt"
-    output_node_txt_filename: str = "nodes.txt"
-    output_link_fixed_width_header_filename: str = "links_header_width.txt"
-    output_node_fixed_width_header_filename: str = "nodes_header_width.txt"
-    output_cube_network_script_filename: str = (
-        "make_complete_network_from_fixed_width_file.s"
-    )
-    output_link_shp_filename: str = "links.shp"
-    output_node_shp_filename: str = "nodes.shp"
-    output_relative: bool = True
-    output_espg: int = 26915
+    output_prefix: str = ""
+    output_basename_links: str = "links_out"
+    output_basename_nodes: str = "nodes_out"
 
     def __post_init__(self):
         if not self.scratch_directory:
@@ -393,34 +417,14 @@ class FileParameters:
         if not os.path.exists(self.output_directory):
             os.mkdir(self.output_directory)
 
-        if self.output_relative:
-            self.output_link_csv_filename = os.path.join(
-                self.output_directory, self.output_link_csv_filename
-            )
-            self.output_node_csv_filename = os.path.join(
-                self.output_directory, self.output_node_csv_filename
-            )
-            self.output_link_txt_filename = os.path.join(
-                self.output_directory, self.output_link_txt_filename
-            )
-            self.output_node_txt_filename = os.path.join(
-                self.output_directory, self.output_node_txt_filename
-            )
-            self.output_link_fixed_width_header_filename = os.path.join(
-                self.output_directory, self.output_link_fixed_width_header_filename
-            )
-            self.output_node_fixed_width_header_filename = os.path.join(
-                self.output_directory, self.output_node_fixed_width_header_filename
-            )
-            self.output_cube_network_script_filename = os.path.join(
-                self.output_directory, self.output_cube_network_script_filename
-            )
-            self.output_link_shp_filename = os.path.join(
-                self.output_directory, self.output_link_shp_filename
-            )
-            self.output_node_shp_filename = os.path.join(
-                self.output_directory, self.output_node_shp_filename
-            )
+    def __str__(self):
+        _header = "[FileParameters]"
+        _hide_vars = []
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
 
 
 @dataclass
@@ -435,7 +439,13 @@ class Parameters:
     name: str = "Class Default"
 
     def __str__(self):
-        return "---Parameters instance---\n{}".format("\n-->".join(["{}:\n   {}".format(k, v) for k,v in self.__dict__.items() ]))
+        _header = "---Parameters instance---"
+        _hide_vars = ["input_ps"]
+        _data_dict = {k: v for k, v in self.__dict__.items() if k not in _hide_vars}
+        _data_str = "\n-->".join(
+            ["{}:\n   {}".format(k, v) for k, v in _data_dict.items()]
+        )
+        return "{}\n{}".format(_header, _data_str)
 
     @staticmethod
     def parameters_list():
@@ -460,7 +470,9 @@ class Parameters:
         Returns: a nested dictionary by parameter type (e.g. "file", "network model", etc.)
         """
         if not flat_dict:
-            WranglerLogger.debug("No parameter keywords to sort into parameter type; will be returning empty dictionaries.")
+            WranglerLogger.debug(
+                "No parameter keywords to sort into parameter type; will be returning empty dictionaries."
+            )
 
         nested_dict = {}
         nested_dict["file"] = {
@@ -498,18 +510,22 @@ class Parameters:
 
     def __post_init__(self):
         """
-        Initializes parameter instances under an instance of the umbrella class Parameters(). 
+        Initializes parameter instances under an instance of the umbrella class Parameters().
         Overwrites class-level default parameters with parameters in self.input_ps.
         Warns if there are parameters specified in self.input_ps which aren't used in parameter classes.
         """
-        WranglerLogger.debug("-----POST INIT PARAMETERS------\n...running Parameters.__post_init__()")
+        WranglerLogger.debug("[Parameters.__post_init__()]")
 
         _input_ps_dict = Parameters.keywords_into_dict_by_param_type(self.input_ps)
-        WranglerLogger.debug("-----POST INIT INPUT DICT BY TYPE------\n_input_ps_dict:\n{}".format(_input_ps_dict))
-        #TODO this is very messy and verbose. Is there a way to make this more pythonic? 
+        # WranglerLogger.debug(
+        #    "-----POST INIT INPUT DICT BY TYPE------\n_input_ps_dict:\n{}".format(
+        #        _input_ps_dict
+        #    )
+        # )
+        # TODO this is very messy and verbose. Is there a way to make this more pythonic?
 
-        # want to use matching network parameters, so delete any residtual ones
-        for _,v in _input_ps_dict.items():
+        # want to use matching network parameters, so delete any residual ones
+        for _, v in _input_ps_dict.items():
             try:
                 del v["network_model_parameters"]
             except:
@@ -528,12 +544,11 @@ class Parameters:
             self.network_model_ps = NetworkModelParameters()
 
         if _input_ps_dict.get("roadway network model"):
-            print("INITIALIZING RNM PARAMS with: {}".format(_input_ps_dict.get("roadway network model")))
             self.roadway_network_ps = RoadwayNetworkModelParameters(
                 self.network_model_ps,
                 **_input_ps_dict.get("roadway network model"),
             )
-        else: 
+        else:
             self.roadway_network_ps = RoadwayNetworkModelParameters(
                 self.network_model_ps,
             )
@@ -574,40 +589,45 @@ class Parameters:
                 )
 
     @staticmethod
-    def initialize(base_params: dict, **kwargs):
+    def initialize(base_params_dict: dict = {}, **kwargs):
         """Initializes a Parameters data class with base parameter dictionary which
         can be overwritten by including a keyword argument from any of the parameters
         classes.
 
         Args:
-            base_params: dictionary of default parameters
+            base_params_dict: dictionary of parameters. Defaults to {}.
             kwarg: a keyword argument of any of the parameters classes in parameters.py
             which will be used to add-to or overwrite any defaults.
 
         Returns: Parameters data class with initialized parameters.
         """
-        WranglerLogger.debug("-----INITIALIZING PARAMETERS------\n...running Parameters.initialize()")
-        msg = "base parameter set: \n   -{}\n".format("\n   - ".join(["{}: {}".format(k,v) for k,v in base_params.items()]))
-        print(msg)
+        WranglerLogger.debug(
+            "-----INITIALIZING PARAMETERS------\n...running Parameters.initialize()"
+        )
+        msg = "base parameter set: \n   -{}\n".format(
+            "\n   - ".join(["{}: {}".format(k, v) for k, v in base_params_dict.items()])
+        )
         WranglerLogger.debug(msg)
 
         if kwargs:
             msg = "Updating default parameters with following kwargs: {}".format(kwargs)
-            print(msg)
             WranglerLogger.debug(msg)
 
-            base_params.update(kwargs)
+            base_params_dict.update(kwargs)
 
-            msg = "Updated parameter settings:\n   -{}\n".format("\n   - ".join(["{}: {}".format(k,v) for k,v in base_params.items()]))
-            print(msg)
+            msg = "Updated parameter settings:\n   -{}\n".format(
+                "\n   - ".join(
+                    ["{}: {}".format(k, v) for k, v in base_params_dict.items()]
+                )
+            )
             WranglerLogger.debug(msg)
 
         p = Parameters(
-            input_ps=base_params,
+            input_ps=base_params_dict,
         )
 
         msg = "****Resulting Initialized Parameters*****\n  {}".format(p)
-        print (msg)
+        print(msg)
         print("INITIAL FIELD TYPES PARAM: {}".format(p.roadway_network_ps.field_type))
 
         return p
@@ -617,25 +637,31 @@ class Parameters:
         Updates a parameter object overriding existing parameters.
 
         Args:
-            update_dict: 
-            kwargs: 
+            update_dict:
+            kwargs:
 
-        Returns: none
+        Returns: updated Parameters instance
         """
-        print("1 - UPDATE_DICT {} kwargs {}".format(update_dict,kwargs))
+        print("1 - UPDATE_DICT {} kwargs {}".format(update_dict, kwargs))
         update_dict.update(kwargs)
 
         if not update_dict:
-            WranglerLogger.warning("Update called but nothing to update. Given: {}".format(update_dict))
+            WranglerLogger.warning(
+                "Update called but nothing to update. Given: {}".format(update_dict)
+            )
+            return self
 
         _update_dict = Parameters.keywords_into_dict_by_param_type(update_dict)
         print("2 - _UPDATE_DICT {}".format(_update_dict))
-        
 
         self.file_ps.__dict__.update(_update_dict.get("file"))
         self.network_model_ps.__dict__.update(_update_dict.get("network model"))
-        self.roadway_network_ps.__dict__.update(_update_dict.get("roadway network model"))
-        self.transit_network_ps.__dict__.update(_update_dict.get("transit network model"))
+        self.roadway_network_ps.__dict__.update(
+            _update_dict.get("roadway network model")
+        )
+        self.transit_network_ps.__dict__.update(
+            _update_dict.get("transit network model")
+        )
         self.demand_model_ps.__dict__.update(_update_dict.get("demand model"))
         self.__dict__.update(_update_dict["base"])
 
@@ -649,6 +675,7 @@ class Parameters:
                     unused_keys
                 )
             )
+        return self
 
     def as_dict(self):
         all_params = {}

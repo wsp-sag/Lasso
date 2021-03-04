@@ -5,9 +5,8 @@
 import os
 import copy
 
-from ..data import PolygonOverlay,FieldMapping, ValueLookup, FieldError
+from ..data import PolygonOverlay, FieldMapping, ValueLookup, FieldError
 from ..logger import WranglerLogger
-from .metcouncil import roadway_standard_to_met_council_network
 
 _MC_DEFAULT_PARAMS = {}
 
@@ -15,10 +14,11 @@ _MC_DEFAULT_PARAMS = {}
 _MC_DEFAULT_PARAMS["name"] = "MetCouncil Defaults"
 
 # Add nested dicts
-_MC_DEFAULT_PARAMS["roadway_value_lookups"]={}
-_MC_DEFAULT_PARAMS["counts"]={}
+_MC_DEFAULT_PARAMS["roadway_value_lookups"] = {}
+_MC_DEFAULT_PARAMS["roadway_field_mappings"] = {}
+_MC_DEFAULT_PARAMS["counts"] = {}
 _MC_DEFAULT_PARAMS["roadway_overlays"] = {}
-_MC_DEFAULT_PARAMS["lookups"]={}
+_MC_DEFAULT_PARAMS["lookups"] = {}
 ############################
 # FILE
 ############################
@@ -51,7 +51,7 @@ _MC_DEFAULT_PARAMS["time_period_abbr_to_time"] = {
 # ROADWAY NETWORK
 ############################
 
-_MC_DEFAULT_PARAMS["create_model_network"] = roadway_standard_to_met_council_network
+_MC_DEFAULT_PARAMS["network_build_script_type"] = "CUBE_HWYNET"
 
 _MC_DEFAULT_PARAMS["highest_taz"] = 3100
 
@@ -79,30 +79,30 @@ _MC_DEFAULT_PARAMS["properties_to_split_by_category_groupings"] = [
 _MC_DEFAULT_PARAMS["roadway_output_espg"] = 26915
 
 _MC_DEFAULT_PARAMS["field_type"] = {
-    "model_link_id" : int, 
-    "link_id" : int, 
-    "A" : int, 
-    "B" : int, 
+    "model_link_id": int,
+    "link_id": int,
+    "A": int,
+    "B": int,
     "shstGeometryId": str,
     "shape_id": str,
     "distance": float,
     "roadway": str,
     "name": str,
-    "roadway_class" : int, 
-    "assign_group" : int, 
-    "bike_access" : int, 
-    "walk_access" : int, 
-    "drive_access" : int, 
-    "truck_access" : int, 
-    "trn_priority_AM" : int, 
-    "trn_priority_MD" : int, 
-    "trn_priority_PM" : int, 
-    "trn_priority_NT": int, 
+    "roadway_class": int,
+    "assign_group": int,
+    "bike_access": int,
+    "walk_access": int,
+    "drive_access": int,
+    "truck_access": int,
+    "trn_priority_AM": int,
+    "trn_priority_MD": int,
+    "trn_priority_PM": int,
+    "trn_priority_NT": int,
     "ttime_assert_AM": float,
     "ttime_assert_MD": float,
     "ttime_assert_PM": float,
     "ttime_assert_NT": float,
-    "lanes_AM" : int, 
+    "lanes_AM": int,
     "lanes_MD": int,
     "lanes_PM": int,
     "lanes_NT": int,
@@ -173,22 +173,22 @@ _MC_DEFAULT_PARAMS["output_fields"] = [
     "name",
     "roadway_class",
     "assign_group",
-    "bike_access", 
-    "walk_access", 
-    "drive_access", 
-    "truck_access", 
-    "trn_priority_AM", 
-    "trn_priority_MD", 
-    "trn_priority_PM", 
-    "trn_priority_NT", 
+    "bike_access",
+    "walk_access",
+    "drive_access",
+    "truck_access",
+    "trn_priority_AM",
+    "trn_priority_MD",
+    "trn_priority_PM",
+    "trn_priority_NT",
     "ttime_assert_AM",
     "ttime_assert_MD",
     "ttime_assert_PM",
     "ttime_assert_NT",
-    "lanes_AM", 
-    "lanes_MD", 
-    "lanes_PM", 
-    "lanes_NT", 
+    "lanes_AM",
+    "lanes_MD",
+    "lanes_PM",
+    "lanes_NT",
     "price_sov_AM",
     "price_hov2_AM",
     "price_hov3_AM",
@@ -209,36 +209,36 @@ _MC_DEFAULT_PARAMS["output_fields"] = [
     "access_MD",
     "access_PM",
     "access_NT",
-    "mpo", 
-    "area_type" ,
-    "county", 
-    "centroidconnect", 
-    "mrcc_id", 
-    "AADT", 
-    "count_year", 
-    "count_AM", 
-    "count_MD", 
-    "count_PM", 
-    "count_NT", 
-    "count_daily", 
+    "mpo",
+    "area_type",
+    "county",
+    "centroidconnect",
+    "mrcc_id",
+    "AADT",
+    "count_year",
+    "count_AM",
+    "count_MD",
+    "count_PM",
+    "count_NT",
+    "count_daily",
     "model_node_id",
     "N",
     "osm_node_id",
-    "bike_node", 
-    "transit_node", 
+    "bike_node",
+    "transit_node",
     "walk_node",
     "drive_node",
     "geometry",
     "X",
     "Y",
-    "ML_lanes_AM", 
-    "ML_lanes_MD", 
-    "ML_lanes_PM", 
-    "ML_lanes_NT", 
-    "segment_id", 
-    "managed", 
-    "bus_only", 
-    "rail_only", 
+    "ML_lanes_AM",
+    "ML_lanes_MD",
+    "ML_lanes_PM",
+    "ML_lanes_NT",
+    "segment_id",
+    "managed",
+    "bus_only",
+    "rail_only",
     "bike_facility",
     "ROUTE_SYS",
 ]
@@ -267,8 +267,8 @@ MC_COUNTY_SHAPEFILE = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_overlays"]["counties"] = PolygonOverlay(
-    input_filename = MC_COUNTY_SHAPEFILE,
-    field_mapping = {"NAME": "NAME"},
+    input_filename=MC_COUNTY_SHAPEFILE,
+    field_mapping={"NAME": "NAME"},
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mc_county_code_dict"] = {
@@ -294,18 +294,17 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mc_county_code_dict"] = {
     "Wright": 22,
 }
 
-_MC_DEFAULT_PARAMS["roadway_value_lookups"]["mc_mpo_counties_dict"]= {
-    "Anoka":1,
-    "Dakota":1,
-    "Hennipin":1,
-    "Ramsey":1,
-    "Scott":1,
-    "Washington":1,
-    "Carver":1,
+_MC_DEFAULT_PARAMS["roadway_value_lookups"]["mc_mpo_counties_dict"] = {
+    "Anoka": 1,
+    "Dakota": 1,
+    "Hennipin": 1,
+    "Ramsey": 1,
+    "Scott": 1,
+    "Washington": 1,
+    "Carver": 1,
 }
 
 ### TAZS
-
 
 
 MC_TAZ_SHAPEFILE = os.path.join(
@@ -313,8 +312,8 @@ MC_TAZ_SHAPEFILE = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_overlays"]["tazs"] = PolygonOverlay(
-    input_filename = MC_TAZ_SHAPEFILE,
-    field_mapping = {"TAZ": "TAZ"},
+    input_filename=MC_TAZ_SHAPEFILE,
+    field_mapping={"TAZ": "TAZ"},
 )
 
 
@@ -327,8 +326,8 @@ MC_AREATYPE_SHAPEFILE = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_overlays"]["area_type"] = PolygonOverlay(
-    input_filename = MC_AREATYPE_SHAPEFILE,
-    field_mapping = {"COMDES2040": "area_type"},
+    input_filename=MC_AREATYPE_SHAPEFILE,
+    field_mapping={"area_type_name": "COMDES2040"},
 )
 
 MC_DOWNTOWN_AREATYPE_SHAPEFILE = os.path.join(
@@ -338,14 +337,15 @@ MC_DOWNTOWN_AREATYPE_SHAPEFILE = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_overlays"]["downtown_area_type"] = PolygonOverlay(
-    input_filename = MC_DOWNTOWN_AREATYPE_SHAPEFILE,
+    input_filename=MC_DOWNTOWN_AREATYPE_SHAPEFILE,
+    fill_values_dict={"area_type_name": "downtown"},
 )
 
 # area_type_code_dict (dict): Mapping of the area_type_variable_shp to
 # The area type code used in the MetCouncil cube network.
 # source https://metrocouncil.org/Planning/Publications-And-Resources/Thrive-MSP-2040-Plan-(1)/7_ThriveMSP2040_LandUsePoliciesbyCD.aspx
 MC_AREA_TYPE_CODE_MAP = {
-    "downtown": 5, # downtown
+    "downtown": 5,  # downtown
     23: 4,  # urban center
     24: 3,  # urban center
     25: 2,  # urban
@@ -366,26 +366,26 @@ MC_MNDOT_COUNTS_SHST_MATCH = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["counts"]["mn_2017_counts"] = ValueLookup(
-    input_filename = MC_MNDOT_COUNTS_SHST_MATCH,
-    input_csv_has_header = True,
-    input_key_field = "shstReferenceId",
-    target_df_key_field = "shstReferenceId",
-    field_mapping = {"AADT_mn": "count_daily"},
+    input_filename=MC_MNDOT_COUNTS_SHST_MATCH,
+    input_csv_has_header=True,
+    input_key_field="shstReferenceId",
+    target_df_key_field="shstReferenceId",
+    field_mapping={"AADT_mn": "count_daily"},
 )
 
 
 MC_WIDOT_COUNTS_SHST_MATCH = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"],
-    "Wisconsin_Lanes_Counts_Median",
+    "WiscDOT",
     "wi_count_ShSt_API_match.csv",
 )
 
 _MC_DEFAULT_PARAMS["counts"]["wi_2017_counts"] = ValueLookup(
-    input_filename = MC_WIDOT_COUNTS_SHST_MATCH,
-    input_csv_has_header = True,
-    input_key_field = "shstReferenceId",
-    target_df_key_field = "shstReferenceId",
-    field_mapping = {"AADT_wi": "count_daily"},
+    input_filename=MC_WIDOT_COUNTS_SHST_MATCH,
+    input_csv_has_header=True,
+    input_key_field="shstReferenceId",
+    target_df_key_field="shstReferenceId",
+    field_mapping={"AADT_wi": "count_daily"},
 )
 
 _MC_DEFAULT_PARAMS["time_period_vol_split"] = {
@@ -417,11 +417,11 @@ MRCC_SHST_MATCH_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "mrcc", "mrcc.out.matched.csv"
 )
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_shst_2_pp_link_id"] = ValueLookup(
-    input_filename = MRCC_SHST_MATCH_CSV,
-    input_csv_has_header = True,
-    input_key_field = "shstGeometryId",
-    target_df_key_field = "shstGeometryId",
-    field_mapping = {"pp_link_id": "mrcc_link_id", "score": "mrcc_score"},
+    input_filename=MRCC_SHST_MATCH_CSV,
+    input_csv_has_header=True,
+    input_key_field="shstGeometryId",
+    target_df_key_field="shstGeometryId",
+    field_mapping={"pp_link_id": "mrcc_link_id", "score": "mrcc_score"},
 )
 
 # Expected columns for MRCC_SHST_MATCH_CSV:
@@ -430,10 +430,10 @@ MRCC_ROUTESYS_MATCH_DBF = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "mrcc", "trans_mrcc_centerlines.dbf"
 )
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["pp_link_id_2_route_sys"] = ValueLookup(
-    input_filename = MRCC_ROUTESYS_MATCH_DBF,
-    input_key_field = "LINK_ID",
-    target_df_key_field = "mrcc_link_id",
-    field_mapping = {"ROUTE_SYS": "mrcc_route_sys"},
+    input_filename=MRCC_ROUTESYS_MATCH_DBF,
+    input_key_field="LINK_ID",
+    target_df_key_field="mrcc_link_id",
+    field_mapping={"ROUTE_SYS": "mrcc_route_sys"},
 )
 
 #   WIDOT
@@ -442,34 +442,37 @@ WIDOT_SHST_MATCH_GEOJSON = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_shst_2_link_id"] = ValueLookup(
-    input_filename = WIDOT_SHST_MATCH_GEOJSON,
-    input_key_field = "shstGeometryId",
-    target_df_key_field = "shstGeometryId",
-    field_mapping = {"pp_link_id": "widot_link_id", "score": "widot_score"},
+    input_filename=WIDOT_SHST_MATCH_GEOJSON,
+    input_key_field="shstGeometryId",
+    target_df_key_field="shstGeometryId",
+    field_mapping={"pp_link_id": "widot_link_id", "score": "widot_score"},
 )
 
 MC_WIDOT_DBF = os.path.join(
-    _MC_DEFAULT_PARAMS["data_directory"], "WiscDOT", "WISLR.dbf"
+    _MC_DEFAULT_PARAMS["data_directory"], "WiscDOT", "WISLR_with_id.dbf"
 )
 
-try:
-    _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_id_2_rdwy_ctgy"] = ValueLookup(
-        input_filename = MC_WIDOT_DBF,
-        input_key_field = "LINK_ID",
-        target_df_key_field = "widot_link_id",
-        field_mapping = {"RDWY_CTGY_": "widot_rdwy_ctgy"},
-    )
-except FieldError:
-    WranglerLogger.info("Adding an ID field to {} and retrying the ValueLookup initialization.".format(MC_WIDOT_DBF))
-    from .metcouncil import add_id_field_to_shapefile
-    outfile_filename = add_id_field_to_shapefile(MC_WIDOT_DBF.replace(".dbf",".shp"),"LINK_ID")
+ID_FLAG = "_with_id"
+NO_ID_SHP = os.path.exists(MC_WIDOT_DBF.replace(".dbf", ID_FLAG + ".shp"))
 
-    _MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_id_2_rdwy_ctgy"] = ValueLookup(
-        input_filename = outfile_filename.replace(".shp",".dbf"),
-        input_key_field = "LINK_ID",
-        target_df_key_field = "widot_link_id",
-        field_mapping = {"RDWY_CTGY_": "widot_rdwy_ctgy"},
+if not os.path.exists(MC_WIDOT_DBF):
+    if not os.path.exists(NO_ID_SHP):
+        raise (ValueError("File not found for MC_WI_DBF: {}".format(MC_WIDOT_DBF)))
+
+    from .metcouncil import add_id_field_to_shapefile
+
+    add_id_field_to_shapefile(
+        NO_ID_SHP,
+        outfile_filename=MC_WIDOT_DBF.replace(".dbf", ".shp"),
+        fieldname="LINK_ID",
     )
+
+_MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_id_2_rdwy_ctgy"] = ValueLookup(
+    input_filename=MC_WIDOT_DBF,
+    input_key_field="LINK_ID",
+    target_df_key_field="widot_link_id",
+    field_mapping={"RDWY_CTGY_": "widot_rdwy_ctgy"},
+)
 
 
 ############################
@@ -477,7 +480,9 @@ except FieldError:
 ###########################
 
 #   OSM
-_MC_DEFAULT_PARAMS["roadway_value_lookups"]["osm_roadway_assigngrp_mapping"] = ValueLookup(
+_MC_DEFAULT_PARAMS["roadway_value_lookups"][
+    "osm_roadway_assigngrp_mapping"
+] = ValueLookup(
     input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
@@ -492,7 +497,9 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["osm_roadway_assigngrp_mapping"] = V
     },
 )
 
-_MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_roadway_assigngrp_mapping"] = ValueLookup(
+_MC_DEFAULT_PARAMS["roadway_value_lookups"][
+    "mrcc_roadway_assigngrp_mapping"
+] = ValueLookup(
     input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
@@ -507,7 +514,9 @@ _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mrcc_roadway_assigngrp_mapping"] = 
     },
 )
 
-_MC_DEFAULT_PARAMS["roadway_value_lookups"]["widot_roadway_assigngrp_mapping"] = ValueLookup(
+_MC_DEFAULT_PARAMS["roadway_value_lookups"][
+    "widot_roadway_assigngrp_mapping"
+] = ValueLookup(
     input_filename=os.path.join(
         _MC_DEFAULT_PARAMS["data_directory"],
         "lookups",
@@ -532,28 +541,30 @@ MC_LANES_LOOKUP_CSV = os.path.join(
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["lanes"] = ValueLookup(
     MC_LANES_LOOKUP_CSV,
-    input_csv_has_header = True,
-    input_key_field = "model_link_id",
-    target_df_key_field = "model_link_id",
+    input_csv_has_header=True,
+    input_key_field="model_link_id",
+    target_df_key_field="model_link_id",
 )
 
 ### OUTPUT ASSISTANCE
+
 
 MC_NET_DBF_CROSSWALK_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "lookups", "net_to_dbf.csv"
 )
 
-MC_NET_DBF_CROSSWALK = FieldMapping(
+_MC_DEFAULT_PARAMS["roadway_field_mappings"]["net_to_dbf"] = FieldMapping(
     input_filename=MC_NET_DBF_CROSSWALK_CSV,
     input_csv_has_header=True,
     input_csv_fields=("net", "dbf"),
 )
 
+
 MC_LOG_TO_NET_CROSSWALK_CSV = os.path.join(
     _MC_DEFAULT_PARAMS["data_directory"], "lookups", "log_to_net.csv"
 )
 
-MC_LOG_TO_NET_CROSSWALK = FieldMapping(
+_MC_DEFAULT_PARAMS["roadway_field_mappings"]["log_to_net"] = FieldMapping(
     input_filename=MC_LOG_TO_NET_CROSSWALK_CSV,
     input_csv_has_header=True,
     input_csv_fields=("log", "net"),
@@ -572,4 +583,4 @@ MC_ROUTE_TYPE_MODE_LOOKUP = {
     2: 9,
 }
 
-MC_DEFAULT_PARAMS =  copy.deepcopy(_MC_DEFAULT_PARAMS)
+MC_DEFAULT_PARAMS = copy.deepcopy(_MC_DEFAULT_PARAMS)

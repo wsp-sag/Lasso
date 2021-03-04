@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from lasso.metcouncil import MetCouncilRoadwayNetwork
 from lasso import Parameters, ModelRoadwayNetwork
 from network_wrangler import RoadwayNetwork
 
@@ -20,7 +21,7 @@ STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
 def _read_stpaul_net():
-    net = RoadwayNetwork.read(
+    net = MetCouncilRoadwayNetwork(
         link_filename=STPAUL_LINK_FILE,
         node_filename=STPAUL_NODE_FILE,
         shape_filename=STPAUL_SHAPE_FILE,
@@ -53,6 +54,7 @@ def test_parameter_read(request):
     print(params.__dict__)
     ## todo write an assert that actually tests something
 
+
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_network_split_variables_by_time(request):
@@ -67,6 +69,7 @@ def test_network_split_variables_by_time(request):
     assert "trn_priority_AM" in net.links_df.columns
     print(net.links_df.info())
     ## todo write an assert that actually tests something
+
 
 @pytest.mark.roadway
 @pytest.mark.travis
@@ -84,7 +87,6 @@ def test_calculate_count(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.elo
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_write_cube_roadway(request):
@@ -99,7 +101,6 @@ def test_write_cube_roadway(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.elo
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_write_roadway_as_shape(request):
