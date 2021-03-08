@@ -1140,7 +1140,14 @@ class StandardTransit(object):
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
 
+        trip_stop_times_df.sort_values(by = ["stop_sequence"], inplace = True)
+        # sometimes GTFS `stop_sequence` does not start with 1, e.g. SFMTA light rails
+        trip_stop_times_df["internal_stop_sequence"] = range(1, 1+len(trip_stop_times_df))
+        # sometimes GTFS `departure_time` is not recorded for every stop, e.g. VTA light rails
+        trip_stop_times_df["departure_time"].fillna(method = "ffill", inplace = True)
         trip_stop_times_df["NNTIME"] = trip_stop_times_df["departure_time"].diff() / 60
+        # CUBE NNTIME takes 2 decimals
+        trip_stop_times_df["NNTIME"] = trip_stop_times_df["NNTIME"].round(2)
         trip_stop_times_df["NNTIME"].fillna(-1, inplace = True)
 
         # node list
@@ -1148,7 +1155,7 @@ class StandardTransit(object):
         for nodeIdx in range(len(trip_node_list)):
             if trip_node_list[nodeIdx] in stop_node_id_list:
                 stop_seq = trip_stop_times_df.loc[
-                    trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx], "stop_sequence"].iloc[0]
+                    trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx], "internal_stop_sequence"].iloc[0]
                 if (add_nntime) & (stop_seq > 1):
                     nntime = ", NNTIME=%s" % (trip_stop_times_df.loc[
                         trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx], "NNTIME"].iloc[0])
