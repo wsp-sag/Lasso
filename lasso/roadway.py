@@ -1040,10 +1040,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        if "centroidconnect" not in self.links_df:
-            msg = "No variable specified for centroid connector, calculating centroidconnect first"
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+        if ("centroidconnect" not in self.links_df) & ("taz" not in self.links_df.roadway.unique()):
+            if centroidconnect_only:
+                msg = "No variable specified for centroid connector, calculating centroidconnect first"
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
 
         """
         Start actual process

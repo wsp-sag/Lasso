@@ -184,7 +184,7 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_transit_source:
-            base_transit_network = CubeTransit.create_from_cube(base_transit_source)
+            base_transit_network = CubeTransit.create_from_cube(base_transit_source, parameters)
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
             )
@@ -207,7 +207,7 @@ class Project(object):
             raise ValueError(msg)
         if build_transit_source:
             WranglerLogger.debug("build")
-            build_transit_network = CubeTransit.create_from_cube(build_transit_source)
+            build_transit_network = CubeTransit.create_from_cube(build_transit_source, parameters)
             WranglerLogger.debug(
                 "Build network has {} lines".format(len(build_transit_network.lines))
             )

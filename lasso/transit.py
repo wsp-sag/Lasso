@@ -172,7 +172,7 @@ class CubeTransit(object):
         WranglerLogger.debug("Added lines to CubeTransit: \n".format(new_lines))
 
     @staticmethod
-    def create_from_cube(transit_source: str):
+    def create_from_cube(transit_source: str, parameters: Optional[dict] = {}):
         """
         Reads a cube .lin file and stores as TransitNetwork object.
 
@@ -183,7 +183,7 @@ class CubeTransit(object):
             A ::CubeTransit object created from the transit_source.
         """
 
-        tn = CubeTransit()
+        tn = CubeTransit(parameters)
         tn.add_cube(transit_source)
 
         return tn
