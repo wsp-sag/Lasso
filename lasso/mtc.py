@@ -1441,24 +1441,6 @@ def route_properties_gtfs_to_cube(
         trip_df.agency_id
     )
 
-    trip_df["NAME"] = trip_df.apply(
-        lambda x: str(x.agency_id)
-        + "_"
-        + str(x.route_id)
-        + "_"
-        #+ str(x.route_short_name)
-        #+ "_"
-        + x.tod_name
-        + "_"
-        + "d"
-        + str(int(x.direction_id))
-        + "_"
-        + x.shp_id,
-        axis=1,
-    )
-
-    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
-
     trip_df["LONGNAME"] = trip_df["route_long_name"]
     trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
 
@@ -1481,6 +1463,22 @@ def route_properties_gtfs_to_cube(
     trip_df["ONEWAY"] = "T"
 
     trip_df["agency_id"].fillna("", inplace = True)
+
+    trip_df["NAME"] = trip_df.apply(
+        lambda x: str(x.TM2_operator)
+        + "_"
+        + str(x.route_id)
+        + "_"
+        + x.tod_name
+        + "_"
+        + "d"
+        + str(int(x.direction_id))
+        + "_s"
+        + x.shape_id,
+        axis=1,
+    )
+
+    trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
 
     # faresystem
     zonal_fare_dict = faresystem_crosswalk[
