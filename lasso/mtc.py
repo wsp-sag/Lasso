@@ -1144,9 +1144,12 @@ def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
         row = flat_fare_system_df.iloc[i]
         far += "FARESYSTEM NUMBER={}".format(row["faresystem"])
         far += ',NAME=\"%s"'%(row["agency_raw_name"])
-        far += ",STRUCTURE=FLAT,IBOARDFARE={},".format(row["price"])
-        far += "FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(row["price"], len(fare_system_df))))
-        far += "\n"
+        if row["price"] == 0:
+            far += ",STRUCTURE=FREE\n"
+        else:
+            far += ",STRUCTURE=FLAT,IBOARDFARE={},".format(row["price"])
+            far += "FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(row["price"], len(fare_system_df))))
+            far += "\n"
 
     return far
 
