@@ -1007,7 +1007,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def calculate_distance(
-        self, network_variable="distance", centroidconnect_only=True, overwrite=False
+        self, network_variable="distance", centroidconnect_only=False, overwrite=False
     ):
         """
         calculate link distance in miles
@@ -1084,7 +1084,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ##Why are we doing this?
         # int_col_names.remove("lanes")
 
-        for c in list(set(self.links_df.columns) & set(int_col_names)):
+        for c in list(set(self.links_df.columns) & set(int_col_names)):	
             try:
                 self.links_df[c] = self.links_df[c].replace(np.nan, 0)
                 self.links_df[c] = self.links_df[c].astype(int)
