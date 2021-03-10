@@ -1543,7 +1543,7 @@ def cube_format(transit_network, row):
     """
 
     s = '\nLINE NAME="{}",'.format(row.NAME)
-    s += '\n LONGNAME="{}",'.format(row.LONGNAME)
+    s += '\n LONGNAME="{}",'.format(str(row.LONGNAME).replace('"', ''))
     s += '\n USERA1=\"%s",' % (row.agency_id if row.agency_id != "" else row.agency_raw_name)
     s += '\n USERA2=\"%s",' % (row.TM2_line_haul_name,)
     s += "\n HEADWAY[{}]={},".format(row.tod, row.HEADWAY)
