@@ -1098,9 +1098,11 @@ def write_cube_fare_files(
     flat_fare_df.drop_duplicates(["route_id", "agency_raw_name"], inplace = True)
     flat_fare_df["route_id"] = flat_fare_df["route_id"].fillna(0).astype(int).astype(str)
 
+    transfer_df = pd.read_csv(os.path.join(outpath, "transfer.csv"))
+    transfer_df.drop_duplicates(inplace = True)
     # write out fare system file
     fare_file = os.path.join(outpath, "fares.far")
-    far = cube_fare_format(zonal_fare_system_df, flat_fare_system_df)
+    far = cube_fare_format(zonal_fare_system_df, flat_fare_system_df, transfer_df)
     with open(fare_file, "w") as f:
         f.write(far)
 
@@ -1121,7 +1123,7 @@ def write_cube_fare_files(
         index = False
     )
 
-def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
+def cube_fare_format(zonal_fare_system_df, flat_fare_system_df, transfer = DataFrame()):
     """
     Create a .far file
     """
@@ -1131,13 +1133,34 @@ def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
         ignore_index = True
     )
 
+    transfer_fare_df = DataFrame(
+        {
+        "fromfs" : np.repeat(range(1, len(fare_system_df) + 1), len(fare_system_df)),
+        "tofs" : np.tile(range(1, len(fare_system_df) + 1), len(fare_system_df)),
+        }
+    )
+
+    transfer_fare_df = pd.merge(transfer_fare_df, transfer, how = "left", on = ["fromfs", "tofs"])
+
+    for i in range(len(zonal_fare_system_df)):
+        row = zonal_fare_system_df.iloc[i]
+        tofs = row["faresystem"]
+        transfer_fare_df.loc[(transfer_fare_df["tofs"] == tofs) & (transfer_fare_df["price"].isnull()), "price"] = 0
+
+    for i in range(len(flat_fare_system_df)):
+        row = flat_fare_system_df.iloc[i]
+        tofs = row["faresystem"]
+        transfer_fare_df.loc[(transfer_fare_df["tofs"] == tofs) & (transfer_fare_df["price"].isnull()), "price"] = row["price"]
+
+    transfer_df = pd.pivot_table(transfer_fare_df, values=["price"], index=["tofs"], columns="fromfs", dropna = False)
+
     far = ""
     for i in range(len(zonal_fare_system_df)):
         row = zonal_fare_system_df.iloc[i]
         far += "FARESYSTEM NUMBER={}".format(row["faresystem"])
         far += ',NAME=\"%s"'%(row["agency_raw_name"])
         far += ",STRUCTURE=FROMTO,FAREMATRIX=FMI.1.{},".format(row["faresystem"])
-        far += "FAREZONES=NI.FAREZONE,FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(0, len(fare_system_df))))
+        far += "FAREZONES=NI.FAREZONE,FAREFROMFS={}".format(",".join(str(x) for x in transfer_df.loc[row["faresystem"]]))
         far += "\n"
 
     for i in range(len(flat_fare_system_df)):
@@ -1148,7 +1171,7 @@ def cube_fare_format(zonal_fare_system_df, flat_fare_system_df):
             far += ",STRUCTURE=FREE\n"
         else:
             far += ",STRUCTURE=FLAT,IBOARDFARE={},".format(row["price"])
-            far += "FAREFROMFS={}".format(",".join(str(x) for x in np.repeat(row["price"], len(fare_system_df))))
+            far += "FAREFROMFS={}".format(",".join(str(x) for x in transfer_df.loc[row["faresystem"]]))
             far += "\n"
 
     return far
