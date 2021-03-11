@@ -338,9 +338,12 @@ class Project(object):
                 _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[1:]
                 WranglerLogger.debug("Link Cols: {}".format(_linkcol))
 
-                _node_df = pd.DataFrame([x.split(",") for x in _node_lines[1:]],columns = _nodecol)
+                def split_log(x):
+                    return list(reader([x], delimiter=',', quotechar='"'))[0]
+
+                _node_df = pd.DataFrame([split_log(x) for x in _node_lines[1:]],columns = _nodecol)
                 WranglerLogger.debug("Node DF: {}".format(_node_df))
-                _link_df = pd.DataFrame([x.split(",") for x in _link_lines[1:]],columns = _linkcol)
+                _link_df = pd.DataFrame([split_log(x) for x in _link_lines[1:]],columns = _linkcol)
                 WranglerLogger.debug("Link DF: {}".format(_link_df))
 
                 node_df = pd.concat([node_df,_node_df])
@@ -524,7 +527,7 @@ class Project(object):
             """
             WranglerLogger.debug("Processing link additions")
             cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
-            if not cube_add_df.shape[1]:
+            if len(cube_add_df) == 0:
                 WranglerLogger.debug("No link additions processed")
                 return {}
 
@@ -554,7 +557,7 @@ class Project(object):
             """
             WranglerLogger.debug("Processing node additions")
 
-            if not node_add_df.shape[1]:
+            if len(node_add_df) == 0:
                 WranglerLogger.debug("No node additions processed")
                 return []
 
@@ -598,7 +601,7 @@ class Project(object):
             for col in changeable_col:
                 WranglerLogger.debug("Assessing Column: {}".format(col))
                 # if it is the same as before, or a static value, don't process as a change
-                if str(change_row[col]) == str(base_row[col]):
+                if str(change_row[col]).strip('"\'') == str(base_row[col]).strip('"\''):
                     continue
                 if (col == "roadway_class") & (change_row[col] == 0):
                     continue
@@ -784,7 +787,8 @@ class Project(object):
         add_link_dict = _process_link_additions(
             link_changes_df, limit_variables_to_existing_network
         )
-        add_link_dict["nodes"] = _process_node_additions(node_add_df)
+        if len(_process_node_additions(node_add_df)):
+            add_link_dict["nodes"] = _process_node_additions(node_add_df)
 
         # process changes
         WranglerLogger.debug("Processing changes")
