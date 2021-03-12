@@ -121,6 +121,8 @@ def calculate_number_of_lanes(
         try:
             if x.centroidconnect == 1:
                 return int(centroid_connect_lanes)
+            elif x.drive_access == 0:
+               return int(0)
             elif max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington])>0:
                 return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
             elif max([x.widot, x.mndot])>0:
