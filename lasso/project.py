@@ -630,6 +630,17 @@ class Project(object):
             # 3. Iterate through columns with changed values and structure the changes as expected in  project card
             property_dict_list = []
             processed_properties = []
+
+            # check if it's a manged lane change
+            for c in changed_col:
+                if c.startswith("ML_"):
+                    # TODO ML project card skeleton
+                    msg = "Detected managed lane changes, please create managed lane project card!"
+                    WranglerLogger.error(msg)
+                    raise ValueError(msg)
+                    return
+
+            # regular roadway property change
             for c in changed_col:
                 # WranglerLogger.debug("Processing Column: {}".format(c))
                 (
@@ -648,23 +659,37 @@ class Project(object):
                         "set": change_row[c],
                     }
                 if p_time_period:
-                    _d["time"] = list(
-                        self.parameters.time_period_to_time[p_time_period]
-                    )
-                    if p_category:
-                        _d["category"] = p_category
+                    if managed_lane == 1:
+                        _d["time"] = list(
+                            self.parameters.time_period_to_time[p_time_period]
+                        )
+                        if p_category:
+                            _d["category"] = p_category
 
                 # iterate through existing properties that have been changed and see if you should just add
-                if p_base_name in processed_properties:
+                if (p_base_name in processed_properties) & (managed_lane == 1):
                     for processed_p in property_dict_list:
                         if processed_p["property"] == p_base_name:
                             processed_p["timeofday"] += [_d]
+                elif (p_base_name in processed_properties) & (managed_lane == 0):
+                    for processed_p in property_dict_list:
+                        if processed_p["property"] == p_base_name:
+                            if processed_p["set"] != change_row[c]:
+                                msg = "Detected different changes for split-property variables on regular roadway links: "
+                                msg += "conflicting \"{}\" values \"{}\", \"{}\"".format(p_base_name, processed_p["set"], change_row[c])
+                                WranglerLogger.error(msg)
+                                raise ValueError(msg)
                 elif p_time_period:
-                    property_dict = {"property": p_base_name, "timeofday": [_d]}
-                    processed_properties.append(p_base_name)
-                    property_dict_list.append(property_dict)
+                    if managed_lane == 1:
+                        property_dict = {"property": p_base_name, "timeofday": [_d]}
+                        processed_properties.append(p_base_name)
+                        property_dict_list.append(property_dict)
+                    else:
+                        _d["property"] = p_base_name
+                        processed_properties.append(_d["property"])
+                        property_dict_list.append(_d)
                 else:
-                    _d["property"] = c
+                    _d["property"] = p_base_name
                     processed_properties.append(_d["property"])
                     property_dict_list.append(_d)
 
