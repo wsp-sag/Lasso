@@ -1171,6 +1171,9 @@ class StandardTransit(object):
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
 
+        # remove NNTIME = 0
+        node_list_str = node_list_str.replace(" NNTIME=0.0, N=", "")
+
         return node_list_str
 
 
