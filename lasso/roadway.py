@@ -78,6 +78,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = None
         self.nodes_metcouncil_df = None
+
+        self.fill_na()
+        self.convert_int()
         # self.shapes_metcouncil_df = None
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))

@@ -1132,6 +1132,7 @@ class StandardTransit(object):
 
         trip_node_df = self.feed.shapes.copy()
         trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
+        trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
         trip_stop_times_df = pd.merge(
             trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
