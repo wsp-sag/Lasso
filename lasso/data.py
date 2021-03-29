@@ -1,15 +1,14 @@
 """
-Structures data overlaps as dataclasses with good defaults and helper methods. 
+Structures data overlaps as dataclasses with good defaults and helper methods.
 
 Example:
-    
+
 """
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Union, List, Dict, Tuple, Set, Mapping, Collection, Sequence
+from typing import Any, Union, Mapping, Collection
 
-import numpy as np
 import pandas as pd
 import geopandas as gpd
 from pandas import DataFrame
@@ -70,8 +69,7 @@ class FieldMapping:
                 if self.field_mapping.get(row[self.input_csv_fields[0]]):
                     raise FieldError(
                         "Field rename csv {} has duplicate entry for field: {}".format(
-                            self.input_filename,
-                            row[self.input_csv_fields[0]],
+                            self.input_filename, row[self.input_csv_fields[0]]
                         )
                     )
                 self.field_mapping[row[self.input_csv_fields[0]]] = row[
@@ -92,8 +90,9 @@ class ValueLookup:
         field_mapping: Mapping from the csv field (indicated by int or string) and
             target df field.#  input csv/json_field, output/target_field
         update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
-            "update if found", or "update nan". Defaults to "update if found"
-        value_mapping: Mapping of the target field name to a mapping of the key/values
+            "update if found", or "update nan". Defaults to "update if found".
+        assert_types: Mapping of fields to any types which should be asserted on the input_filename
+            as it is read into a DataFrame.
     """
 
     input_filename: str = None
@@ -102,6 +101,7 @@ class ValueLookup:
     target_df_key_field: str = None
     field_mapping: Mapping[Union[str, int], str] = field(default_factory=dict)
     update_method: str = "update if found"
+    assert_types: Mapping[str, Any] = field(default_factory=dict)
     _mapping_df: DataFrame = None
 
     @property
@@ -147,9 +147,9 @@ class ValueLookup:
         elif file_extension.lower() in [".geojson", ".json", ".dbf", ".shp"]:
             _cols = gpd.read_file(self.input_filename, nrows=0).columns.tolist()
         else:
-            msg = "Value Mapping does not have a recognized file extension: \n   self.input_filename: {}\n   file_extension: {}".format(
-                self.input_filename, file_extension
-            )
+            msg = f"""Value Mapping does not have a recognized file extension: \n
+                self.input_filename: {self.input_filename}\n
+                file_extension: {file_extension}"""
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -168,10 +168,12 @@ class ValueLookup:
 
     def read_mapping(self, mapping_filename: str = None) -> None:
         """
-        Reads in a mapping file from various formats (csv, geojson, dbf, shp, etc) and stores it as self.mapping_df.
+        Reads in a mapping file from various formats (csv, geojson, dbf, shp, etc)
+        and stores it as self._mapping_df.
 
         Args:
-            mapping_filename: file to read in. Will default to self.input_filename if none given.
+            mapping_filename: file to read in. Will default to self.input_filename
+                if none given.
         """
         if mapping_filename is None:
             mapping_filename = self.input_filename
@@ -190,31 +192,30 @@ class ValueLookup:
         elif file_extension.lower() in [".geojson", ".json", ".dbf", ".shp"]:
             self.read_mapping_geopandas(mapping_filename)
         else:
-            msg = "Value Mapping [self.input_filename: {}] does not have a recognized file extension: {}".format(
-                self.input_filename, file_extension
-            )
+            msg = f"""Value Mapping [self.input_filename: {self.input_filename}]
+                does not have a recognized file extension: { file_extension}"""
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
     def read_mapping_geopandas(self, input_filename: str) -> None:
         """
-        Reads in a geopandas-compatible format and stores it as self.mapping_df.
+        Reads in a geopandas-compatible format and stores it as self._mapping_df.
 
         Args:
             input_filename: file to be read in as a mapping.
         """
 
-        gdf = gpd.read_file(input_filename)
+        gdf = gpd.read_file(input_filename, dtype=self.assert_types)
 
         if self.field_mapping:
             usecols = [self.input_key_field] + list(self.field_mapping.keys())
-            self.mapping_df = gdf[usecols]
+            self._mapping_df = gdf[usecols]
         else:
-            self.mapping_df = gdf
+            self._mapping_df = gdf
 
     def read_csv_mapping(self, input_filename: str) -> None:
         """
-        Reads in a csv or text format and stores it as self.mapping_df.
+        Reads in a csv or text format and stores it as self._mapping_df.
 
         Args:
             input_filename: file to be read in as a mapping.
@@ -229,11 +230,11 @@ class ValueLookup:
                 self.input_filename,
                 header=_h,
                 usecols=[self.input_key_field] + list(self.field_mapping.keys()),
+                dtype=self.assert_types,
             )
         else:
             self._mapping_df = pd.read_csv(
-                self.input_filename,
-                header=_h,
+                self.input_filename, header=_h, dtype=self.assert_types
             )
 
     def apply_mapping(self, target_df: DataFrame, update_method: str = None):
@@ -242,14 +243,15 @@ class ValueLookup:
 
         Args:
             target_df: pandas DataFrame to apply mapping to.
-            update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
-                "update if found", or "update nan". Defaults to class instance value which defaults to "update if found"
+            update_method: update method to use in network_wrangler.update_df.
+                One of "overwrite all","update if found", or "update nan". Defaults
+                to class instance value which defaults to "update if found"
         Returns a merged DataFrame.
         """
-        if self._mapping_df == None:
+        if self._mapping_df is None:
             self.read_mapping()
 
-        if update_method == None:
+        if update_method is None:
             update_method = self.update_method
 
         out_df = update_df(
@@ -257,7 +259,7 @@ class ValueLookup:
             self._mapping_df.rename(columns=self.field_mapping),
             left_on=self.target_df_key_field,
             right_on=self.input_key_field,
-            update_fields=list(self.field_mapping.keys()),
+            update_fields=list(self.field_mapping.values()),
             method=update_method,
         )
 
@@ -271,10 +273,14 @@ class PolygonOverlay:
     Args:
         input_filename (str, Optional): Defaults to None.
         field_mapping (Mapping[str,str], Optional): Defaults to {}.
-        update_method (str, Optional): update method to use in network_wrangler.update_df. One of "overwrite all",
-                "update if found", or "update nan". Defaults to class instance value which defaults to "update if found"
-        gdf (GeoDataFrame, Optional): Storage of polygon overlay from input_filename. Defaults to None.
+        update_method (str, Optional): update method to use in network_wrangler.update_df.
+            One of "overwrite all", "update if found", or "update nan". Defaults to class
+            instance value which defaults to "update if found"
         added_id (str, Optional): If specified, will
+        fill_values_dict (Mapping[str,Any], Optional): If filled, will add a field
+            for each row in the input_filename's geographic scope equal to the value.
+            {new_field_name: value_name}. Cannot be used with field mapping, has to be one
+            or the other. Defaults to None.
 
     Raises:
         ValueError: [description]
@@ -282,11 +288,24 @@ class PolygonOverlay:
     """
 
     input_filename: str = None
-    field_mapping: Mapping[str, str] = field(default_factory=dict)  # target,overlay
+    field_mapping: Mapping[str, str] = field(
+        default_factory=dict
+    )  # from overlay --> to target
     update_method: str = "update if found"
-    gdf: GeoDataFrame = None
+    _gdf: GeoDataFrame = None
     added_id: str = ""  # "LINK_ID"
-    fill_values_dict: Dict[str, Any] = None
+    fill_values_dict: Mapping[str, Any] = None
+
+    @property
+    def gdf(self):
+        """Lazy loading of mapping dataframe.
+
+        Returns:
+            DataFrame: maps the values
+        """
+        if self._gdf is None:
+            self.read_file_to_gdf()
+        return self._gdf
 
     def __post_init__(self):
         if not os.path.exists(self.input_filename):
@@ -295,14 +314,40 @@ class PolygonOverlay:
                     self.input_filename
                 )
             )
-        if not self.gdf:
-            self.read_file_to_gdf()
-        if self.added_id:
-            self.add_id(self.added_id)
 
         if self.fill_values_dict and self.field_mapping:
             raise ValueError(
                 "Can't have field_mapping and fill value, but recieved both."
+            )
+
+        if self.field_mapping:
+            self.check_fields()
+
+    def check_fields(self):
+        """
+        Read header of mapping file and check to make sure key field and mapping fields
+        are columns.
+        """
+
+        _, file_extension = os.path.splitext(self.input_filename)
+
+        if file_extension.lower() in [".geojson", ".json", ".dbf", ".shp"]:
+            _cols = gpd.read_file(self.input_filename, nrows=0).columns.tolist()
+        else:
+            msg = f"""Polygon overlay does not have a recognized file extension: \n
+                self.input_filename: {self.input_filename}\n
+                file_extension: {file_extension}"""
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
+
+        _missing_fields = list(set(list(self.field_mapping.keys())) - set(_cols))
+
+        if _missing_fields:
+            raise FieldError(
+                "Missing the following requiredfields in the PolygonOverlay GEOJSON/SHP file {},\
+                which are specified: {}".format(
+                    self.input_filename, _missing_fields
+                )
             )
 
     def __str__(self):
@@ -323,10 +368,13 @@ class PolygonOverlay:
         """
         if not input_filename:
             input_filename = self.input_filename
-        self.gdf = gpd.read_file(input_filename)
+        self._gdf = gpd.read_file(input_filename)
         WranglerLogger.debug(
             "Read file {} with columns\n{}".format(input_filename, self.gdf.columns)
         )
+
+        if self.added_id:
+            self.add_id(self.added_id)
 
     def add_id(self, added_id: str) -> None:
         """

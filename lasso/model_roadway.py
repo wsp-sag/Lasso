@@ -1,24 +1,20 @@
 import copy
-import glob
-import inspect
 import itertools
 import os
-from typing import Optional, Union, Mapping, Any, Collection, Dict
+from typing import Union, Mapping, Any, Collection, Dict
 
 import geopandas as gpd
-import pandas as pd
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame
-import numpy as np
 
 from network_wrangler import RoadwayNetwork
 
-from .cube import write_cube_hwy_net_script_network_from_ff_files
+from .cube.cube_roadway import write_cube_hwy_net_script_network_from_ff_files
 from .parameters import Parameters
 from .logger import WranglerLogger
 from .data import FieldMapping, PolygonOverlay, update_df
-from .util import fill_df_na, coerce_df_types, write_df_to_fixed_width
+from .utils import fill_df_na, coerce_df_types, write_df_to_fixed_width
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):
@@ -28,11 +24,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
     A representation of the physical roadway network and its properties.
     """
 
-    CALCULATED_VALUES = [
-        "area_type",
-        "county",
-        "centroidconnect",
-    ]
+    CALCULATED_VALUES = ["area_type", "county", "centroidconnect"]
 
     def __init__(
         self,
@@ -53,28 +45,32 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             shapes: geodataframe of shapes
             parameters: instance of Parameters.
             parameters_dict: dictionary of parameter settings (see Parameters class).
-            ml_already_split: indicates if incoming network already has managed lanes split into separate links.
+            ml_already_split: indicates if incoming network already has managed lanes split
+                into separate links.
                 if True, will copy links_df also to model_links_df. Defaults to False.
             split_properties: if True, will run split_properties_by_time_period_and_category.
                 which is useful for creating project cards. Defaults to False.
             crs (int): coordinate reference system, ESPG number
             node_foreign_key (str):  variable linking the node table to the link table
-            link_foreign_key (list): list of variable linking the link table to the node foreign key
+            link_foreign_key (list): list of variable linking the link table to the node
+                foreign key
             shape_foreign_key (str): variable linking the links table and shape table
             unique_link_key (str): variable used for linking link tables to each other
             unique_node_key (str): variable used for linking node tables to each other
             unique_link_ids (list): list of variables unique to each link
             unique_node_ids (list): list of variables unique to each node
-            modes_to_network_link_variables (dict): Mapping of modes to link variables in the network
-            modes_to_network_nodes_variables (dict): Mapping of modes to node variables in the network
-            managed_lanes_node_id_scalar (int): Scalar values added to primary keys for nodes for
-                corresponding managed lanes.
-            managed_lanes_link_id_scalar (int): Scalar values added to primary keys for links for
-                corresponding managed lanes.
-            managed_lanes_required_attributes (list): attributes that must be specified in managed
-                lane projects.
-            keep_same_attributes_ml_and_gp (list): attributes to copy to managed lanes from parallel
-                general purpose lanes.
+            modes_to_network_link_variables (dict): Mapping of modes to link variables
+                in the network
+            modes_to_network_nodes_variables (dict): Mapping of modes to node variables
+                in the network
+            managed_lanes_node_id_scalar (int): Scalar values added to primary keys for
+                nodes for corresponding managed lanes.
+            managed_lanes_link_id_scalar (int): Scalar values added to primary keys for
+                links for corresponding managed lanes.
+            managed_lanes_required_attributes (list): attributes that must be specified
+                in managed lane projects.
+            keep_same_attributes_ml_and_gp (list): attributes to copy to managed lanes
+                from parallel general purpose lanes.
         """
         if parameters:
             WranglerLogger.debug(
@@ -85,7 +81,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         else:
             WranglerLogger.debug(
                 "ModelRoadwayNetwork.__init__: initializing Parameters instance with: \n{}".format(
-                    _params_dict
+                    parameters_dict
                 )
             )
             self.parameters = Parameters.initialize(input_ps=parameters_dict, **kwargs)
@@ -94,7 +90,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.additional_initialization(**kwargs)
 
-        # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
+        # msg = "Used PARAMS\n"+'\n'.join(
+        #       ['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]
+        #   )
+        # WranglerLogger.debug(msg)
 
     @staticmethod
     def read(
@@ -109,7 +108,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         **kwargs,
     ):
         """
-        Reads in links and nodes network standard. Default parameters will be overriden in following order:
+        Reads in links and nodes network standard. Default parameters will be overriden
+            in following order:
          - instance properties from the roadway_network_object
          - parameters kwarg for this method
          - parameters_dict dictionary of parameters from this method call
@@ -119,12 +119,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             node_filename: File path to node geojson.
             shape_filename: File path to link true shape geojson
             fast: boolean that will skip validation to speed up read time.
-            ml_already_split: indicates if incoming network already has managed lanes split into separate links.
+            ml_already_split: indicates if incoming network already has managed lanes split
+                into separate links.
                 if True, will copy links_df also to model_links_df. Defaults to False.
-            split_properties: indicates if network variables should be split by time and day and category
-                upon being read in. Often necessary for turning log files into ProjectCards. Defaults to False.
+            split_properties: indicates if network variables should be split by time and
+                day and category upon being read in. Often necessary for turning log files
+                into ProjectCards.  Defaults to False.
             parameters: instance of Parameters.
-            parameters_dict: dictionary of parameter settings (see Parameters class). Overwrites settins in parameters.
+            parameters_dict: dictionary of parameter settings (see Parameters class).
+                Overwrites settins in parameters.
 
         Returns:
             ModelRoadwayNetwork
@@ -166,17 +169,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         return m_road_net
 
     def additional_initialization(
-        self,
-        ml_already_split: bool = False,
-        split_properties: bool = False,
-        **kwargs,
+        self, ml_already_split: bool = False, split_properties: bool = False, **kwargs
     ):
         """
         Add additional variables which a *model*roadway network needs to have in
         addition to a RoadwayNetwork.
 
         Args:
-            ml_already_split: indicates if incoming network already has managed lanes split into separate links.
+            ml_already_split: indicates if incoming network already has managed lanes split
+                into separate links.
                 if True, will copy links_df also to model_links_df. Defaults to False.
             split_properties: if True, will run split_properties_by_time_period_and_category.
                 which is useful for creating project cards. Defaults to False.
@@ -189,10 +190,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 self.links_df
             )
 
-        self.links_model_df = None
+        self.model_links_df = None
 
         if ml_already_split:
-            self.links_model_df = copy.deepcopy(self.links_df)
+            self.model_links_df = copy.deepcopy(self.links_df)
 
         self.coerce_network_types()
 
@@ -217,8 +218,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             roadway_network_object: instance of a RoadwayNetwork from NetworkWrangler
             parameters: instance of Parameters.
             parameters_dict: dictionary of parameter settings (see Parameters class).
-            ml_already_split: indicates if incoming network already has managed lanes split into separate links.
-                if True, will copy links_df also to model_links_df. Defaults to False.
+            ml_already_split: indicates if incoming network already has managed lanes
+                split into separate links. if True, will copy links_df also to model_links_df.
+                Defaults to False.
             split_properties: if True, will run split_properties_by_time_period_and_category.
                 which is useful for creating project cards. Defaults to False.
 
@@ -241,9 +243,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             # WranglerLogger.debug("[.from_RoadwayNetwork()._parameters] {}".format(_parameters))
         else:
             WranglerLogger.debug(
-                "ModelRoadwayNetwork.from_RoadwayNetwork(): initializing Parameters instance with: \n{}".format(
-                    parameters_dict
-                )
+                f"""[ModelRoadwayNetwork.from_RoadwayNetwork()]:
+                    initializing Parameters instance with: \n
+                    {parameters_dict}"""
             )
             _parameters = Parameters.initialize(input_ps=parameters_dict, **kwargs)
 
@@ -276,8 +278,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         if time_periods and categories:
             for time_suffix, category_suffix in itertools.product(
-                list(time_periods.keys()),
-                list(categories.keys()),
+                list(time_periods.keys()), list(categories.keys())
             ):
                 self.links_df[
                     property_name + "_" + category_suffix + "_" + time_suffix
@@ -312,20 +313,61 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         Args:
             properties_to_split: dict
-                dictionary of output variable prefix mapped to the source variable and what to stratify it by
+                dictionary of output variable prefix mapped to the source variable
+                and what to stratify it by
                 e.g.
                 {
-                    'trn_priority' : {'v':'trn_priority', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'ttime_assert' : {'v':'ttime_assert', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'lanes' : {'v':'lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'ML_lanes' : {'v':'ML_lanes', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
-                    'price' : {'v':'price', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},'categories': {"sov": ["sov", "default"],"hov2": ["hov2", "default", "sov"]}},
-                    'access' : {'v':'access', 'times_periods':{"AM": ("6:00", "9:00"),"PM": ("16:00", "19:00")}},
+                    'trn_priority' : {
+                        'v':'trn_priority',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")
+                        }
+                    },
+                    'ttime_assert' : {
+                        'v':'ttime_assert',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")
+                        }
+                    },
+                    'lanes' : {
+                        'v':'lanes',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")
+                        }
+                    },
+                    'ML_lanes' : {
+                        'v':'ML_lanes',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")
+                        }
+                    },
+                    'price' : {
+                        'v':'price',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")}
+                        },
+                        'categories': {
+                            "sov": ["sov", "default"],
+                            "hov2": ["hov2", "default", "sov"]
+                        }
+                    },
+                    'access' : {
+                        'v':'access',
+                        'times_periods':{
+                            "AM": ("6:00", "9:00"),
+                            "PM": ("16:00", "19:00")
+                        }
+                    },
                 }
 
         """
 
-        if properties_to_split == None:
+        if properties_to_split is None:
             properties_to_split = self.parameters.roadway_network_ps.properties_to_split
 
         for out_var, params in properties_to_split.items():
@@ -356,9 +398,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     links_df[
                         out_var + "_" + time_suffix
                     ] = self.get_property_by_time_period_and_group(
-                        params["v"],
-                        category=None,
-                        time_period=time_spans,
+                        params["v"], category=None, time_period=time_spans
                     )
             else:
                 raise NotImplementedError(
@@ -366,10 +406,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 )
             return links_df
 
-    def add_calculated_variables(
-        self,
-        links_df: GeoDataFrame,
-    ) -> GeoDataFrame:
+    def add_calculated_variables(self, links_df: GeoDataFrame) -> GeoDataFrame:
         """
         Adds additional calculated variables to the network.
 
@@ -388,18 +425,21 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def create_model_network(self) -> None:
         """
-        Creates basic model network and stores as self.links_model_df and self.nodes_model_df.
+        Creates basic model network and stores as self.model_links_df and self.model_nodes_df.
 
         Steps:
          - calculates centroid connectors based on parameters.roadway_network_ps.max_tax
          - adds calculated variables like counts, distance
-         - creates a managed lane network based on fields with prefix "ML_" as self.model_links_df
-         - coerces the types of links and nodes based on parameters.roadway_network_ps.field_types
-         - splits the model_link properties by time of day and category as specified in parameters
+         - creates a managed lane network based on fields with prefix "ML_" as
+            self.model_links_df
+         - coerces the types of links and nodes based on
+            parameters.roadway_network_ps.field_types
+         - splits the model_link properties by time of day and category as
+            specified in parameters
          - replaces stick geometry with true shape
         """
-        self.calculate_centroid_connectors()
-        self.links_df = self.add_calculated_variables(self.links_df)
+        self.model_links_df = self.calculate_centroid_connectors(links_df=self.links_df)
+        self.model_links_df = self.add_calculated_variables(self.model_links_df)
 
         (
             self.model_links_df,
@@ -455,10 +495,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Args:
             links_df: links GeoDataFrame
             polygon_overlay: PolygonOverlay dataclass
-            method: string indicating the join type for the link.  "link centroid" is only one currently implemented.
+            method: string indicating the join type for the link.  "link centroid" is
+                only one currently implemented.
             field_mapping: if added, overwrites PolygonOverlay class's field mapping
             fill_values_dict: if specified, fills span of the overlay with this value
-            update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
+            update_method: update method to use in network_wrangler.update_df.
+                One of "overwrite all",
                 "update if found", or "update nan". If added, overwrites PolygonOverlay class's
                 update_method, which defaults to "update if found" if not set.
         """
@@ -485,36 +527,37 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 field_mapping, fill_values_dict, polygon_overlay.input_filename
             )
         )
-
-        polygon_overlay_gdf = polygon_overlay.gdf.to_crs(epsg=links_df.crs)
+        # WranglerLogger.info("LINKS_DF.CRS: {}".format(links_df.crs.to_epsg()))
+        polygon_overlay_gdf = polygon_overlay.gdf.to_crs(epsg=links_df.crs.to_epsg())
 
         if fill_values_dict:
             polygon_overlay_gdf = self.add_placeholder_variables(
-                polygon_overlay_gdf,
-                variables_init_dict=fill_values_dict,
+                polygon_overlay_gdf, variables_init_dict=fill_values_dict
             )
             field_mapping = {k: k for k in fill_values_dict.keys()}
 
         if method == "link centroid":
-            link_centroids_gdf = links_df.copy()
-            link_centroids_gdf["geometry"] = link_centroids_gdf["geometry"].centroid
+            _link_centroids_gdf = links_df.copy()
+            _link_centroids_gdf["geometry"] = _link_centroids_gdf["geometry"].centroid
+            _link_centroids_gdf = _link_centroids_gdf[
+                [self.unique_link_key, "geometry"]
+            ]
+
+            polygon_overlay_gdf.rename(columns=field_mapping)
 
             _update_gdf = gpd.sjoin(
-                link_centroids_gdf,
-                polygon_overlay_gdf,
-                how="left",
-                op="intersects",
+                _link_centroids_gdf, polygon_overlay_gdf, how="left", op="intersects"
             )
 
         _output_links_df = update_df(
             links_df,
-            _update_gdf.rename(columns=field_mapping),
+            _update_gdf,
             self.unique_link_key,
-            update_fields=list(field_mapping.keys()),
+            update_fields=list(field_mapping.values()),
             method=update_method,
         )
 
-        return links_df
+        return _output_links_df
 
     def add_counts(
         self,
@@ -529,11 +572,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         Args:
             links_df: roadway network links to add counts to
-            split_counts_by_tod: if set to True, will use time_period_vol_split and count_tod_split_fields
+            split_counts_by_tod: if set to True, will use time_period_vol_split and
+                count_tod_split_fields
                 to split counts by time of day. Defaults to True.
             time_period_vol_split: Mapping of time of day abbreviations and portions of volume to
                 assign to each of them. e.g. {"AM": 0.25, "PM": 0.30}.
-                If not specified, will default to parameters.roadway_network_ps.time_period_vol_split
+                If not specified, will default to
+                parameters.roadway_network_ps.time_period_vol_split
             count_fields_to_split_by_tod: Mapping of fields to split counts and the prefix to
                 use for the resulting fields. e.g. {"count_daily":"count_"}.  If not specified,
                 will default to parameters.roadway_network_ps.count_fields_to_split_by_tod.
@@ -543,7 +588,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
 
         WranglerLogger.info("Adding Counts")
-
+        count_fields_to_split_by_tod = None
         for (
             _count_name,
             _count_value_lookup,
@@ -588,7 +633,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         Args:
             df: dataframe to write to. If not specified, will add to self.links_df.
-            variables_init_dict: mapping of variable names to initialize if they aren't already in the df
+            variables_init_dict: mapping of variable names to initialize if they aren't
+                already in the df
                 mapped to their initial values. Defaults to {"ML_lanes",0}.
 
         returns: updated df
@@ -605,6 +651,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def calculate_centroid_connectors(
         self,
+        links_df: DataFrame = None,
         max_taz: int = None,
         centroid_connector_properties: dict = {},
         overwrite: bool = False,
@@ -613,15 +660,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Calculates indicator and other variables for centroid connectors.
 
         Args:
-            max_taz: the max TAZ number in the network. Overrides self.parameters.roadway_network_ps.max_taz.
+            max_taz: the max TAZ number in the network. Overrides
+                self.parameters.roadway_network_ps.max_taz.
             centroid_connector_properties: if
-            overwrite: True if overwriting existing properties in network, otherwise updates the dataframe.  Default to False.
+            overwrite: True if overwriting existing properties in network, otherwise updates
+                the dataframe.  Default to False.
         """
         _centroid_connector_properties = {}
         _centroid_connector_properties.update(
             self.parameters.roadway_network_ps.centroid_connector_properties
         )
-
+        if links_df is None:
+            links_df = self.links_df
         max_taz = max_taz if max_taz else self.parameters.roadway_network_ps.max_taz
 
         if not max_taz:
@@ -633,8 +683,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             "Calculating Centroid Connectors using\n\
             - Highest TAZ number: {}\n\
             - Property Dictionary: {}".format(
-                max_taz,
-                _centroid_connector_properties,
+                max_taz, _centroid_connector_properties
             )
         )
 
@@ -642,12 +691,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Start actual process
         """
 
-        self.links_df.apply_roadway_feature_change(
+        links_df.apply_roadway_feature_change(
             link_idx=self.links_df.index[
                 (self.links_df["A"] <= max_taz) | (self.links_df["B"] <= max_taz)
             ],
             properties=_centroid_connector_properties,
         )
+
+        return links_df
 
     def coerce_network_types(self, type_lookup: Mapping = None) -> None:
         """
@@ -674,8 +725,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 continue
 
             self.__dict__[_df_name] = coerce_df_types(
-                self.__dict__[_df_name],
-                type_lookup=self.parameters.roadway_network_ps.field_type,
+                self.__dict__[_df_name], type_lookup=_type_lookup
             )
 
             WranglerLogger.debug(
@@ -714,7 +764,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         Args:
             input_df (dataframe): Network standard DataFrame.
-            net_to_dbf_field_crosswalk_dict: File path to variable name crosswalk from network standard to DBF names.
+            net_to_dbf_field_crosswalk_dict: File path to variable name crosswalk from
+                network standard to DBF names.
             output_fields (list): List of strings for DBF variables.
         """
         WranglerLogger.info("Renaming variables so that they are DBF-safe")
@@ -780,31 +831,39 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """Write out shapefile of model network.
 
         Args:
-            links_df (GeoDataFrame, optional): The links file to be output. If not specified, will default
-                to self.model_links_df.
-            nodes_df (GeoDataFrame, optional): The modes file to be output. If not specified, will default
-                to self.nodes_df.
+            links_df (GeoDataFrame, optional): The links file to be output.
+                If not specified, will default to self.model_links_df.
+            nodes_df (GeoDataFrame, optional): The modes file to be output.
+                If not specified, will default to self.nodes_df.
             node_output_fields (Collection[str], optional): List of strings for node
                 output variables. Defaults to parameters.roadway_network_ps.output_fields.
             link_output_fields (Collection[str], optional): List of strings for link
                 output variables. Defaults to parameters.roadway_network_ps.output_fields.
             data_to_csv (bool, optional): If True, will export most of link and node data to
-                a csv of the same name/location as the shapefile (with a .csv ending). with the excpetion
+                a csv of the same name/location as the shapefile (with a .csv ending). with
+                the excpetion
                 of following fields
                   - Links: ["A", "B", "shape_id", "geometry"]
                   - Nodes: ["N", "x", "y", "geometry"]
                 Defaults to True.
-            output_directory (str, optional): If set, will combine with output_link_shp and output_node_shp
-                to form output directory. Defaults to parameters.file_ps.output_directory, which defaults to "".
-            output_prefix (str, optional): prefix to add to output files. Helpful for identifying a scenario.
+            output_directory (str, optional): If set, will combine with output_link_shp and
+                output_node_shp
+                to form output directory. Defaults to parameters.file_ps.output_directory,
+                which defaults to "".
+            output_prefix (str, optional): prefix to add to output files. Helpful for identifying
+                a scenario.
                 Defaults to parameters.file_ps.output_prefix, which defaults to "".
-            output_basename_links (str, optional): Combined with the output_director, output_prefix, and
+            output_basename_links (str, optional): Combined with the output_director,
+                output_prefix, and
                 the appropriate filetype suffix for the link output filenames.
-                Defaults to parameters.file_ps.output_basename_links, which defaults to "links_out".
-            output_basename_nodes (str, optional): Combined with the output_director, output_prefix, and
-                the appropriate filetype suffix for the node output filenames.
-                Defaults to parameters.file_ps.output_basename_nodes, which defaults to "links_out".
-            overwrite_existing_output (bool, optional): if True, will not ask about overwriting existing output.
+                Defaults to parameters.file_ps.output_basename_links, which defaults to
+                "links_out".
+            output_basename_nodes (str, optional): Combined with the output_director,
+                output_prefix, and the appropriate filetype suffix for the node output
+                filenames. Defaults to parameters.file_ps.output_basename_nodes,
+                which defaults to "links_out".
+            overwrite_existing_output (bool, optional): if True, will not ask about overwriting
+                existing output.
                 Defaults to False.
         """
         if not output_directory:
@@ -839,9 +898,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             for f, suf in itertools.product([_outfile_links, +_outfile_nodes], suffix):
                 if os.path.exists(f + suf):
                     overwrite = input(
-                        "File: {} already exists. Overwrite? Y = yes, I = ignore and overwrite all\n".format(
-                            f + suf
-                        )
+                        f"File: {f + suf} already exists.Overwrite?\
+                            Y = yes,\
+                            I = ignore and overwrite all\n"
                     )
                     if overwrite.lower() == "y":
                         continue
@@ -849,9 +908,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                         break
                     else:
                         raise ValueError(
-                            "Stopped execution because user input declined to overwrite file: {}".format(
-                                f + suf
-                            )
+                            f"""
+                            Stopped execution because user input declined to overwrite file:
+                            {f + suf}
+                            """
                         )
 
         WranglerLogger.info(
@@ -863,7 +923,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ### Check if ready to be output for model. Warn, but don't force it.
         if not self.is_ready_for_model():
             WranglerLogger.error(
-                "Not ready for the model yet, should run self.create_model_network() or similar first."
+                """Not ready for the model yet, should run self.create_model_network()
+                or similar first."""
             )
 
         ### Determine output dataframe for each file type
@@ -891,21 +952,18 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if _missing_base_col_nodes:
             WranglerLogger.error(
-                "Missing required fields from nodes file needed to export to shapefile: {}".format(
-                    _missing_base_col_nodes
-                )
+                f"""Missing required fields from nodes file needed
+                to export to shapefile: {_missing_base_col_nodes}"""
             )
         if _missing_base_col_links:
             WranglerLogger.error(
-                "Missing required fields from links file needed to export to shapefile: {}".format(
-                    _missing_base_col_links
-                )
+                f"""Missing required fields from links file needed to export
+                to shapefile: {_missing_base_col_links}"""
             )
         if _missing_base_col_nodes or _missing_base_col_links:
             raise ValueError(
-                "Missing required fields in order to export to shapefile: {}".format(
-                    _missing_base_col_nodes + _missing_base_col_links
-                )
+                f"""Missing required fields in order to export to shapefile:
+                {_missing_base_col_nodes + _missing_base_col_links}"""
             )
 
         # determine which fields go to which files
@@ -959,29 +1017,35 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         This function does:
         1. write out link and node fixed width data files for cube.
         2. write out header and width correspondence.
-        3. write out build script with header and width specification based on format specified.
+        3. write out build script with header and width specification based
+            on format specified.
 
         Args:
-            links_df (GeoDataFrame, optional): The links file to be output. If not specified, will default
-                to self.model_links_df.
-            nodes_df (GeoDataFrame, optional): The modes file to be output. If not specified, will default
-                to self.nodes_df.
+            links_df (GeoDataFrame, optional): The links file to be output. If not specified,
+                will default to self.model_links_df.
+            nodes_df (GeoDataFrame, optional): The modes file to be output. If not specified,
+                will default to self.nodes_df.
             node_output_fields (Collection[str], optional): List of strings for node
                 output variables. Defaults to parameters.roadway_network_ps.output_fields.
             link_output_fields (Collection[str], optional): List of strings for link
                 output variables. Defaults to parameters.roadway_network_ps.output_fields.
-            output_directory (str, optional): If set, will combine with output_link_shp and output_node_shp
-                to form output directory. Defaults to parameters.file_ps.output_directory, which defaults to "".
-            output_prefix (str, optional): prefix to add to output files. Helpful for identifying a scenario.
+            output_directory (str, optional): If set, will combine with output_link_shp and
+                output_node_shp to form output directory. Defaults to
+                parameters.file_ps.output_directory, which defaults to "".
+            output_prefix (str, optional): prefix to add to output files. Helpful for
+                identifying a scenario.
                 Defaults to parameters.file_ps.output_prefix, which defaults to "".
-            output_basename_links (str, optional): Combined with the output_director, output_prefix, and
-                the appropriate filetype suffix for the link output filenames.
-                Defaults to parameters.file_ps.output_basename_links, which defaults to "links_out".
-            output_basename_nodes (str, optional): Combined with the output_director, output_prefix, and
+            output_basename_links (str, optional): Combined with the output_director,
+                output_prefix, and the appropriate filetype suffix for the
+                link output filenames. Defaults to parameters.file_ps.output_basename_links,
+                which defaults to  "links_out".
+            output_basename_nodes (str, optional): Combined with the output_director,
+                output_prefix, and
                 the appropriate filetype suffix for the node output filenames.
-                Defaults to parameters.file_ps.output_basename_nodes, which defaults to "links_out".
-            overwrite_existing_output (bool, optional): if True, will not ask about overwriting existing output.
-                Defaults to False.
+                Defaults to parameters.file_ps.output_basename_nodes, which defaults to
+                "links_out".
+            overwrite_existing_output (bool, optional): if True, will not ask about overwriting
+                existing output. Defaults to False.
             build_script_type (str, optional): If specified, will output a script to the output
                 directory which will rebuild the network in the. Should be one of ["CUBE_HWYNET"].
                 Defaults to None.
@@ -1028,9 +1092,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ]
 
         # specify script names for each avail. script type
-        BUILD_SCRIPT_TYPES_SUFFIX = {
-            "CUBE_HWYNET": "_build_cube_hwynet.s",
-        }
+        BUILD_SCRIPT_TYPES_SUFFIX = {"CUBE_HWYNET": "_build_cube_hwynet.s"}
 
         if build_script_type:
             _outfile_build_script = os.path.join(
@@ -1044,20 +1106,19 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             for f in _outfiles:
                 if os.path.exists(f):
                     overwrite = input(
-                        "File: {} already exists. Overwrite? Y = yes, I = ignore and overwrite all\n".format(
-                            f
-                        )
+                        f"""File: {f} already exists.
+                        Overwrite?
+                          Y = yes,
+                          I = ignore and overwrite all\n"""
                     )
                     if overwrite.lower() == "y":
                         continue
                     if overwrite.lower() == "i":
                         break
                     else:
-                        raise ValueError(
-                            "Stopped execution because user input declined to overwrite file: {}".format(
-                                f
-                            )
-                        )
+                        msg = f"Stopped execution because user input declined to overwrite file:\
+                            {f}"
+                        raise ValueError(msg)
 
         WranglerLogger.info(
             "Writing Network to fixed format files: \n{}".format(
@@ -1068,7 +1129,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ### Check if ready to be output for model. Warn, but don't force it.
         if not self.is_ready_for_model():
             WranglerLogger.error(
-                "Not ready for the model yet, should run self.create_model_network() or similar first."
+                "Not ready for the model yet, should run self.create_model_network()\
+                 or similar first."
             )
 
         ### Determine output dataframe for each file type

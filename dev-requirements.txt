@@ -1,9 +1,10 @@
-pytest
+black
+flake8
 nbconvert~=5.6.0
+pre-commit
+pytest
 pytest_notebook
 recommonmark
 sphinx
 sphinx-autodoc-typehints
 sphinx_rtd_theme
-black
-

@@ -1,8 +1,6 @@
-import re
 import os
 
 import pytest
-
 
 from lasso.metcouncil import MetCouncilRoadwayNetwork
 
@@ -27,7 +25,7 @@ def _read_stpaul_model_net():
         fast=True,
     )
 
-    print("net.shape_foreign_key: ", net.shape_foreign_key)
+    # print("net.shape_foreign_key: ", net.shape_foreign_key)
     return net
 
 
@@ -39,7 +37,6 @@ def test_read_metcouncil_net_with_params(request):
     _read_stpaul_model_net()
 
 
-@pytest.mark.elo
 @pytest.mark.metcouncil
 @pytest.mark.travis
 def test_calculate_lanes(request):
@@ -83,6 +80,7 @@ def test_assign_group_roadway_class(request):
     ## todo write an assert that actually tests something
 
 
+@pytest.mark.elo
 @pytest.mark.metcouncil
 @pytest.mark.travis
 def test_calculate_area_type(request):
@@ -91,7 +89,6 @@ def test_calculate_area_type(request):
     """
     if request:
         print("\n--Starting:", request.node.name)
-    from metcouncil import calculate_area_type
 
     net = _read_stpaul_model_net()
     net.links_df = net.calculate_area_type(net.links_df)
@@ -111,8 +108,6 @@ def test_calculate_county_mpo(request):
     """
     if request:
         print("\n--Starting:", request.node.name)
-
-    from metcouncil import calculate_county_mpo
 
     net = _read_stpaul_model_net()
 
@@ -140,5 +135,6 @@ def test_roadway_standard_to_met_council_network(request):
 
 
 if __name__ == "__main__":
-    test_read_metcouncil_net_with_params(None)
+    # test_read_metcouncil_net_with_params(None)
     # test_calculate_lanes()
+    test_calculate_area_type(None)

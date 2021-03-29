@@ -1,12 +1,9 @@
 import os
-import glob
-import re
-from typing import Any, Dict, Optional
 
 import pytest
 from pandas import DataFrame
 
-from lasso import Project, Parameters
+from lasso import Project
 
 """
 Run tests from bash/shell
@@ -19,9 +16,7 @@ BUILD_TRANSIT_DIR = os.path.join(CUBE_DIR, "single_transit_route_attribute_chang
 SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
 
 ## create list of example logfiles to use as input
-logfile_list = [
-    os.path.join(CUBE_DIR, "st_paul_test.log"),
-]
+logfile_list = [os.path.join(CUBE_DIR, "st_paul_test.log")]
 
 
 @pytest.mark.parametrize("logfilename", logfile_list)
@@ -99,7 +94,6 @@ def test_project_card_concatenate(request):
     ]
 
     print("Reading Whole Logfile: {}".format(whole_logfile))
-    lf = Project.read_logfile(whole_logfile)
     whole_logfile_project = Project.create_project(
         roadway_log_file=whole_logfile,
         base_roadway_dir=ROADWAY_DIR,
@@ -110,7 +104,7 @@ def test_project_card_concatenate(request):
     )
 
     print("Reading Split Logfiles: {}".format(split_logfile_list))
-    lf = Project.read_logfile(split_logfile_list)
+    # lf = Project.read_logfile(split_logfile_list)
     split_logfile_project = Project.create_project(
         roadway_log_file=split_logfile_list,
         base_roadway_dir=ROADWAY_DIR,
@@ -145,10 +139,7 @@ def test_shp_changes(request):
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(
-            SCRATCH_DIR,
-            "t_" + "example_shapefile_roadway_change" + ".yml",
-        )
+        os.path.join(SCRATCH_DIR, "t_" + "example_shapefile_roadway_change" + ".yml")
     )
 
 
@@ -170,10 +161,7 @@ def test_csv_changes(request):
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(
-            SCRATCH_DIR,
-            "t_" + "example_csv_roadway_change" + ".yml",
-        )
+        os.path.join(SCRATCH_DIR, "t_" + "example_csv_roadway_change" + ".yml")
     )
 
 
@@ -183,7 +171,6 @@ def test_highway_change_project_card_valid(request, logfilename):
     print("\n--Starting:", request.node.name)
 
     print("Reading: {}".format(logfilename))
-    lf = Project.read_logfile(logfilename)
     test_project = Project.create_project(
         roadway_log_file=logfilename,
         base_roadway_dir=ROADWAY_DIR,
@@ -206,4 +193,4 @@ def test_highway_change_project_card_valid(request, logfilename):
         )
     )
 
-    assert valid == True
+    assert valid

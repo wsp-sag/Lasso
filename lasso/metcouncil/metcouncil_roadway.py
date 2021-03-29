@@ -1,21 +1,13 @@
-import os
-from typing import Collection, List, Union, Mapping, Any
-
-import numpy as np
-import pandas as pd
-import geopandas as gpd
+from typing import Mapping, Any
 
 from pandas import DataFrame
 from geopandas import GeoDataFrame
 
-from network_wrangler import RoadwayNetwork
 from network_wrangler import update_df
 
 from ..parameters import Parameters, RoadwayNetworkModelParameters
-from ..roadway import ModelRoadwayNetwork
-from ..data import update_df
+from ..model_roadway import ModelRoadwayNetwork
 from ..logger import WranglerLogger
-from ..util import add_id_field_to_shapefile
 
 from .defaults import MC_DEFAULT_PARAMS
 
@@ -49,7 +41,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             parameters: an instance of Parameters.
                 If not specified, will use default MetCouncil parameters overridden by any relevant
                 parameters in parameters_dict or in other, additional kwargs.
-            parameters_dict: dictionary of parameter settings which override parameters instance. Defaults to {}.
+            parameters_dict: dictionary of parameter settings which override parameters instance.
+                Defaults to {}.
         Returns:
             MetCouncilModelRoadwayNetwork
         """
@@ -68,11 +61,9 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
                 )
 
             WranglerLogger.debug(
-                "[metcouncil.__init__] Initializing parameters with MetCouncil defaults".format(
-                    _params_dict
-                )
+                "[metcouncil.__init__] Initializing parameters with MetCouncil defaults."
             )
-            # WranglerLogger.debug("[metcouncil.__init__.MC_DEFAULT_PARAMS] {}".format(_params_dict))
+            # WranglerLogger.debug(f"[metcouncil.__init__.MC_DEFAULT_PARAMS] {_params_dict}")
 
             parameters = Parameters.initialize(base_params_dict=_params_dict)
 
@@ -104,7 +95,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         Args:
             links_df: links dataframe to calculate number of lanes for. Defaults to self.links_df.
             network_variable: Name of the lanes variable
-            update_method: update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
+            update_method: update_method: update method to use in network_wrangler.update_df.
+                One of "overwrite all",
                 "update if found", or "update nan". Defaults to "update if found"
 
         Returns:
@@ -113,37 +105,58 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         if links_df is None:
             links_df = self.links_df
 
-        roadway_ps = self.parameters.roadway_network_ps
+        _lanes_value_lookup = self.parameters.roadway_network_ps.roadway_value_lookups[
+            "lanes"
+        ]
+        _max_taz = self.parameters.roadway_network_ps.max_taz
+        roadway_params = self.parameters.roadway_network_ps
+        _centroidconnector_lanes = roadway_params.centroid_connector_properties["lanes"]
+
+        msg = "Parameter set: {}\nMAX TAZ: {}\nCentroid Connector Lanes: {}".format(
+            self.parameters.name, _max_taz, _centroidconnector_lanes
+        )
+        WranglerLogger.debug(msg)
 
         msg = "Calculating MetCouncil number of lanes.\n\
             Calculating # of lanes using roadway_value_lookups['lanes'] = {}//".format(
-            roadway_ps.roadway_value_lookups["lanes"],
+            _lanes_value_lookup
         )
+        WranglerLogger.debug(msg)
+
+        _update_df = _lanes_value_lookup.apply_mapping(links_df)
+        _update_df = _update_df.fillna(0)
+
+        msg = f"""[roadway_ps.roadway_value_lookups.lanes._mapping_df.value_counts()]:
+            \n{_lanes_value_lookup._mapping_df.describe()}"""
+        WranglerLogger.debug(msg)
+
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts()-1]:
+            \n{_update_df.lanes.value_counts()}"""
+        WranglerLogger.debug(msg)
+
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.columns -1]:
+            \n{_update_df.columns}"""
         WranglerLogger.info(msg)
 
-        _update_df = roadway_ps.roadway_value_lookups["lanes"].apply_mapping(links_df)
-
         def _set_lanes(x):
-            try:
-                if (
-                    x.centroidconnect
-                    == roadway_ps.centroid_connector_properties["lanes"]
-                ):
-                    return int(1)
-                elif max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]) > 0:
-                    return int(
-                        max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington])
-                    )
-                elif max([x.widot, x.mndot]) > 0:
-                    return int(max([x.widot, x.mndot]))
-                elif x.osm_min > 0:
-                    return int(x.osm_min)
-                elif x.naive > 0:
-                    return int(x.naive)
-            except:
-                return int(0)
+            if (x.A <= _max_taz) or (x.B <= _max_taz):
+                return int(_centroidconnector_lanes)
+            elif any([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]) > 0:
+                return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
+            elif max([x.widot, x.mndot]) > 0:
+                return int(max([x.widot, x.mndot]))
+            elif x.osm_min > 0:
+                return int(x.osm_min)
+            elif x.naive > 0:
+                return int(x.naive)
+            else:
+                ValueError("Appropriate lanes criteria not found: {}".format(x))
 
         _update_df[network_variable] = _update_df.apply(lambda x: _set_lanes(x), axis=1)
+
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts()-2]:
+        \n{_update_df.value_counts()}"""
+        WranglerLogger.debug(msg)
 
         _output_links_df = update_df(
             links_df,
@@ -153,67 +166,65 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             method=update_method,
         )
 
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._output_links_df.value_counts()]:
+            \n{_update_df.lanes.value_counts()}"""
+        WranglerLogger.debug(msg)
+
         WranglerLogger.info(
-            "Finished calculating number of lanes to: {}".format(network_variable)
+            f"Finished calculating number of lanes to: {network_variable}"
         )
 
         return _output_links_df
 
-    @staticmethod
-    def _set_final_assignment_group(x):
+    def _set_final_assignment_group(self, x):
         """
 
         Args:
             x: row in link dataframe
         """
-        try:
-            if x.centroidconnect == 1:
-                return 9
-            elif x.bus_only == 1:
-                return 98
-            elif x.rail_only == 1:
-                return 100
-            elif x.drive_access == 0:
-                return 101
-            elif x.assignment_group_mrcc > 0:
-                return int(x.assignment_group_mrcc)
-            elif x.assignment_group_widot > 0:
-                return int(x.assignment_group_widot)
-            else:
-                return int(x.assignment_group_osm)
-        except:
-            return 0
 
-    @staticmethod
-    def _set_final_roadway_class(x):
+        _max_taz = self.parameters.roadway_network_ps.max_taz
+
+        if (x.A <= _max_taz) or (x.B <= _max_taz):
+            return 9
+        elif x.bus_only == 1:
+            return 98
+        elif x.rail_only == 1:
+            return 100
+        elif x.drive_access == 0:
+            return 101
+        elif x.assignment_group_mrcc > 0:
+            return int(x.assignment_group_mrcc)
+        elif x.assignment_group_widot > 0:
+            return int(x.assignment_group_widot)
+        else:
+            return int(x.assignment_group_osm)
+
+    def _set_final_roadway_class(self, x):
         """
 
         Args:
             x: row in link dataframe
         """
-        try:
-            if x.centroidconnect == 1:
-                return 99
-            elif x.bus_only == 1:
-                return 50
-            elif x.rail_only == 1:
-                return 100
-            elif x.drive_access == 0:
-                return 101
-            elif x.roadway_class_mrcc > 0:
-                return int(x.roadway_class_mrcc)
-            elif x.roadway_class_widot > 0:
-                return int(x.roadway_class_widot)
-            else:
-                return int(x.roadway_class_osm)
-        except:
-            return 0
+        _max_taz = self.parameters.roadway_network_ps.max_taz
 
-    @staticmethod
+        if (x.A <= _max_taz) or (x.B <= _max_taz):
+            return 99
+        elif x.bus_only == 1:
+            return 50
+        elif x.rail_only == 1:
+            return 100
+        elif x.drive_access == 0:
+            return 101
+        elif x.roadway_class_mrcc > 0:
+            return int(x.roadway_class_mrcc)
+        elif x.roadway_class_widot > 0:
+            return int(x.roadway_class_widot)
+        else:
+            return int(x.roadway_class_osm)
+
     def _calculate_mrcc_route_sys(
-        links_df: GeoDataFrame,
-        roadway_ps: RoadwayNetworkModelParameters,
-        update_method: str = "update if found",
+        self, links_df: GeoDataFrame, update_method: str = "update if found"
     ):
         """
         Get MRCC route_sys variable from shstGeometryID.
@@ -222,13 +233,15 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         Args:
             links_df: links GeoDataFrame
-            roadway_ps: RoadwayNetworkModelParameters set.
-            update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
-                "update if found", or "update nan". Defaults to "update if found"
+            update_method: update method to use in network_wrangler.update_df. One of
+                "overwrite all", "update if found", or "update nan".
+                Defaults to "update if found"
 
         Returns:
             link_df with route_sys column added
         """
+
+        roadway_ps = self.parameters.roadway_network_ps
 
         # 1. shstGeometryId --> LINK_ID
         # Expected columns shstReferenceId,shstGeometryId,pp_link_id (which is the LINK_ID),score
@@ -267,11 +280,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         return links_route_sys_df
 
-    @staticmethod
     def _calculate_widot_rdwy_ctgy(
-        links_df: GeoDataFrame,
-        roadway_ps: RoadwayNetworkModelParameters,
-        update_method: str = "update if found",
+        self, links_df: GeoDataFrame, update_method: str = "update if found"
     ):
         """
         Get WiDot rdwy ctgy from shstGeometryID.
@@ -279,13 +289,14 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         2. LINK_ID --> rdwy_ctgy
 
         links_df: links GeoDataFrame
-            roadway_ps: RoadwayNetworkModelParameters set.
-            update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
-            "update if found", or "update nan". Defaults to "update if found"
+            update_method: update method to use in network_wrangler.update_df. One of
+            "overwrite all", "update if found", or "update nan".
+            Defaults to "update if found"
 
         Returns:
             link_df with rdwy_ctgy column added
         """
+        roadway_ps = self.parameters.roadway_network_ps
 
         # 1. shstGeometryId --> LINK_ID
         # Expected columns shstReferenceId,shstGeometryId,pp_link_id (which is the LINK_ID),score
@@ -334,20 +345,28 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         """
         Calculates assignment group and roadway class variables.
 
-        Assignment Group is used in MetCouncil's traffic assignment to segment the volume/delay curves.
-        Original source is from the MRCC data for the Minnesota: "route system" which is a roadway class
-        For Wisconsin, it is from the Wisconsin DOT database, which has a variable called "roadway category"
+        Assignment Group is used in MetCouncil's traffic assignment to segment
+        the volume/delay curves.
+        Original source is from the MRCC data for the Minnesota: "route system"
+        which is a roadway class
+        For Wisconsin, it is from the Wisconsin DOT database, which has a variable
+        called "roadway category"
 
-        There is a crosswalk between the MRCC Route System and Wisconsin DOT --> Met Council Assignment group
+        There is a crosswalk between the MRCC Route System and
+        Wisconsin DOT --> Met Council Assignment group
 
-        This method joins the network with mrcc and widot roadway data by shst js matcher returns
+        This method joins the network with mrcc and widot roadway data by shst
+        js matcher returns
 
         Args:
             links_df: Links dataframe. If not set, defaults to self.links_df.
-            assign_group_variable_name: Name of the variable assignment group should be written to.  Default to "assign_group".
-            road_class_variable_name: Name of the variable roadway class should be written to. Default to "roadway_class".
-            update_method: update method to use in network_wrangler.update_df. One of "overwrite all",
-            "update if found", or "update nan". Defaults to "update if found"
+            assign_group_variable_name: Name of the variable assignment group should
+                 be written to.  Default to "assign_group".
+            road_class_variable_name: Name of the variable roadway class should be
+                written to. Default to "roadway_class".
+            update_method: update method to use in network_wrangler.update_df.
+                One of "overwrite all", "update if found", or "update nan".
+                Defaults to "update if found"
         Returns:
             RoadwayNetwork
         """
@@ -357,41 +376,48 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         roadway_ps = self.parameters.roadway_network_ps
 
         WranglerLogger.info(
-            "Calculating Assignment Group and Roadway Class as network variables: '{}' and '{}'".format(
-                assign_group_variable_name,
-                road_class_variable_name,
-            )
+            f"""Calculating Assignment Group and Roadway Class as network variables:
+                '{assign_group_variable_name}' and
+                '{road_class_variable_name}'"""
         )
 
         """
         Start actual process
         """
-        # Get roadway category variables from ShSt spatial joins from MnDOT MRCC network and WiDOT
-        _links_update_df = MetCouncilRoadwayNetwork._calculate_mrcc_route_sys(
-            links_df, roadway_ps
-        )
-        _links_update_df = MetCouncilRoadwayNetwork._calculate_widot_rdwy_ctgy(
-            _links_update_df, roadway_ps
-        )
+        # Get roadway category variables from ShSt spatial joins from MnDOT MRCC
+        # network and WiDOT
+        _links_update_df = self._calculate_mrcc_route_sys(links_df)
+        _links_update_df = self._calculate_widot_rdwy_ctgy(_links_update_df)
 
-        # Get initial assignment group and roadway class from lookup tables starting with OSM and overlaying with MnDOT and then WiDOT
+        # Get initial assignment group and roadway class from lookup tables starting
+        # with OSM and overlaying with MnDOT and then WiDOT
+
         _links_update_df = roadway_ps.roadway_value_lookups[
             "osm_roadway_assigngrp_mapping"
         ].apply_mapping(_links_update_df)
         _links_update_df = roadway_ps.roadway_value_lookups[
             "mrcc_roadway_assigngrp_mapping"
         ].apply_mapping(_links_update_df)
-        _links_updatet_df = roadway_ps.roadway_value_lookups[
+        _links_update_df = roadway_ps.roadway_value_lookups[
             "widot_roadway_assigngrp_mapping"
         ].apply_mapping(_links_update_df)
 
         # Apply more sophisticated rules for final variable calculation
         _links_update_df[assign_group_variable_name] = _links_update_df.apply(
-            lambda x: MetCouncilRoadwayNetwork._set_final_assignment_group(x), axis=1
+            lambda x: self._set_final_assignment_group(x), axis=1
         )
+
+        # msg = f"""_links_update_df.assign_group.value_counts 1:
+        #    {_links_update_df.assign_group.value_counts()}"""
+        # WranglerLogger.info(msg)
+
         _links_update_df[road_class_variable_name] = _links_update_df.apply(
-            lambda x: MetCouncilRoadwayNetwork._set_final_roadway_class(x), axis=1
+            lambda x: self._set_final_roadway_class(x), axis=1
         )
+
+        # msg = f"""_links_update_df.assign_group.value_counts 2:
+        #     {_links_update_df.assign_group.value_counts()}"""
+        # WranglerLogger.info(msg)
 
         # Update roadway class and assignment group variables in the roadway network
         _links_out_df = update_df(
@@ -403,10 +429,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         )
 
         WranglerLogger.info(
-            "Finished calculating assignment group variable {} and roadway class variable {}".format(
-                assign_group_variable_name,
-                road_class_variable_name,
-            )
+            f"""Finished calculating assignment group variable {assign_group_variable_name}
+            and roadway class variable {road_class_variable_name}"""
         )
 
         return _links_out_df
@@ -442,9 +466,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         return links_df
 
-    def calculate_area_type(
-        self, links_df: GeoDataFrame, roadway_ps: RoadwayNetworkModelParameters = None
-    ) -> GeoDataFrame:
+    def calculate_area_type(self, links_df: GeoDataFrame) -> GeoDataFrame:
         """
         Add area type values to roadway network.
         Uses the RoadwayNetworkModelParameters:
@@ -454,24 +476,19 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         Args:
             links_df: the input ModelRoadwayNetwork.
-            roadway_ps: overrides roadway_ps from roadway_net
 
         Returns: ModelRoadwayNetwork with area type
         """
-        roadway_ps = (
-            self.parameters.roadway_network_ps if roadway_ps is None else roadway_ps
+        roadway_ps = self.parameters.roadway_network_ps
+
+        links_df = self.add_polygon_overlay_to_links(
+            links_df, roadway_ps.roadway_overlays["area_type"], method="link centroid"
         )
 
         links_df = self.add_polygon_overlay_to_links(
             links_df,
-            roadway_ps.roadway_overlays["area_type"],
-            method="link_centroid",
-        )
-
-        links_df = self.add_polygon_overlay_to_links(
-            links_df,
-            roadway_ps.roadway_overlays["downtown_area"],
-            method="link_centroid",
+            roadway_ps.roadway_overlays["downtown_area_type"],
+            method="link centroid",
         )
 
         links_df["area_type"] = links_df["area_type_name"].map(
@@ -502,9 +519,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             roadway_ps = self.parameters.roadway_network_ps
 
         links_df = self.add_polygon_overlay_to_links(
-            links_df,
-            roadway_ps.roadway_overlays["counties"],
-            method="link_centroid",
+            links_df, roadway_ps.roadway_overlays["counties"], method="link_centroid"
         )
 
         links_df["county"] = links_df["county_name"].map(
@@ -519,22 +534,23 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         return links_df
 
-    def roadway_standard_to_met_council_network(
-        self,
-    ) -> None:
+    def roadway_standard_to_met_council_network(self,) -> None:
         """
-        Rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
+        Rename and format roadway attributes to be consistent with what metcouncil's
+        model is expecting.
 
         Args:
             roadway_net:
 
         Returns:
-            tuple (model_links_df,nodes_df, shapes_df, list of steps completed) where list of steps completed is
-            a set of link_geometry_complete, geography_complete, field_name_complete, and types_compelte.
+            tuple (model_links_df,nodes_df, shapes_df, list of steps completed) where
+                list of steps completed is a set of link_geometry_complete, geography_complete,
+                field_name_complete, and types_compelte.
         """
 
         WranglerLogger.info(
-            "Transforming the standard roadway network into the format and variables that metcouncil's model is expecting"
+            "Transforming the standard roadway network into the format and variables that \
+            metcouncil's model is expecting"
         )
 
         """
@@ -546,17 +562,16 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             self.shapes_df,
         ) = self.create_managed_lane_network()
 
-        self.model_links_df = self.calculate_centroidconnect(self.model_links_df)
-        self.model_links_df = self.calculate_distance(
-            self.model_links_df, overwrite=True
+        self.model_links_df = super().calculate_centroid_connectors(self.model_links_df)
+        self.model_links_df = super().update_distance(
+            self.model_links_df, use_shapes=True
         )
 
         self.model_links_df = self.add_met_council_calculated_roadway_variables(
             self.model_links_df
         )
 
-        self.model_links_df = self.coerce_types(self.model_links_df)
-        self.model_nodes_df = self.coerce_types(self.model_nodes_df)
+        super().coerce_network_types()
 
         self.model_links_df = self.split_properties_by_time_period_and_category(
             self.model_links_df
@@ -575,4 +590,6 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         self.model_nodes_df = self.nodes_df.to_crs(epsg=26915)
 
         # CUBE expect node id to be N
-        self.nodes_model_df.rename(columns={"model_node_id": "N"}, inplace=True)
+        self.model_nodes_df = self.nodes_df.rename(
+            columns={"model_node_id": "N"}, inplace=True
+        )

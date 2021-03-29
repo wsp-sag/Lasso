@@ -1,26 +1,17 @@
 """
-Structures parameters as dataclasses with good defaults. 
+Structures parameters as dataclasses with good defaults.
 
 Parameters can be set by instantiating the classes at run-time.
 
 Example:
-    
+
 """
 
 import os
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Union,
-    List,
-    Dict,
-    Tuple,
-    Set,
-    Mapping,
-    Collection,
-    Sequence,
-)
-from .data import PolygonOverlay, ValueLookup, FieldMapping
+from typing import Any, List, Dict, Set, Mapping, Collection, Sequence
+
+from .data import PolygonOverlay, ValueLookup
 from .logger import WranglerLogger
 
 
@@ -32,9 +23,8 @@ def get_base_dir(lasso_base_dir=os.getcwd()):
             return d
         d = os.path.dirname(d)
 
-    msg = "Cannot find Lasso base directory from {}, please input using keyword in parameters: `lasso_base_dir =` ".format(
-        lasso_base_dir
-    )
+    msg = f"""Cannot find Lasso base directory from {lasso_base_dir}, please input using
+     keyword in parameters: `lasso_base_dir =` """
     WranglerLogger.error(msg)
     raise (ValueError(msg))
 
@@ -77,10 +67,9 @@ class NetworkModelParameters:
         ):
             raise (
                 ValueError(
-                    "time period abbreviations don't match up: \n_to_names: {}\nvs _to_time: {}".format(
-                        self.time_period_abbr_to_names.keys(),
-                        self.time_period_abbr_to_time.keys(),
-                    )
+                    f"""time period abbreviations don't match up: \n
+                        _to_names:{self.time_period_abbr_to_names.keys()}\n
+                        vs _to_time: {self.time_period_abbr_to_time.keys()}"""
                 )
             )
         if not self.network_time_period_abbr:
@@ -100,34 +89,45 @@ class NetworkModelParameters:
 class RoadwayNetworkModelParameters:
     """
     Attributes:
+        model_roadway_class: str
         network_model_parameters: NetworkModelParameters
         allowed_use_categories: set of categories that can be used to refine the roadway network
             network by use type. Defaults to sov", "hov2", "hov3", "trk","default".
-        category_grouping: Maps demand category abbreviations used as variable suffices to a list of
-            network categories they are allowed to use.
-        properties_to_split_by_network_time_periods: list of properties to split by the network time
-            period.
-        properties_to_split_by_category_groupings: list of properties to split by the category groupings
+        category_grouping: Maps demand category abbreviations used as variable suffices to a
+            list of network categories they are allowed to use.
+        properties_to_split_by_network_time_periods: list of properties to split by the network
+            time period.
+        properties_to_split_by_category_groupings: list of properties to split by the category
+            groupings
         properties_to_split: Dictionary mapping variables in standard
             roadway network to categories and time periods that need to be
-            split out in final model network to get variables like LANES_AM. If not explicitly provided,
-            can be calculated from properties_to_split_by_network_time_periods and properties_to_split_by_category_groupings
+            split out in final model network to get variables like LANES_AM. If not
+                explicitly provided, can be calculated from
+                properties_to_split_by_network_time_periods and
+                properties_to_split_by_category_groupings
             or a default will be used.
         max_taz: integer denoting maximum taz number which is used for identifying which
             network links act as centroid connectors.
         centroid_connector_properties: maps properties in the standard network format with
-            values to assert upon centroid connectors. Defaults to {"centroidconnect":1, "lanes": 1}
-        additional_centroid_connector_properties: adds additional properties to centroid connectors.
+            values to assert upon centroid connectors.
+            Defaults to {"centroidconnect":1, "lanes": 1}
+        additional_centroid_connector_properties: adds additional properties to
+            centroid connectors.
         field_type: maps important field types. (e.g., int, str, float )
         roadway_value_lookups: dictionary of ValueLookup data classes or dictionaries
         roadway_field_mappings: dictionary of FieldMapping data classes or dictionaries
+        roadway_overlays: geographic overlays
         output_fields: lists fields to output in the roadway network.
-        required_fields_links: list of fields that must be in link output. ["A", "B", "shape_id", "geometry"]
-        required_fields_nodes: list of fields that must be in node output. Defaults to ["N", "x", "y", "geometry"]
+        required_fields_links: list of fields that must be in link output.
+            ["A", "B", "shape_id", "geometry"]
+        required_fields_nodes: list of fields that must be in node output.
+            Defaults to ["N", "x", "y", "geometry"]
         counts: mapping of count names and count files to be added.
-        time_period_vol_split: dictionary mapping time period abbreviations to basic assumptions about
+        time_period_vol_split: dictionary mapping time period abbreviations to
+            basic assumptions about
             fractions of daily volumes associated with them.
-        count_fields_to_split_by_tod: a mapping of fields to split counts for by time_period_vol_split mapping, and
+        count_fields_to_split_by_tod: a mapping of fields to split counts for
+            by time_period_vol_split mapping, and
             the prefix to use for the resulting fields.
         network_build_script_type: If specified, will output a script to the output
                 directory which will rebuild the network in the. Should be one of ["CUBE_HWYNET"].
@@ -136,14 +136,9 @@ class RoadwayNetworkModelParameters:
     """
 
     network_model_parameters: NetworkModelParameters
+    model_roadway_class: str = ".roadway.ModelRoadwayNetwork"
     allowed_use_categories: Set[str] = field(
-        default_factory=lambda: [
-            "sov",
-            "hov2",
-            "hov3",
-            "trk",
-            "default",
-        ]
+        default_factory=lambda: ["sov", "hov2", "hov3", "trk", "default"]
     )
     category_grouping: Mapping[str, Set] = field(
         default_factory=lambda: {
@@ -171,6 +166,7 @@ class RoadwayNetworkModelParameters:
     field_type: Mapping[str, Any] = field(default_factory=dict)
     roadway_value_lookups: Mapping[str, Any] = field(default_factory=dict)
     roadway_field_mappings: Mapping[str, Any] = field(default_factory=dict)
+    roadway_overlays: Mapping[str, Any] = field(default_factory=dict)
     output_fields: Collection[str] = field(default_factory=list)
     required_fields_links: Collection[str] = field(
         default_factory=lambda: ["A", "B", "shape_id", "geometry"]
@@ -195,7 +191,10 @@ class RoadwayNetworkModelParameters:
             or self.properties_to_split_by_category_groupings
         ):
             WranglerLogger.warning(
-                "Both properties_to_split and at least one of (properties_to_split_by_category_groupings or properties_to_split_by_category_groupings) provided. Will overwrite properties_to_split."
+                "Both properties_to_split and at least one of \
+                    (properties_to_split_by_category_groupings or \
+                    properties_to_split_by_category_groupings) provided. \
+                    Will overwrite properties_to_split."
             )
 
         # create standard properties to split from lists
@@ -251,30 +250,23 @@ class TransitNetworkModelParameters:
     """
 
     Attributes:
+        model_transit_class: str
+        std_transit_class: str
         network_model_parameters: NetworkModelParameters instance
-        transit_network_model_to_general_network_time_period_abbr: Maps cube time period numbers used in
+        transit_value_lookups: dictionary of lookups
+        transit_network_model_to_general_network_time_period_abbr: Maps cube time period
+                numbers used in
                 transit line files to the time period abbreviations in ttime_period_abbr_to_time
                 dictionary. Defaults to `{"1": "AM", "2": "MD"}`.
-        transit_time_periods: Collection of transit network model time periods used in line files. Defaults
-            to `self.transit_network_model_to_general_network_time_period_abbr.keys()`, or ['1','2].
-        time_varying_properties: a set of transit properties that vary over time period.
-            Defaults to {"HEADWAY", "FREQ"}.
-        time_period_properties_list: a collection of time_varying_properties for each time period
-            in `transit_time_periods`. e.g. {"HEADWAY[1]","HEADWAY[2]"} If not specified, will be calculated.
-
     """
 
     network_model_parameters: NetworkModelParameters
+    model_transit_class: str = ".transit.ModelTransitNetwork"
+    std_transit_class: str = "network_wrangler.TransitNetwork"
     transit_network_model_to_general_network_time_period_abbr: Mapping[
         Any, Any
-    ] = field(
-        default_factory=lambda: {"1": "AM", "2": "MD"},
-    )
-    transit_time_periods: Set = None
-    time_varying_properties: Set[str] = field(
-        default_factory=lambda: {"HEADWAY", "FREQ"},
-    )
-    time_period_properties_list: Set[str] = None
+    ] = field(default_factory=lambda: {"1": "AM", "2": "MD"})
+    transit_value_lookups: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """
@@ -283,34 +275,18 @@ class TransitNetworkModelParameters:
         Checks that the following parameters are compatible:
          - `network_model_parameters.time_period_abbr_to_time` and
             `transit_network_model_to_general_network_time_period_abbr.values()`
-
-        If not already filled, will calculate the default values for:
-         - transit_time_periods
-         - time_period_properties_list
         """
         if not set(
             self.transit_network_model_to_general_network_time_period_abbr.values()
         ).issubset(set(self.network_model_parameters.time_period_abbr_to_time.keys())):
             raise (
                 ValueError(
-                    "specified transit_to_network_time_periods: {} does not align with specified network time periods {}".format(
-                        self.transit_network_model_to_general_network_time_period_abbr,
-                        self.network_model_parameters.time_period_abbr_to_time.keys(),
-                    )
+                    f"""specified transit_to_network_time_periods:
+                        {self.transit_network_model_to_general_network_time_period_abbr}
+                        does not align with specified network time periods
+                        {self.network_model_parameters.time_period_abbr_to_time.keys()}"""
                 )
             )
-
-        if not self.transit_time_periods:
-            self.transit_time_periods = list(
-                self.transit_network_model_to_general_network_time_period_abbr.keys()
-            )
-
-        if not self.time_period_properties_list:
-            self.time_period_properties_list = [
-                p + "[" + str(t) + "]"
-                for p in self.time_varying_properties
-                for t in self.transit_time_periods
-            ]
 
     def __str__(self):
         _header = "[TransitNetworkModelParameters]"
@@ -332,7 +308,8 @@ class DemandModelParameters:
 
     Attributes:
         network_model_parameters: Instance of NetworkModelParameters
-        demand_time_periods: list of time period abbreviations used by the demand model, e.g. `["pk","op"]`.
+        demand_time_periods: list of time period abbreviations used by the demand model,
+            e.g. `["pk","op"]`.
             If not set, will default to `network_to_demand_time_periods.values()`
         network_to_demand_time_periods: mapping of network model time period abbreviations
             to demand model time period abbreviations. Defaults to `{"AM": "pk", "MD": "op"}`.
@@ -342,7 +319,7 @@ class DemandModelParameters:
     network_model_parameters: NetworkModelParameters
     demand_time_periods: List[Any] = field(default_factory=list)
     network_to_demand_time_periods: Dict = field(
-        default_factory=lambda: {"AM": "pk", "MD": "op"},
+        default_factory=lambda: {"AM": "pk", "MD": "op"}
     )
 
     def __post_init__(self):
@@ -351,10 +328,10 @@ class DemandModelParameters:
         ):
             raise (
                 ValueError(
-                    "specified network_to_demand_time_periods: {} does not align with specified network time periods {}".format(
-                        self.network_to_demand_time_periods,
-                        self.network_model_parameters.time_period_abbr_to_time.keys(),
-                    )
+                    f"""specified network_to_demand_time_periods:
+                        {self.network_to_demand_time_periods}
+                        does not align with specified network time periods
+                        {self.network_model_parameters.time_period_abbr_to_time.keys()}"""
                 )
             )
         if not self.demand_time_periods:
@@ -380,13 +357,14 @@ class FileParameters:
         data_directory: Directory to look for data files like lookups, overlays, etc.
         value_lookups: dictionary of ValueLookup data classes
         scratch_directory: Directory location for temporary files.
-        settings_location: Directory location for run-level settings. Defaults to examples/settings
+        settings_location: Directory location for run-level settings. Defaults to
+            examples/settings
         shape_foreign_key: join field between link_df/link.json and shape_df/shape.geojson
         output_directory: Directory location for output and log files.
         output_basename_links: Defaults to "links_out"
         output_basename_nodes: Defaults to "nodes_out"
-        output_relative: bool = True: If set to true, will assume output files are relative filenames to
-            the output directory on instantiation.
+        output_relative: bool = True: If set to true, will assume output files are
+            relative filenames to the output directory on instantiation.
         output_espg: projection for any output geographic files to be written in defaults to 26915
 
     """
@@ -471,7 +449,8 @@ class Parameters:
         """
         if not flat_dict:
             WranglerLogger.debug(
-                "No parameter keywords to sort into parameter type; will be returning empty dictionaries."
+                "No parameter keywords to sort into parameter type; will be returning\
+                empty dictionaries."
             )
 
         nested_dict = {}
@@ -512,7 +491,8 @@ class Parameters:
         """
         Initializes parameter instances under an instance of the umbrella class Parameters().
         Overwrites class-level default parameters with parameters in self.input_ps.
-        Warns if there are parameters specified in self.input_ps which aren't used in parameter classes.
+        Warns if there are parameters specified in self.input_ps which aren't used in
+            parameter classes.
         """
         WranglerLogger.debug("[Parameters.__post_init__()]")
 
@@ -528,7 +508,7 @@ class Parameters:
         for _, v in _input_ps_dict.items():
             try:
                 del v["network_model_parameters"]
-            except:
+            except KeyError:
                 pass
 
         if _input_ps_dict.get("file"):
@@ -545,33 +525,28 @@ class Parameters:
 
         if _input_ps_dict.get("roadway network model"):
             self.roadway_network_ps = RoadwayNetworkModelParameters(
-                self.network_model_ps,
-                **_input_ps_dict.get("roadway network model"),
+                self.network_model_ps, **_input_ps_dict.get("roadway network model")
             )
         else:
             self.roadway_network_ps = RoadwayNetworkModelParameters(
-                self.network_model_ps,
+                self.network_model_ps
             )
 
         if _input_ps_dict.get("transit network model"):
             self.transit_network_ps = TransitNetworkModelParameters(
-                self.network_model_ps,
-                **_input_ps_dict.get("transit network model"),
+                self.network_model_ps, **_input_ps_dict.get("transit network model")
             )
         else:
             self.transit_network_ps = TransitNetworkModelParameters(
-                self.network_model_ps,
+                self.network_model_ps
             )
 
         if _input_ps_dict.get("demand model"):
             self.demand_model_ps = DemandModelParameters(
-                self.network_model_ps,
-                **_input_ps_dict.get("demand model"),
+                self.network_model_ps, **_input_ps_dict.get("demand model")
             )
         else:
-            self.demand_model_ps = DemandModelParameters(
-                self.network_model_ps,
-            )
+            self.demand_model_ps = DemandModelParameters(self.network_model_ps)
 
         if _input_ps_dict.get("base"):
             self.__dict__.update(_input_ps_dict["base"])
@@ -583,9 +558,8 @@ class Parameters:
 
             if unused_keys:
                 WranglerLogger.warning(
-                    "[Parameters.__post_init__()The following parameters were not used. Check spelling.\n{}".format(
-                        unused_keys
-                    )
+                    f"""[Parameters.__post_init__()] The following parameters were not used.
+                        Check spelling.\n{unused_keys}"""
                 )
 
     @staticmethod
@@ -607,7 +581,7 @@ class Parameters:
         msg = "base parameter set: \n   -{}\n".format(
             "\n   - ".join(["{}: {}".format(k, v) for k, v in base_params_dict.items()])
         )
-        WranglerLogger.debug(msg)
+        # WranglerLogger.debug(msg)
 
         if kwargs:
             msg = "Updating default parameters with following kwargs: {}".format(kwargs)
@@ -622,13 +596,11 @@ class Parameters:
             )
             WranglerLogger.debug(msg)
 
-        p = Parameters(
-            input_ps=base_params_dict,
-        )
+        p = Parameters(input_ps=base_params_dict)
 
         msg = "****Resulting Initialized Parameters*****\n  {}".format(p)
-        print(msg)
-        print("INITIAL FIELD TYPES PARAM: {}".format(p.roadway_network_ps.field_type))
+        # print(msg)
+        # print("INITIAL FIELD TYPES PARAM: {}".format(p.roadway_network_ps.field_type))
 
         return p
 
@@ -642,7 +614,7 @@ class Parameters:
 
         Returns: updated Parameters instance
         """
-        print("1 - UPDATE_DICT {} kwargs {}".format(update_dict, kwargs))
+        # print("1 - UPDATE_DICT {} kwargs {}".format(update_dict, kwargs))
         update_dict.update(kwargs)
 
         if not update_dict:
@@ -652,7 +624,7 @@ class Parameters:
             return self
 
         _update_dict = Parameters.keywords_into_dict_by_param_type(update_dict)
-        print("2 - _UPDATE_DICT {}".format(_update_dict))
+        # print("2 - _UPDATE_DICT {}".format(_update_dict))
 
         self.file_ps.__dict__.update(_update_dict.get("file"))
         self.network_model_ps.__dict__.update(_update_dict.get("network model"))
@@ -671,17 +643,15 @@ class Parameters:
 
         if unused_keys:
             WranglerLogger.warning(
-                "[Parameters.update()]  The following parameters were not used. Check spelling.\n{}".format(
-                    unused_keys
-                )
+                f"""[Parameters.update()]
+                    The following parameters were not used.
+                    Check spelling.\n
+                    {unused_keys}"""
             )
         return self
 
     def as_dict(self):
         all_params = {}
         for k, v in self.__dict__.items():
-            try:
-                all_params.update(v.__dict__)
-            except:
-                all_params[k] = v
+            all_params.update(v.__dict__)
         return all_params

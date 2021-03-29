@@ -74,15 +74,6 @@ output:
 # integer, for identifying centroid connectors
 #    highest_taz_number:
 #
-# list of additional methods to calculate additional variables
-#    calculated_variables_roadway:
-#        - 'self.calculate_area_type(network_variable = "area")'
-#          'self.calculate_county(network_variable = "county")'
-#          'self.calculate_centroidconnect(network_variable = "centroidconnect")'
-#          'self.calculate_mpo(network_variable = "mpo")'
-#          'self.calculate_road_class_idx(network_variable="road_class_idx")'
-#          'self.calculate_assign_group(network_variable="assign_group")'
-#
 # list of variables to keep in final output
 #    output_variables:
 #

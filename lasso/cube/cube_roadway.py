@@ -56,7 +56,7 @@ def write_cube_hwy_net_script_network_from_ff_files(
     for i in range(len(node_header_df)):
         s += " VAR=" + node_header_df.header.iloc[i]
 
-        if self.nodes_model_df.dtypes.loc[node_header_df.header.iloc[i]] == "O":
+        if nodes_df.dtypes.loc[node_header_df.header.iloc[i]] == "O":
             s += "(C" + str(node_header_df.width.iloc[i]) + ")"
 
         s += (

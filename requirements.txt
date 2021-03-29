@@ -1,5 +1,5 @@
 lark-parser
 jupyter
 notebook
-pandas > 1.0
+pandas > 1.1
 network-wrangler

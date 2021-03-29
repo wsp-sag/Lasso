@@ -1,31 +1,83 @@
-import os
 import pytest
 
 
-@pytest.mark.params
-@pytest.mark.travis
-def test_update_params(request):
-    print("\n--Starting:", request.node.name)
-    from lasso import Parameters
+@pytest.mark.utils
+def test_get_shared_streets_intersection_hash():
+    from lasso.utils import get_shared_streets_intersection_hash
 
-    p = Parameters()
-    p.update(update_dict={"demand_time_periods": ["A", "B"]})
-    assert p.demand_model_ps.demand_time_periods == ["A", "B"]
+    hash_result = get_shared_streets_intersection_hash(
+        lat=-93.0965985, lon=44.952112199999995, osm_node_id=954734870
+    )
 
-    p.update(output_link_fixed_width_header_filename="hellothere.txt")
-    assert p.file_ps.output_link_fixed_width_header_filename == "hellothere.txt"
+    hash_expected = "69f13f881649cb21ee3b359730790bb9"
+
+    assert hash_result == hash_expected
 
 
-@pytest.mark.params
-@pytest.mark.travis
-def test_params_as_dict(request):
-    print("\n--Starting:", request.node.name)
-    from lasso import Parameters
+@pytest.mark.utils
+def test_column_name_to_parts():
+    from lasso.utils import column_name_to_parts
+    from lasso.parameters import Parameters
 
-    p1 = Parameters(input_ps={"demand_time_periods": ["A", "B"]})
-    p1_dict = p1.as_dict()
-    print("parameters.as_dict():\n   ".format(p1_dict))
-    p2 = Parameters(input_ps=p1_dict)
-    p2_dict = p2.as_dict()
+    parameters = Parameters()
 
-    assert p1_dict == p2_dict
+    result_1 = column_name_to_parts("ML_LANES_AM_HOV", parameters=parameters)
+    result_2 = column_name_to_parts("LANES_PM", parameters=parameters)
+    result_3 = column_name_to_parts("ML_PRICE_NT", parameters=parameters)
+
+    # base_name, time_period, category, managed
+    assert ("LANES", "AM", "HOV", True) == result_1
+    assert ("LANES", "PM", None, False) == result_2
+    assert ("PRICE", "NT", None, True) == result_3
+
+
+@pytest.mark.utils
+def test_fill_df_na():
+    from lasso.utils import fill_df_na
+    from pandas import DataFrame, NA
+    from pandas._testing import assert_frame_equal
+
+    type_lookup = {
+        "i_am_string": str,
+        "i_am_float": float,
+        "i_am_int": int,
+    }
+
+    df_w_empties = DataFrame(
+        {"i_am_string": ["hi", NA], "i_am_float": [1.0, 4.0], "i_am_int": [1000, NA],},
+    )
+    result_1 = fill_df_na(df_w_empties, type_lookup)
+
+    df_expected = DataFrame(
+        {"i_am_string": ["hi", ""], "i_am_float": [1.0, 4.0], "i_am_int": [1000, 0],},
+    )
+    assert_frame_equal(result_1, df_expected)
+
+
+@pytest.mark.utils
+def test_coerce_df_types():
+    from lasso.utils import coerce_df_types
+    from pandas import DataFrame, NA
+    from numpy import nan
+    from pandas._testing import assert_frame_equal
+
+    type_lookup = {
+        "i_am_string": str,
+        "i_am_float": float,
+        "i_am_int": int,
+    }
+
+    df_mistyped = DataFrame(
+        {
+            "i_am_string": ["hi", nan],
+            "i_am_float": ["4.6", NA],
+            "i_am_int": [1000, "0"],
+        },
+    )
+
+    result_1 = coerce_df_types(df_mistyped, type_lookup)
+
+    df_expected = DataFrame(
+        {"i_am_string": ["hi", ""], "i_am_float": [4.6, 0.0], "i_am_int": [1000, 0],},
+    )
+    assert_frame_equal(result_1, df_expected)

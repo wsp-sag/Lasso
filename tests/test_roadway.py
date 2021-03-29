@@ -1,11 +1,9 @@
-import re
 import os
 
 import pytest
 
-from lasso.metcouncil import MetCouncilRoadwayNetwork
-from lasso import Parameters, ModelRoadwayNetwork
-from network_wrangler import RoadwayNetwork
+from lasso.metcouncil.metcouncil_roadway import MetCouncilRoadwayNetwork
+from lasso import Parameters
 
 """
 Run tests from bash/shell
@@ -22,17 +20,6 @@ STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 def _read_stpaul_net():
     net = MetCouncilRoadwayNetwork(
-        link_filename=STPAUL_LINK_FILE,
-        node_filename=STPAUL_NODE_FILE,
-        shape_filename=STPAUL_SHAPE_FILE,
-        fast=True,
-        shape_foreign_key="shape_id",
-    )
-    return net
-
-
-def _read_stpaul_model_net():
-    net = ModelRoadwayNetwork.read(
         link_filename=STPAUL_LINK_FILE,
         node_filename=STPAUL_NODE_FILE,
         shape_filename=STPAUL_SHAPE_FILE,
@@ -63,7 +50,7 @@ def test_network_split_variables_by_time(request):
     """
     print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = _read_stpaul_net()
 
     net.split_properties_by_time_period_and_category()
     assert "trn_priority_AM" in net.links_df.columns
@@ -79,7 +66,7 @@ def test_calculate_count(request):
     """
     print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = _read_stpaul_net()
 
     net.add_counts()
     assert "AADT" in net.links_df.columns
@@ -95,7 +82,7 @@ def test_write_cube_roadway(request):
     """
     print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = _read_stpaul_net()
 
     net.write_roadway_as_fixedwidth()
     ## todo write an assert that actually tests something
@@ -107,7 +94,7 @@ def test_write_roadway_as_shape(request):
     """"""
     print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = _read_stpaul_net()
 
     net.write_roadway_as_shp()
     ## todo write an assert that actually tests something

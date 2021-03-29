@@ -19,7 +19,7 @@ def get_shared_streets_intersection_hash(lat, lon, osm_node_id=None):
     """
     import hashlib
 
-    message = "Intersection {0:.5f} {0:.5f}".format(lon, lat)
+    message = "Intersection {0:.5f} {0:.5f}".format(lon, lat)  # noqa F523
     if osm_node_id:
         message += " {}".format(osm_node_id)
     unhashed = message.encode("utf-8")
@@ -27,39 +27,24 @@ def get_shared_streets_intersection_hash(lat, lon, osm_node_id=None):
     return hash
 
 
-def hhmmss_to_datetime(hhmmss_str: str):
-    """
-    Creates a datetime time object from a string of hh:mm:ss
+def column_name_to_parts(
+    c: str,
+    parameters=None,
+    delim="_",
+    order: Collection[str] = ["managed", "base_name", "category", "time_period"],
+) -> Collection[str]:
+    """[summary]
 
     Args:
-        hhmmss_str: string of hh:mm:ss
+        c ([type]): composite column name
+        parameters (Parameters, optional): Defaults to default Parameters().
+        delim = what column parts are delimted by. Defaults to "_".
+        order = what order the variables are concatenated together in. Defaults to:
+            managed, base_name, category,
+
     Returns:
-        dt: datetime.time object representing time
+        Collection[str]: base_name, time_period, category, managed
     """
-    import datetime
-
-    dt = datetime.time(*[int(i) for i in hhmmss_str.split(":")])
-
-    return dt
-
-
-def secs_to_datetime(secs: int):
-    """
-    Creates a datetime time object from a seconds from midnight
-
-    Args:
-        secs: seconds from midnight
-    Returns:
-        dt: datetime.time object representing time
-    """
-    import datetime
-
-    dt = (datetime.datetime.min + datetime.timedelta(seconds=secs)).time()
-
-    return dt
-
-
-def column_name_to_parts(c, parameters=None):
 
     if not parameters:
         from .parameters import Parameters
@@ -74,9 +59,6 @@ def column_name_to_parts(c, parameters=None):
     time_period = None
     category = None
 
-    if c.split("_")[0] not in parameters.properties_to_split.keys():
-        return c, None, None, managed
-
     tps = parameters.network_ps.network_time_period_abbr
     cats = list(parameters.roadway_network_ps.category_grouping.keys)
 
@@ -90,16 +72,16 @@ def column_name_to_parts(c, parameters=None):
         category = c.split("_")[-1]
         base_name = c.split(category)[-2][:-1]
     else:
-        msg = "Can't split property correctly: {}".format(c)
-        WranglerLogger.error(msg)
+        category = None
+        time_period = None
 
     return base_name, time_period, category, managed
 
 
 def fill_df_na(df: DataFrame, type_lookup: Mapping) -> DataFrame:
     """
-    Fill na values with zeros and "" for a dataframe based on if they are numeric columns or strings
-    in the parameters. Right now is looking for
+    Fill na values with zeros and "" for a dataframe based on if they are
+    numeric columns or strings in the parameters. Right now is looking for
     NA based on: np.nan, "", float("nan"), "NaN".
 
     Args:
@@ -124,7 +106,9 @@ def fill_df_na(df: DataFrame, type_lookup: Mapping) -> DataFrame:
     return df
 
 
-def coerce_df_types(df: DataFrame, type_lookup: dict = None) -> DataFrame:
+def coerce_df_types(
+    df: DataFrame, type_lookup: dict = None, fill_na: bool = False
+) -> DataFrame:
     """
     Coerce types and fills NAs for dataframe (i.e. links_df) based on types in type_lookup.
 
@@ -132,11 +116,16 @@ def coerce_df_types(df: DataFrame, type_lookup: dict = None) -> DataFrame:
         df: a dataframe to coerce the types for
         type_lookup: a dictionary mapping field names to types of str, int, or float.
             If not specified, will use roadway_net.parameters.roadway_network_ps.field_type.
+        fill_na: if True, will fill NA values with null equiv of the type specified.
+            Defaults to False.
 
     Returns: A dataframe with coerced types.
     """
 
     WranglerLogger.debug("Coercing types based on:\n {}".format(type_lookup))
+
+    if fill_na:
+        df = fill_df_na(df, type_lookup=type_lookup)
 
     for c in list(df.columns):
         if type_lookup.get(c):
@@ -147,8 +136,6 @@ def coerce_df_types(df: DataFrame, type_lookup: dict = None) -> DataFrame:
                     c, df[c].dtype
                 )
             )
-
-    df = fill_df_na(df, type_lookup=type_lookup)
 
     WranglerLogger.debug("DF types now:\n {}".format(df.dtypes))
 
@@ -192,7 +179,8 @@ def write_df_to_fixed_width(
     Args:
         df (DataFrame): dataframe to write out
         data_outfile (str): txt file to write data to
-        header_outfile (str): file to write header information to as a csv with header: header, width
+        header_outfile (str): file to write header information to as a csv with
+            header: header, width
         sep (str): separator for data_outfile. Defaults to ";"
 
     Returns:
@@ -240,7 +228,7 @@ def df_as_fixed_width(df: DataFrame) -> Collection[Union[DataFrame, dict]]:
     # get the max length for each variable column
     max_width_dict = dict(
         [
-            (v, fw_df[v].apply(lambda r: len(str(r)) if r != None else 0).max())
+            (v, fw_df[v].apply(lambda r: len(str(r)) if r is not None else 0).max())
             for v in fw_df.columns.values
         ]
     )

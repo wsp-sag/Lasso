@@ -3,8 +3,8 @@ This package of utilities is a wrapper around the [`network_wrangler`](http://gi
 
 It aims to have the following functionality:
 
- 1. parse Cube log files and base highway networks and create ProjectCards for Network Wrangler  
- 2. parse two Cube transit line files and create ProjectCards for NetworkWrangler  
+ 1. parse Cube log files and base highway networks and create ProjectCards for Network Wrangler
+ 2. parse two Cube transit line files and create ProjectCards for NetworkWrangler
  3. refine Network Wrangler highway networks to contain specific variables and settings for Metropolitan Council and export them to a format that can be read in by  Citilab's Cube software.
 
 ## Installation
@@ -42,8 +42,8 @@ pip install git+https://github.com/wsp-sag/Lasso@develop
 
 Note: if you wanted to install from a specific tag/version number or branch, replace `@master` with `@<branchname>`  or `@tag`
 
-#### From Clone
-If you are going to be working on Lasso locally, you might want to clone it to your local machine and install it from the clone.  The -e will install it in [editable mode](https://pip.pypa.io/en/stable/reference/pip_install/?highlight=editable#editable-installs).
+#### Installing for development
+If you are going to be working on Lasso locally, you might want to clone it to your local machine and install it from the clone*.  The -e will install it in [editable mode](https://pip.pypa.io/en/stable/reference/pip_install/?highlight=editable#editable-installs).
 
 **if you plan to do development on both network wrangler and lasso locally, consider installing network wrangler from a clone as well!**
 
@@ -58,9 +58,10 @@ pip install -e .
 cd ..
 cd Lasso
 pip install -e .
+pre-commit install
 ```
 
-Note: if you are not part of the project team and want to contribute code bxack to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
+*Note: if you are not part of the project team and want to contribute code back to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
 
 ## Documentation
 
@@ -68,7 +69,7 @@ Documentation is located at [https://wsp-sag.github.io/Lasso/](https://wsp-sag.g
 
 Edit the source of the documentation  in the `/docs` folder.
 
-To build the documentation locally requires additional packages found in the `dev_requirements.txt` folder.  
+To build the documentation locally requires additional packages found in the `dev_requirements.txt` folder.
 
 To install these into your conda python environment execute the following from the command line in the Lasso folder:
 
@@ -86,10 +87,10 @@ make html
 
 ## Usage
 
-To learn basic lasso functionality, please refer to the following jupyter notebooks in the `/notebooks` directory:  
+To learn basic lasso functionality, please refer to the following jupyter notebooks in the `/notebooks` directory:
 
- - `Lasso Project Card Creation Quickstart.ipynb`   
- - `Lasso Scenario Creation Quickstart.ipynb`  
+ - `Lasso Project Card Creation Quickstart.ipynb`
+ - `Lasso Scenario Creation Quickstart.ipynb`
 
 Jupyter notebooks can be started by activating the lasso conda environment and typing `jupyter notebook`:
 
@@ -200,5 +201,5 @@ Try running Anaconda Prompt as an administrator.
 ## Client Contact and Relationship
 Repository created in support of Met Council Network Rebuild project. Project lead on the client side is [Rachel Wiken](Rachel.Wiken@metc.state.mn.us). WSP team member responsible for this repository is [David Ory](david.ory@wsp.com).
 
-## Attribution  
+## Attribution
 This project is built upon the ideas and concepts implemented in the [network wrangler project](https://github.com/sfcta/networkwrangler) by the [San Francisco County Transportation Authority](http://github.com/sfcta) and expanded upon by the [Metropolitan Transportation Commission](https://github.com/BayAreaMetro/NetworkWrangler).
