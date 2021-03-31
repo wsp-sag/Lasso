@@ -593,6 +593,8 @@ def calculate_cntype(
             return "MAZ"
         if x.roadway == "tap":
             return "TAP"
+        if x.bus_only == 1:
+            return "TANA"
         if x.drive_access == 1:
             return "TANA"
         elif x.walk_access == 1:
