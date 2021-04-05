@@ -566,6 +566,7 @@ def _diff_shape(
         _first_change_a = diff_df.iloc[0]["n"]
         _first_change_b = diff_df.iloc[0]["n"]
 
+    """
     WranglerLogger.debug(
         f"[diff_df]: \n   \
         _first_overlap_a: {_first_overlap_a}\n   \
@@ -573,6 +574,7 @@ def _diff_shape(
         _first_change_a: {_first_change_a}\n  \
         _first_change_b: {_first_change_b}\n"
     )
+    """
 
     _last_change_a = len(shape_a) - 1
     _last_change_b = len(shape_b) - 1
@@ -591,6 +593,7 @@ def _diff_shape(
     if _last_change_b < _first_change_b:
         _last_change_b = _first_change_b
 
+    """
     WranglerLogger.debug(
         f"[diff_df]: \n   \
         _last_overlap_a: {_last_overlap_a}\n   \
@@ -598,12 +601,14 @@ def _diff_shape(
         _last_change_a: {_last_change_a}\n  \
         _last_change_b: {_last_change_b}\n"
     )
+    """
 
     A_i = max(0, _first_change_a - n_buffer_vals + 1)
     A_j = min(len(shape_a), _last_change_a + n_buffer_vals)
     B_i = max(0, _first_change_b - n_buffer_vals + 1)
     B_j = min(len(shape_b), _last_change_b + n_buffer_vals)
 
+    """
     WranglerLogger.debug(
         f"\
         [diff_df]:\n  \
@@ -612,6 +617,7 @@ def _diff_shape(
         B_i: {B_i}\n  \
         B_j: {B_j}\n"
     )
+    """
 
     existing_df = shape_a.iloc[A_i:A_j][match_id]
     set_df = shape_b.iloc[B_i:B_j][match_id]
