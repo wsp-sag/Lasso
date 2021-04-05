@@ -422,7 +422,8 @@ class CubeTransit(object):
             "category": "Transit Service Property Change",
             "facility": {
                 "route_id": line.split("_")[1],
-                "direction_id": int(line.strip('"')[-1]),
+                "direction_id": int(line.split("_")[-2].strip("d\"")),
+                "shape_id": line.split("_")[-1].strip("s\""),
                 "start_time": base_start_time_str,
                 "end_time": base_end_time_str,
             },
