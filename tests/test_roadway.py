@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from lasso import ModelRoadwayNetwork
 from lasso.metcouncil.metcouncil_roadway import MetCouncilRoadwayNetwork
 from lasso import Parameters
 
@@ -19,7 +20,7 @@ STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
 def _read_stpaul_net():
-    net = MetCouncilRoadwayNetwork(
+    net = ModelRoadwayNetwork.read(
         link_filename=STPAUL_LINK_FILE,
         node_filename=STPAUL_NODE_FILE,
         shape_filename=STPAUL_SHAPE_FILE,

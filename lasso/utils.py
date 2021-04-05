@@ -59,7 +59,7 @@ def column_name_to_parts(
     time_period = None
     category = None
 
-    tps = parameters.network_ps.network_time_period_abbr
+    tps = parameters.network_model_ps.network_time_period_abbr
     cats = list(parameters.roadway_network_ps.category_grouping.keys)
 
     if c.split("_")[-1] in tps:
@@ -98,7 +98,7 @@ def fill_df_na(df: DataFrame, type_lookup: Mapping) -> DataFrame:
     numeric_cols = [c for c in list(df.columns) if c in numeric_fields]
     non_numeric_cols = [c for c in list(df.columns) if c not in numeric_cols]
 
-    non_standard_nan = [np.nan, "", float("nan"), "NaN"]
+    non_standard_nan = [np.nan, "", float("nan"), "NaN", "NAType"]
 
     df[numeric_cols] = df[numeric_cols].replace(non_standard_nan, 0).fillna(0)
     df[non_numeric_cols] = df[non_numeric_cols].fillna("")

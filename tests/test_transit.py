@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.transit
 def test_create_delete_route_change_dict(request):
     print("\n--Starting:", request.node.name)
-    from lasso.model_transit import _create_delete_route_change_dict
+    from lasso import project
 
     df = pd.DataFrame(
         {
@@ -15,7 +15,7 @@ def test_create_delete_route_change_dict(request):
             "end_time_HHMM": "9:00",
         }
     )
-    test_delete_change_dict = _create_delete_route_change_dict(df.iloc[0])
+    test_delete_change_dict = project._create_delete_route_change_dict(df.iloc[0])
     expected_delete_change_dict = {}
     assert test_delete_change_dict == expected_delete_change_dict
 
@@ -23,7 +23,7 @@ def test_create_delete_route_change_dict(request):
 @pytest.mark.transit
 def test_update_line_change_dict(request):
     print("\n--Starting:", request.node.name)
-    from lasso.model_transit import _update_line_change_dict
+    from lasso import project
 
     df = pd.DataFrame(
         {
@@ -36,7 +36,7 @@ def test_update_line_change_dict(request):
     )
 
     ##todo
-    test_update_change_dict = _update_line_change_dict(df.iloc[0])
+    test_update_change_dict = project._update_line_change_dict(df.iloc[0])
     expected_update_change_dict = {}
     assert test_update_change_dict == expected_update_change_dict
 
@@ -44,7 +44,7 @@ def test_update_line_change_dict(request):
 @pytest.mark.transit
 def test_new_line_change_dict(request):
     print("\n--Starting:", request.node.name)
-    from lasso.model_transit import _new_line_change_dict
+    from lasso import project
 
     df = pd.DataFrame(
         {
@@ -55,6 +55,6 @@ def test_new_line_change_dict(request):
             "end_time_HHMM": "10:00",
         }
     )
-    test_new_line_change_dict = _new_line_change_dict(df.iloc[0])
+    test_new_line_change_dict = project._new_line_change_dict(df.iloc[0])
     expected_new_line_change_dict = {}
     assert test_new_line_change_dict == expected_new_line_change_dict

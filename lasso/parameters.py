@@ -136,7 +136,7 @@ class RoadwayNetworkModelParameters:
     """
 
     network_model_parameters: NetworkModelParameters
-    model_roadway_class: str = ".roadway.ModelRoadwayNetwork"
+    model_roadway_class: str = "lasso.model_roadway.ModelRoadwayNetwork"
     allowed_use_categories: Set[str] = field(
         default_factory=lambda: ["sov", "hov2", "hov3", "trk", "default"]
     )
@@ -653,5 +653,6 @@ class Parameters:
     def as_dict(self):
         all_params = {}
         for k, v in self.__dict__.items():
-            all_params.update(v.__dict__)
+            if type(v) not in [dict, list]:
+                all_params.update(v.__dict__)
         return all_params
