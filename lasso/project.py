@@ -14,7 +14,7 @@ from .logger import WranglerLogger
 from .parameters import Parameters
 from .model_roadway import ModelRoadwayNetwork
 from .utils import column_name_to_parts
-from cube.cube_model_transit import CubeTransitWriter
+from .cube import CubeTransitWriter
 
 
 class Project(object):
@@ -1010,16 +1010,30 @@ def update_route_routing_change_dict(
             Set: {set_routing_df.columns}"
         )
 
-    existing_str = CubeTransitWriter._nodes_df_to_cube_node_strings(existing_routing_df)
-    set_str = CubeTransitWriter._nodes_df_to_cube_node_strings(existing_routing_df)
+    # for grouping
+    existing_routing_df["NAME"] = "_"
+    set_routing_df["NAME"] = "_"
+
+    existing_list = existing_routing_df.apply(
+        CubeTransitWriter._cube_node_format,
+        # properties = properties,
+        axis=1,
+    ).tolist()
+
+    set_list = set_routing_df.apply(
+        CubeTransitWriter._cube_node_format,
+        # properties = properties,
+        axis=1,
+    ).tolist()
+
     WranglerLogger.debug(
-        f"Existing Str: {existing_str}\n\
-        Set Str: {set_str}"
+        f"Existing Str: {existing_list}\n\
+        Set Str: {set_list}"
     )
 
     shape_change_dict = {
         "property": "routing",
-        "existing": existing_str,
-        "set": set_str,
+        "existing": existing_list,
+        "set": set_list,
     }
     return shape_change_dict

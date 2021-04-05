@@ -5,6 +5,8 @@ from .model_transit import ModelTransit
 from .model_roadway import ModelRoadwayNetwork
 from .parameters import Parameters
 from .data import FieldMapping, ValueLookup, PolygonOverlay
+from . import cube
+from . import metcouncil
 
 __all__ = [
     "Project",
@@ -14,4 +16,6 @@ __all__ = [
     "FieldMapping",
     "ValueLookup",
     "PolygonOverlay",
+    "cube",
+    "metcouncil",
 ]

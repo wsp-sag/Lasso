@@ -792,7 +792,10 @@ class CubeTransitWriter:
 
     @classmethod
     def _nodes_df_to_cube_node_strings(
-        cls, nodes_df: pd.DataFrame, properties: Collection[str] = [],
+        cls,
+        nodes_df: pd.DataFrame,
+        properties: Collection[str] = [],
+        id_field: str = "NAME",
     ) -> pd.DataFrame:
         """
         Creates a dataframe of cube node strings for each trip_id from shapes_df and stop_times_df
@@ -813,7 +816,7 @@ class CubeTransitWriter:
         def _agg_node_str(row_group):
             return ",\n".join(row_group.cube_node_str.tolist())
 
-        _node_str_df = nodes_df.groupby("NAME").agg(_agg_node_str)
+        _node_str_df = nodes_df.groupby(id_field).agg(_agg_node_str)
 
         _node_str_df = _node_str_df["cube_node_str"]
         return _node_str_df
