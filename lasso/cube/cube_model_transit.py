@@ -14,9 +14,15 @@ from ..parameters import Parameters
 
 MODEL_TO_STD_PROP_MAP = {
     "LONGNAME": "route_long_name",
+    "NAME": "trip_id",
+    "N": "shape_model_node_id",
 }
 
-STD_TO_MODEL_PROP_MAP = {"route_long_name": "LONGNAME"}
+STD_TO_MODEL_PROP_MAP = {
+    "route_long_name": "LONGNAME",
+    "shape_model_node_id": "N",
+    "shape_pt_sequence": "order",
+}
 
 MODEL_TO_STD_PROP_TRANS = {
     ("FREQ", "headway_secs"): lambda x: x * 60,
@@ -29,7 +35,7 @@ STD_TO_MODEL_PROP_TRANS = {
 }
 
 TRNBUILD_ROUTE_PROPERTIES = [
-    "LINE NAME",
+    "NAME",
     "LONGNAME",
     "HEADWAY",
     "MODE",
@@ -38,7 +44,7 @@ TRNBUILD_ROUTE_PROPERTIES = [
 ]
 
 PT_ROUTE_PROPERTIES = [
-    "LINE NAME",
+    "NAME",
     "LONGNAME",
     "FREQ",
     "MODE",
@@ -69,6 +75,9 @@ TP_PROPERTY = {
     "TRNBUILD": "HEADWAY",
     "PT": "FREQ",
 }
+
+ROUTE_ID_PROP = "NAME"
+NODE_ID_PROP = "N"
 
 # Properties which vary by time period
 TIME_VARYING_TRANSIT_PROPERTIES = {"HEADWAY", "FREQ"}
@@ -123,6 +132,8 @@ class CubeTransit(ModelTransit):
         super().__init__(
             route_properties_df=None,
             shapes_df=None,
+            route_id_prop=ROUTE_ID_PROP,
+            node_id_prop=NODE_ID_PROP,
             model_type="cube",
             parameters=parameters,
             parameters_dict=parameters_dict,
@@ -131,13 +142,19 @@ class CubeTransit(ModelTransit):
 
     def add_source(self, source: Any, source_type: str = "", **kwargs):
         GTFS_MIN_FILES = ["stops.txt", "trips.txt", "routes.txt"]
+        gtfs_files_exist = all(
+            [os.path.exists(os.path.join(source, f)) for f in GTFS_MIN_FILES]
+        )
+
         if (type(source) == TransitNetwork) or (
             source_type.lower() in ["std", "standard", "gtfs"]
         ):
             self.add_std_source(source, **kwargs)
-        elif (source_type.lower() in ["cube", "trnbuild", "pt"]) or ".lin" in source:
+        elif (source_type.lower() in ["cube", "trnbuild", "pt"]) or any(
+            [x in source.lower() for x in ["line name", ".lin"]]
+        ):
             self.add_model_source(source, **kwargs)
-        elif all([os.path.exists(os.path.join(source, f)) for f in GTFS_MIN_FILES]):
+        elif gtfs_files_exist:
             self.add_std_source(source, **kwargs)
         else:
             msg = f"""Not sure how to read source: {source} with source_types: {source_type}.
@@ -209,7 +226,7 @@ class CubeTransit(ModelTransit):
         new_routes = route_properties_df["NAME"].unique().tolist()
         WranglerLogger.debug(f"Adding routes: {new_routes} \nfrom: {source_list}")
 
-        self.add_source(
+        super().add_source(
             route_properties_df=route_properties_df,
             route_shapes_df=route_shapes_df,
             new_routes=new_routes,
@@ -226,7 +243,7 @@ class CubeTransit(ModelTransit):
             route_properties = [
                 p
                 for p in self.route_properties
-                if p in self._route_properties_by_time_df.columns
+                if p in self.route_properties_by_time_df.columns
             ]
 
         if not node_properties:
@@ -248,9 +265,11 @@ class CubeTransit(ModelTransit):
         self, transit_properties_df: DataFrame,
     ) -> DataFrame:
 
-        super()._melt_routes_by_time_period(
+        df = super()._melt_routes_by_time_period(
             transit_properties_df, df_key="NAME", tp_property=self.tp_property,
         )
+
+        return df
 
     @staticmethod
     def base_prop_from_time_varying_prop(prop: str) -> str:
@@ -477,7 +496,7 @@ class StdToCubeAdapter(StdToModelAdapter):
             return model_route_properties_df["agency_id"]
 
     def transform_nodes(self) -> pd.DataFrame:
-        """[summary]
+        """Transforms std node/shapes to model shapes.
 
         Args:
             feed ([type]): [description]
@@ -491,30 +510,79 @@ class StdToCubeAdapter(StdToModelAdapter):
         # msg = f"self.feed.stop_times:\n {self.feed.stop_times[['stop_id','stop_sequence']]}"
         # WranglerLogger.debug(msg)
 
-        # get model_node_id mapped to stoptimes
-        _stop_times = pd.merge(
-            self.feed.stop_times,
+        # get model_node_id and shape_ids mapped to stoptimes
+        _stop_times_df = pd.merge(
+            self.feed.stop_times[["stop_id", "trip_id"]],
             self.feed.stops[["stop_id", "model_node_id"]],
             how="left",
             on="stop_id",
         )
 
-        _nodes_df = pd.merge(
-            self.feed.shapes["shape_model_node_id"],
-            _stop_times,
+        _stop_times_df = pd.merge(
+            _stop_times_df[["model_node_id", "trip_id", "stop_id"]],
+            self.feed.trips[["shape_id", "trip_id"]],
             how="left",
-            left_on="shape_model_node_id",
-            right_on="model_node_id",
+            on="trip_id",
+        )
+
+        WranglerLogger.debug(f"_stop_times_df:\n {_stop_times_df}")
+
+        # if exists in _stop_times_df, then it is a stop. Otherwise...a shape point.
+        _shape_nodes_df = pd.merge(
+            _stop_times_df[["shape_id", "model_node_id", "stop_id"]],
+            self.feed.shapes[["shape_id", "shape_model_node_id", "shape_pt_sequence"]],
+            how="outer",
+            right_on=["shape_id", "shape_model_node_id"],
+            left_on=["shape_id", "model_node_id"],
             indicator=True,
         )
 
-        _nodes_df = _nodes_df.rename(columns={"shape_model_node_id": "n"})
+        _shape_nodes_df["stop"] = _shape_nodes_df._merge.map(
+            {"right_only": False, "both": True}
+        )
 
-        # if node exists in shape and stop_times, it is a stop
-        _nodes_df["stop"] = _nodes_df._merge.map({"left_only": False, "both": True})
+        _nodes_df = pd.merge(
+            _shape_nodes_df[
+                [
+                    "shape_id",
+                    "stop_id",
+                    "shape_model_node_id",
+                    "stop",
+                    "shape_pt_sequence",
+                ]
+            ],
+            self.feed.trips[["shape_id", "trip_id"]],
+            how="left",
+            on="shape_id",
+        )
 
+        for std_prop, model_prop in self.std_to_model_prop_trans.keys():
+            if std_prop not in _nodes_df.columns:
+                continue
+            _nodes_df[model_prop] = _nodes_df[std_prop].apply(
+                self.std_to_model_prop_trans[(std_prop, model_prop)]
+            )
+
+        _rename_node_map = {
+            k: v
+            for k, v in self.std_to_model_prop_map.items()
+            if k in _nodes_df.columns
+        }
+        # WranglerLogger.debug(f"_rename_node_map: {_rename_node_map}")
+        _nodes_df = _nodes_df.rename(columns=_rename_node_map)
+        # WranglerLogger.debug(f"_nodes_df 2 :\n {_nodes_df}")
+
+        # get name from self.model_routes_df
+        _nodes_df = pd.merge(
+            self.model_routes_df[["trip_id", "NAME"]],
+            _nodes_df,
+            how="outer",
+            on="trip_id",
+        )
+        _nodes_df = _nodes_df.sort_values(by=["NAME", "order"])
+        # WranglerLogger.debug(f"_nodes_df 3 :\n {_nodes_df}")
         WranglerLogger.debug(f"Number of Stops:{len(_nodes_df[_nodes_df.stop])}")
-        _properties_list = ["n", "stop", "trip_id"] + [
+        _properties_list = ["N", "stop", "NAME"] + [
             p for p in self.node_properties if p in _nodes_df.columns
         ]
 
@@ -530,19 +598,28 @@ class StdToCubeAdapter(StdToModelAdapter):
                 - OPERATOR
                 - MODE
                 - HEADWAY
+                - tp_abbr
+                - tp_num
         """
         if feed is None:
             feed = self.feed
         _routes_df = feed.trips.merge(feed.routes, how="left", on="route_id")
         _routes_df = _routes_df.merge(feed.frequencies, how="left", on="trip_id")
 
-        _routes_df = _routes_df.rename(self.std_to_model_prop_map)
-
         # WranglerLogger.debug(f"_routes_df: {_routes_df}")
         for std_prop, model_prop in self.std_to_model_prop_trans.keys():
+            if std_prop not in _routes_df.columns:
+                continue
             _routes_df[model_prop] = _routes_df[std_prop].apply(
                 self.std_to_model_prop_trans[(std_prop, model_prop)]
             )
+
+        _rename_route_map = {
+            k: v
+            for k, v in self.std_to_model_prop_map.items()
+            if k in _routes_df.columns
+        }
+        _routes_df = _routes_df.rename(columns=_rename_route_map)
 
         _routes_df["OPERATOR"] = self.calculate_model_operator(_routes_df)
         _routes_df["ONEWAY"] = "T"
@@ -550,6 +627,8 @@ class StdToCubeAdapter(StdToModelAdapter):
         _routes_df["tp_abbr"] = self.calculate_model_tod_name_abbr(_routes_df)
         _routes_df["tp_num"] = self.calculate_model_tod_num(_routes_df)
         _routes_df["NAME"] = self.calculate_route_name(_routes_df)
+
+        self.model_routes_df = _routes_df
 
         return _routes_df
 
@@ -670,7 +749,7 @@ class CubeTransitWriter:
         Args:
             outpath: File location for output cube line file.
         """
-
+        WranglerLogger.debug(f"nodes_df: \n{nodes_df}")
         if not node_properties:
             node_properties = REQUIRED_NODE_PROPERTIES[cube_transit_program]
 
@@ -702,7 +781,7 @@ class CubeTransitWriter:
     @staticmethod
     def _cube_node_format(row, properties=[]):
         _stop_notation = "-" if not row["stop"] else ""
-        _id = row["n"]
+        _id = row["N"]
 
         if properties:
             _properties = "," + ",".join([f"{p}={row.p}" for p in properties])
@@ -722,20 +801,19 @@ class CubeTransitWriter:
         Args:
             stop_times_df: DataFrame row with both shape_id and trip_id
 
-        Returns: Dataframe with `trip_id` and `agg_cube_node_str`
+        Returns: Dataframe with `NAME` and `agg_cube_node_str`
 
         """
-
-        ##TODO
+        # WranglerLogger.debug(f"nodes_df:\n{nodes_df}")
         nodes_df["cube_node_str"] = nodes_df.apply(
             cls._cube_node_format, properties=properties, axis=1
         )
-        # WranglerLogger.debug(f"cube_node_str:\n{nodes_df['cube_node_str']}")
+        WranglerLogger.debug(f"cube_node_str:\n{nodes_df['cube_node_str']}")
 
         def _agg_node_str(row_group):
             return ",\n".join(row_group.cube_node_str.tolist())
 
-        _node_str_df = nodes_df.groupby("trip_id").agg(_agg_node_str)
+        _node_str_df = nodes_df.groupby("NAME").agg(_agg_node_str)
 
         _node_str_df = _node_str_df["cube_node_str"]
         return _node_str_df
@@ -772,13 +850,13 @@ class CubeTransitWriter:
             if p == "NODES":
                 # msg = f"{cube_node_string_df[row.trip_id].squeeze()}"
                 # WranglerLogger.warning(msg)
-                if row.trip_id not in cube_node_string_df.index.values:
-                    msg = f"Cannot find nodes for trip_id: {row.trip_id}\
+                if row["NAME"] not in cube_node_string_df.index.values:
+                    msg = f"Cannot find nodes for NAME: {row['NAME']}\
                         in cube_node_string_df! Adding as **NOT FOUND**"
                     s += "NODES= **NOT FOUND**\n"
                     WranglerLogger.warning(msg)
                     continue
-                s += f"NODES={cube_node_string_df.loc[row.trip_id]}\n"
+                s += f"NODES={cube_node_string_df.loc[row['NAME']]}\n"
             elif pd.isna(row.get(p)):
                 continue
             elif p in time_varying_properties:
@@ -857,7 +935,7 @@ class CubeTransformer(Transformer):
     def attr_value(self, attr_value):
         try:
             return int(attr_value[0].value)
-        except TypeError:
+        except ValueError:
             return attr_value[0].value
 
     def nodes(self, lin_node):
@@ -870,7 +948,7 @@ class CubeTransformer(Transformer):
     def lin_node(self, NODE_NUM, SEMICOLON_COMMENT=None, *lin_nodeattr):
         self.line_order += 1
         n = int(NODE_NUM.value)
-        return {"node_id": abs(n), "node": n, "stop": n > 0, "order": self.line_order}
+        return {"N": abs(n), "stop": n > 0, "order": self.line_order}
 
     start = dict
 

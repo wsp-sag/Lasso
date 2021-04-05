@@ -3,7 +3,8 @@ import pytest
 
 
 @pytest.mark.transit
-def test_create_delete_route_change_dict():
+def test_create_delete_route_change_dict(request):
+    print("\n--Starting:", request.node.name)
     from lasso.model_transit import _create_delete_route_change_dict
 
     df = pd.DataFrame(
@@ -20,7 +21,8 @@ def test_create_delete_route_change_dict():
 
 
 @pytest.mark.transit
-def test_update_line_change_dict():
+def test_update_line_change_dict(request):
+    print("\n--Starting:", request.node.name)
     from lasso.model_transit import _update_line_change_dict
 
     df = pd.DataFrame(
@@ -40,7 +42,8 @@ def test_update_line_change_dict():
 
 
 @pytest.mark.transit
-def test_new_line_change_dict():
+def test_new_line_change_dict(request):
+    print("\n--Starting:", request.node.name)
     from lasso.model_transit import _new_line_change_dict
 
     df = pd.DataFrame(

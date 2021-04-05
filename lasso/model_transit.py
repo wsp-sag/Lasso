@@ -1,6 +1,6 @@
 """Transit-related classes to parse, compare, and write standard and cube transit files.
 
-  Typical usage example:
+    Typical usage example:
 
     tn = CubeTransit.create_from_cube(CUBE_DIR)
     transit_change_list = tn.evaluate_differences(base_transit_network)
@@ -8,6 +8,7 @@
     cube_transit_net = StandardTransit.read_gtfs(BASE_TRANSIT_DIR)
     cube_transit_net.write_as_cube_lin(os.path.join(WRITE_DIR, "outfile.lin"))
 """
+import copy
 from typing import Any, Union, Collection, Mapping
 
 from pandas import DataFrame
@@ -66,6 +67,8 @@ class ModelTransit:
         parameters_dict: dict = None,
         model_type: str = None,
         tp_property: str = None,
+        node_id_prop: str = "node_id",
+        route_id_prop: str = "route",
     ):
         """
         Constructor for ModelTransit
@@ -78,6 +81,9 @@ class ModelTransit:
 
         self.source_list = []
         # self.shapes = {}
+
+        self.route_id_prop = route_id_prop
+        self.node_id_prop = node_id_prop
 
         self.route_properties_df = route_properties_df
         self.shapes_df = shapes_df
@@ -99,7 +105,7 @@ class ModelTransit:
     def routes(self):
         if self.route_properties_df is None:
             return []
-        _r = self.route_properties_df["NAME"].unique().tolist()
+        _r = self.route_properties_df[self.route_id_prop].unique().tolist()
         return _r
 
     @property
@@ -135,9 +141,11 @@ class ModelTransit:
         routes_not_time = []
 
         if route_properties_df is not None:
-            routes_not_time = route_properties_df["NAME"].unique().tolist()
+            routes_not_time = route_properties_df[self.route_id_prop].unique().tolist()
         if route_properties_by_time_df is not None:
-            routes_by_time = route_properties_by_time_df["NAME"].unique().tolist()
+            routes_by_time = (
+                route_properties_by_time_df[self.route_id_prop].unique().tolist()
+            )
 
         if not new_routes:
             new_routes = list(set(routes_by_time + routes_not_time))
@@ -175,56 +183,80 @@ class ModelTransit:
         _add_to_time = list(set(routes_not_time) - set(routes_by_time))
 
         self.fix_concurrency_between_route_representations(
-            add_to_route_properties_df=_add_to_not_time,
-            add_to_route_properties_by_time_df=_add_to_time,
+            add_to_route_props=_add_to_not_time,
+            add_to_route_props_by_time=_add_to_time,
         )
 
     def fix_concurrency_between_route_representations(
         self,
-        add_to_route_properties_df: Collection[str] = None,
-        add_to_route_properties_by_time_df: Collection[str] = None,
+        add_to_route_props: Collection[str] = None,
+        add_to_route_props_by_time: Collection[str] = None,
     ) -> None:
         """[summary]
 
         Args:
-            add_to_route_properties_df (Collection[str], optional): [description].
+            add_to_route_props (Collection[str], optional): [description].
                 Defaults to None.
-            add_to_route_properties_by_time_df (Collection[str], optional): [description].
+            add_to_route_props_by_time (Collection[str], optional): [description].
                 Defaults to None.
 
         Returns:
             [type]: [description]
         """
-        msg = f"Adding routes to self.route_properties_df: {add_to_route_properties_df}"
-        # WranglerLogger.debug(msg)
-        if add_to_route_properties_df:
-            if self.route_properties_df is None:
-                self.route_properties_df = self._route_properties_by_time_df
-            else:
-                self.route_properties_df = self.route_properties_df.append(
-                    self._route_properties_by_time_df.isin(
-                        {"NAME", add_to_route_properties_df}
-                    ),
-                    ignore_index=True,
-                )
-
-        msg = f"Adding routes to self.route_properties_by_time_df: \
-            {add_to_route_properties_by_time_df}"
+        msg = f"Adding routes {len(add_to_route_props)} to \
+            self.route_props_df: {add_to_route_props}"
         WranglerLogger.debug(msg)
-        if add_to_route_properties_by_time_df:
-            if self._route_properties_by_time_df is None:
-                self._route_properties_by_time_df = self._melt_routes_by_time_period(
-                    self.route_properties_df
-                )
-            else:
-                _new_route_properties_by_time_df = self._melt_routes_by_time_period(
-                    self.route_properties_df.isin(
-                        {"NAME": add_to_route_properties_by_time_df}
-                    )
-                )
-                self._route_properties_by_time_df = self._route_properties_by_time_df.append(
-                    _new_route_properties_by_time_df, ignore_index=True
-                )
+        if add_to_route_props:
+            self.add_route_props_from_route_props_by_time(add_to_route_props)
+
+        if add_to_route_props_by_time:
+            self.add_route_props_by_time_from_unmelted(add_to_route_props_by_time)
+
+    def add_route_props_from_route_props_by_time(self, routes: Collection[str]) -> None:
+        """[summary]
+
+        Args:
+            routes (Collection[str]): [description]
+        """
+        if self.route_properties_df is None:
+            self.route_properties_df = self._route_properties_by_time_df
+        else:
+            new_route_props_df = self.route_properties_by_time_df[
+                self.route_properties_by_time_df[self.route_id_prop].isin(routes)
+            ]
+            self.route_properties_df = self.route_properties_df.append(
+                new_route_props_df, ignore_index=True,
+            )
+
+    def add_route_props_by_time_from_unmelted(self, routes: Collection[str]) -> None:
+        """[summary]
+
+        Args:
+            routes (Collection[str]): [description]
+
+        Returns:
+            [type]: [description]
+        """
+        msg = f"Adding {len(routes)}routes \
+                to self.route_properties_by_time_df: \
+                {routes}"
+        WranglerLogger.debug(msg)
+
+        _new_route_properties_by_time_df = self._melt_routes_by_time_period(
+            self.route_properties_df[
+                self.route_properties_df[self.route_id_prop].isin(routes)
+            ]
+        )
+        if self._route_properties_by_time_df is None:
+            WranglerLogger.debug("Creating new: self._route_properties_by_time_df")
+            self._route_properties_by_time_df = _new_route_properties_by_time_df
+        else:
+            WranglerLogger.debug(
+                "Adding to existing: self._route_properties_by_time_df"
+            )
+            self._route_properties_by_time_df = self._route_properties_by_time_df.append(
+                _new_route_properties_by_time_df, ignore_index=True
+            )
 
     @staticmethod
     def fields_from_std_route_name(
@@ -304,7 +336,7 @@ class ModelTransit:
         melted_properties_df = melted_properties_df.merge(
             transit_properties_df, how="left", on=df_key
         )
-        WranglerLogger.debug(f"melted_properties_df.merge:\n {melted_properties_df}")
+        # WranglerLogger.debug(f"melted_properties_df.merge:\n {melted_properties_df}")
         _time_varying_fields = self.time_varying_props_filter(
             list(transit_properties_df.columns)
         )
@@ -327,7 +359,6 @@ class ModelTransit:
                 and (x != basename)
             ]
         melted_properties_df = melted_properties_df.drop(columns=_drop_cols)
-        WranglerLogger.debug(f"melted_properties_df:\n{melted_properties_df}")
 
         transit_ps = self.parameters.transit_network_ps
 
@@ -335,7 +366,8 @@ class ModelTransit:
             transit_ps.transit_network_model_to_general_network_time_period_abbr
         )
 
-        return melted_properties_df
+        WranglerLogger.debug(f"melted_properties_df:\n{melted_properties_df}")
+        return copy.deepcopy(melted_properties_df)
 
 
 class StdToModelAdapter:
@@ -410,20 +442,28 @@ class ModelToStdAdapter:
 
     def transform(self) -> Collection[DataFrame]:
         std_routes_df = self.transform_routes()
-        std_nodes_df = self.transform_routes()
-        std_shapes_df = self.transform_routes()
-
+        std_shapes_df = self.transform_shapes()
+        std_nodes_df = None
         return std_routes_df, std_nodes_df, std_shapes_df
 
-    def transform_nodes(self):
-        ##TODO
-        _nodes = self.model_shapes_df
-        return _nodes
-
     def transform_shapes(self):
-        ##TODO
-        _shapes = self.model_shapes_df
-        return _shapes
+
+        _properties_to_transform = [
+            k
+            for k, v in self.model_to_std_prop_trans.items()
+            if k[0] in self.model_shapes_df.columns
+        ]
+
+        _std_shapes_df = copy.deepcopy(self.model_shapes_df)
+
+        for model_prop, standard_prop in _properties_to_transform:
+            _std_shapes_df[standard_prop] = _std_shapes_df[standard_prop].apply(
+                self.model_to_std_prop_trans[(model_prop, standard_prop)]
+            )
+
+        _std_shapes_df = _std_shapes_df.rename(self.model_to_std_prop_map)
+
+        return _std_shapes_df
 
     def calculate_start_end_time_HHMM(self, routes_df):
         # Create dataframe with columns for start and end times
@@ -484,90 +524,107 @@ class ModelToStdAdapter:
         return _routes_df
 
 
-def compare_route_shapes(
-    base_shape_df: DataFrame, updated_shape_df: DataFrame
-) -> Union[None, Mapping]:
-    """[summary]
+def _diff_shape(
+    shape_a: DataFrame,
+    shape_b: DataFrame,
+    id_field: str,
+    props: Collection[str] = [],
+    n_buffer_vals: int = 3,
+):
+    import difflib
 
-    Args:
-        base_shape_df (DataFrame): [description]
-            {"node_id": abs(n), "node": n, "stop": n > 0, "order": self.line_order}
-        updated_shape_df (DataFrame): [description]
+    shape_change_dict = {"property": "routing"}
 
-    Returns:
-        Union[None,Mapping]: Returns a project card mapping for shape change.
-            If no changes, will return None.
+    shape_a = shape_a.reset_index()
+    shape_b = shape_b.reset_index()
+    WranglerLogger.debug(f"[shape_a]: \n {shape_a}")
+    WranglerLogger.debug(f"[shape_b]: \n {shape_b}")
+
+    blocks = difflib.SequenceMatcher(
+        a=shape_a[id_field], b=shape_b[id_field], autojunk=False,
+    ).get_matching_blocks()
     """
+    diff_df
+    ix a  b  n
+    0  0  0  1
+    1  3  3  6
+    2  9  9  0
+    """
+    diff_df = pd.DataFrame([{"a": x[0], "b": x[1], "n": x[2]} for x in blocks])
+    WranglerLogger.debug(f"[diff_df].n_buffer_vals: {n_buffer_vals}")
+    # WranglerLogger.debug(f"[diff_df]: \n {diff_df}")
 
-    if base_shape_df == updated_shape_df:
-        return None
+    _first_change_a = -1
+    _first_change_b = -1
+    _first_overlap_a = diff_df.iloc[0]["a"]
+    _first_overlap_b = diff_df.iloc[0]["b"]
 
-    base_shape_df.before_node = base_shape_df.node.shift(periods=1)
-    updated_shape_df.before_node = updated_shape_df.node.shift(periods=1)
-    base_shape_df.after_node = base_shape_df.node.shift(periods=-1)
-    updated_shape_df.after_node = updated_shape_df.node.shift(periods=-1)
+    if _first_overlap_a == _first_overlap_b == 0:
+        _first_change_a = diff_df.iloc[0]["n"]
+        _first_change_b = diff_df.iloc[0]["n"]
 
-    # options:
-    # 1 - base shape extends farther on either end than updated_shape ==>
-    # replace all with updated shape
-    updated_first_n = base_shape_df.loc[0, "node"].squeeze()
-    base_starts_before_update = (
-        base_shape_df.loc[base_shape_df.node == updated_first_n, "order"].min() < 1
+    WranglerLogger.debug(
+        f"[diff_df]: \n   \
+        _first_overlap_a: {_first_overlap_a}\n   \
+        _first_overlap_b: {_first_overlap_b}\n    \
+        _first_change_a: {_first_change_a}\n  \
+        _first_change_b: {_first_change_b}\n"
     )
 
-    updated_last_n = updated_shape_df.loc[-1, "node"].squeeze()
-    base_ends_after_update = (
-        base_shape_df.loc[base_shape_df.node == updated_last_n, "order"].max()
-        < base_shape_df["order"].max()
+    _last_change_a = len(shape_a) - 1
+    _last_change_b = len(shape_b) - 1
+    _last_overlap_a = diff_df.iloc[-2]["a"] + diff_df.iloc[-2]["n"]
+    _last_overlap_b = diff_df.iloc[-2]["b"] + diff_df.iloc[-2]["n"]
+
+    if diff_df.iloc[-1]["a"] == _last_overlap_a:
+        _last_change_a = diff_df.iloc[-2]["a"] - 1
+
+    if diff_df.iloc[-1]["b"] == _last_overlap_b:
+        _last_change_b = diff_df.iloc[-2]["b"] - 1
+
+    if _last_change_a < _first_change_a:
+        _last_change_a = _first_change_a
+
+    if _last_change_b < _first_change_b:
+        _last_change_b = _first_change_b
+
+    WranglerLogger.debug(
+        f"[diff_df]: \n   \
+        _last_overlap_a: {_last_overlap_a}\n   \
+        _last_overlap_b: {_last_overlap_b}\n    \
+        _last_change_a: {_last_change_a}\n  \
+        _last_change_b: {_last_change_b}\n"
     )
 
-    if base_starts_before_update or base_ends_after_update:
-        existing_shape = base_shape_df.node.tolist()
-        updated_shape = updated_shape_df.node.tolist()
+    A_i = max(0, _first_change_a - n_buffer_vals + 1)
+    A_j = min(len(shape_a), _last_change_a + n_buffer_vals)
+    B_i = max(0, _first_change_b - n_buffer_vals + 1)
+    B_j = min(len(shape_b), _last_change_b + n_buffer_vals)
 
-    # 2 - updated shape extends farther on one or either end than base shape ==>
-    # replace first change-->last change
-    else:
-        merged_df = updated_shape_df.merge(
-            base_shape_df,
-            how="left",
-            on=["before_node", "node", "after_node"],
-            indicator=True,
-        )
+    WranglerLogger.debug(
+        f"\
+        [diff_df]:\n  \
+        A_i: {A_i}\n  \
+        A_j: {A_j}\n  \
+        B_i: {B_i}\n  \
+        B_j: {B_j}\n"
+    )
 
-        diffs = merged_df.loc[merged_df._merge == "left only"]
+    shape_change_dict["existing"] = shape_a.iloc[A_i:A_j][id_field].tolist()
+    shape_change_dict["set"] = shape_b.iloc[B_i:B_j][id_field].tolist()
 
-        diffs_start_base = diffs.loc[0, ["node", "order_y"]]
-        diffs_start_update = diffs.loc[0, ["node", "order_x"]]
-
-        diffs_end_base = diffs.loc[-1, ["node", "order_y"]]
-        diffs_end_update = diffs.loc[-1, ["node", "order_x"]]
-
-        existing_shape = base_shape_df.loc[
-            (base_shape_df["order"] >= diffs_start_base["node", "order_y"])
-            and (base_shape_df["order"] <= diffs_end_base["node", "order_y"]),
-            "node",
-        ].tolist()
-
-        updated_shape = updated_shape_df.loc[
-            (updated_shape_df["order"] >= diffs_start_update["node", "order_x"])
-            and (updated_shape_df["order"] <= diffs_end_update["node", "order_x"]),
-            "node",
-        ].tolist()
-
-    shape_change_dict = {
-        "property": "routing",
-        "existing": existing_shape,
-        "set": updated_shape,
-    }
+    WranglerLogger.debug(f"[diff_df.shape_change_dict]: \n {shape_change_dict}")
 
     return shape_change_dict
 
 
 def evaluate_route_shape_changes(
-    base_transit: ModelTransit,
-    updated_transit: ModelTransit,
-    line_list: Collection = None,
+    base_t: ModelTransit,
+    updated_t: ModelTransit,
+    match_id: Union[Collection[str], str] = None,
+    compare_props: Collection[str] = None,
+    route_list: Collection = None,
+    n_buffer_vals=2,
 ) -> Collection[Mapping]:
     """
     Compares two route shapes and constructs returns list of changes
@@ -576,24 +633,84 @@ def evaluate_route_shape_changes(
     Args:
         base_transit: ModelTransit,
         updated_transit: ModelTransit,
+        match_id:
+        compare_props:
+        route_list:
 
     Returns:
         List of shape changes formatted as a project card-change dictionary.
 
     """
+    base_shapes_df = base_t.shapes_df.copy()
+    updated_shapes_df = updated_t.shapes_df.copy()
 
-    base_shapes = base_transit.shapes
-    updated_shapes = updated_transit.shapes
+    WranglerLogger.debug(
+        f"\nbase_shapes_df: \n{base_shapes_df}\
+        \nupdated_shapes_df: \n {updated_shapes_df}"
+    )
 
-    if base_shapes == updated_shapes:
-        return []
+    if not base_t.node_id_prop == updated_t.node_id_prop:
+        msg = f"Base and updated node_id fields not same {base_t.node_id_prop} vs\
+            {updated_t.node_id_prop} can't create comparison."
+        raise ValueError(msg)
 
-    if not line_list:
-        line_list = [i for i in updated_transit.lines if i in base_transit.lines]
+    if not base_t.route_id_prop == updated_t.route_id_prop:
+        msg = f"Base and updated route_id fields not same {base_t.route_id_prop} vs\
+            {updated_t.route_id_prop} can't create comparison."
+        raise ValueError(msg)
 
-    shape_change_list = [
-        compare_route_shapes(base_shapes[r], updated_shapes[r]) for r in line_list
-    ]
+    # set the fields which match up routes and routing on
+    _route_id_prop = base_t.route_id_prop
+    if not match_id:
+        match_id = base_t.node_id_prop
+
+    # reduce down routing matching from a list of properties to a single field
+    # make sure the fields exist...
+    if type(match_id) == Collection and len(match_id) == 1:
+        match_id = match_id[0]
+
+    if type(match_id) == Collection:
+        base_shapes_df["_".join(match_id)] = base_shapes_df[match_id].values.tolist()
+        updated_shapes_df["_".join(match_id)] = updated_shapes_df[
+            match_id
+        ].values.tolist()
+        match_id = "_".join(match_id)
+    else:
+        err = f""
+        if match_id not in base_shapes_df.columns:
+            err += f"match_id: {match_id} not in base_shapes_df columns.\
+                Available columns: {base_shapes_df.columns}."
+        if match_id not in updated_shapes_df.columns:
+            err += f"match_id: {match_id} not in updated_shapes_df columns.\
+                Available columns: {updated_shapes_df.columns}."
+        if err:
+            raise ValueError(err)
+
+    # Set which properties to compare to look for changes.
+    # Make sure "stop" is always compared.
+    if compare_props is None:
+        compare_props = list(set(base_t.node_properties + updated_t.node_properties))
+    _compare_props = compare_props.append("stop")
+
+    # if the routes to compare are not specified in route_list, select all
+    # routes which are common between the transit networks
+    if not route_list:
+        route_list = [i for i in updated_t.routes if i in base_t.routes]
+
+    # Compare route changes for each route in the list
+    shape_change_list = []
+    for i in route_list:
+        rt_change = _diff_shape(
+            base_shapes_df[base_shapes_df[_route_id_prop] == i],
+            updated_shapes_df[updated_shapes_df[_route_id_prop] == i],
+            match_id,
+            _compare_props,
+        )
+        WranglerLogger.debug(f"rt_change: {rt_change}")
+        shape_change_list.append(copy.deepcopy(rt_change))
+        WranglerLogger.debug(f"shape_change_list:{shape_change_list}")
+
+    WranglerLogger.info(f"Found {len(shape_change_list)} transit changes.")
 
     return shape_change_list
 
@@ -605,6 +722,7 @@ def evaluate_model_transit_differences(
     new_route_property_list: Collection[str] = None,
     absolute: bool = True,
     include_existing: bool = False,
+    n_buffer_vals=2,
 ) -> Collection[Mapping]:
     """
     1. Identifies what routes need to be updated, deleted, or added
@@ -692,12 +810,17 @@ def evaluate_model_transit_differences(
         absolute=absolute,
         include_existing=include_existing,
         axis=1,
-    ).tolist()
+    )
     project_card_changes += _updated_properties_changes
 
     _updated_shapes_changes = updated_transit.evaluate_route_shape_changes(
-        base_transit, updated_transit, line_list=lines_to_update
+        base_transit,
+        updated_transit,
+        line_list=lines_to_update,
+        n_buffer_vals=n_buffer_vals,
     )
+
+    WranglerLogger.debug(f"_updated_shapes_changes:{_updated_shapes_changes}")
     project_card_changes += _updated_shapes_changes
 
     return project_card_changes

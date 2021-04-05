@@ -1,3 +1,4 @@
+#! pytest -s
 import os
 import glob
 
@@ -7,7 +8,8 @@ from lasso.metcouncil.metcouncil_transit import MetCouncilTransit
 
 """
 Run tests from bash/shell
-pytest -s lasso/metcouncil/tests/test_metcouncil_transit.py
+usage:
+    pytest -s lasso/metcouncil/tests/test_metcouncil_transit.py
 """
 
 
@@ -19,7 +21,6 @@ SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
 logfile_list = glob.glob(os.path.join(CUBE_DIR, "st_paul_test.log"))
 
 
-@pytest.mark.menow
 @pytest.mark.transit
 @pytest.mark.cube
 @pytest.mark.metcouncil
@@ -36,5 +37,5 @@ def test_read_transit_linefile(request):
         "Properties: ",
         tn.route_properties_df[tn.route_properties_df.NAME == ex_line_name],
     )
-    print("Nodes: ", tn.shapes_df[tn.route_properties_df.NAME == ex_line_name])
+    print("Nodes: ", tn.shapes_df[tn.shapes_df.NAME == ex_line_name])
     ## todo write an assert that actually tests something
