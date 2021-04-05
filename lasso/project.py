@@ -14,6 +14,7 @@ from .logger import WranglerLogger
 from .parameters import Parameters
 from .model_roadway import ModelRoadwayNetwork
 from .utils import column_name_to_parts
+from cube.cube_model_transit import CubeTransitWriter
 
 
 class Project(object):
@@ -956,7 +957,7 @@ def delete_route_change_dict(route_row: Union[pd.Series, Mapping]) -> Mapping:
     return delete_card_dict
 
 
-def update_route_change_dict(
+def update_route_prop_change_dict(
     compare_route_row: pd.Series, include_existing: bool = False
 ) -> Collection[Mapping]:
     """[summary]
@@ -982,3 +983,43 @@ def update_route_change_dict(
 
         _properties_update_list.append(change_item)
     return _properties_update_list
+
+
+def update_route_routing_change_dict(
+    existing_routing_df: Collection[Any], set_routing_df: Collection[Any],
+) -> Mapping[str, Any]:
+    """Format route changes for project cards. Right now, this matches
+        the formatting for cube nodes. Could change in future.
+
+    Args:
+        existing_routing (Collection[Any]): [description]
+        set_routing (Collection[Any]): [description]
+        match_id (Union[str,Collection[str]]): [description]
+
+    Returns:
+        Mapping[str,Any]: [description]
+    """
+    match_id = list(existing_routing_df.columns)
+    if match_id != ["N", "stop"]:
+        raise NotImplementedError(f"Expecting match_id ['N','stop']; got {match_id}")
+
+    if list(existing_routing_df.columns) != list(set_routing_df.columns):
+        raise (
+            f"Columns for existing and set don't match.\n\
+            Existing: {existing_routing_df.columns}\n\
+            Set: {set_routing_df.columns}"
+        )
+
+    existing_str = CubeTransitWriter._nodes_df_to_cube_node_strings(existing_routing_df)
+    set_str = CubeTransitWriter._nodes_df_to_cube_node_strings(existing_routing_df)
+    WranglerLogger.debug(
+        f"Existing Str: {existing_str}\n\
+        Set Str: {set_str}"
+    )
+
+    shape_change_dict = {
+        "property": "routing",
+        "existing": existing_str,
+        "set": set_str,
+    }
+    return shape_change_dict

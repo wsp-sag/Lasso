@@ -527,13 +527,16 @@ class ModelToStdAdapter:
 def _diff_shape(
     shape_a: DataFrame,
     shape_b: DataFrame,
-    id_field: str,
+    match_id: Union[str, Collection[str]],
     props: Collection[str] = [],
     n_buffer_vals: int = 3,
-):
+) -> DataFrame:
     import difflib
 
-    shape_change_dict = {"property": "routing"}
+    if type(match_id) != str:
+        id_field = "_".join(match_id)
+    else:
+        id_field = match_id
 
     shape_a = shape_a.reset_index()
     shape_b = shape_b.reset_index()
@@ -610,12 +613,10 @@ def _diff_shape(
         B_j: {B_j}\n"
     )
 
-    shape_change_dict["existing"] = shape_a.iloc[A_i:A_j][id_field].tolist()
-    shape_change_dict["set"] = shape_b.iloc[B_i:B_j][id_field].tolist()
+    existing_df = shape_a.iloc[A_i:A_j][match_id]
+    set_df = shape_b.iloc[B_i:B_j][match_id]
 
-    WranglerLogger.debug(f"[diff_df.shape_change_dict]: \n {shape_change_dict}")
-
-    return shape_change_dict
+    return existing_df, set_df
 
 
 def evaluate_route_shape_changes(
@@ -662,19 +663,21 @@ def evaluate_route_shape_changes(
     # set the fields which match up routes and routing on
     _route_id_prop = base_t.route_id_prop
     if not match_id:
-        match_id = base_t.node_id_prop
+        match_id = [base_t.node_id_prop, "stop"]
 
     # reduce down routing matching from a list of properties to a single field
     # make sure the fields exist...
     if type(match_id) == Collection and len(match_id) == 1:
         match_id = match_id[0]
 
-    if type(match_id) == Collection:
-        base_shapes_df["_".join(match_id)] = base_shapes_df[match_id].values.tolist()
-        updated_shapes_df["_".join(match_id)] = updated_shapes_df[
-            match_id
-        ].values.tolist()
-        match_id = "_".join(match_id)
+    if type(match_id) != str:
+        col_id = "_".join(match_id)
+        base_shapes_df[col_id] = (
+            base_shapes_df[match_id].to_records(index=False).tolist()
+        )
+        updated_shapes_df[col_id] = (
+            updated_shapes_df[match_id].to_records(index=False).tolist()
+        )
     else:
         err = f""
         if match_id not in base_shapes_df.columns:
@@ -686,12 +689,6 @@ def evaluate_route_shape_changes(
         if err:
             raise ValueError(err)
 
-    # Set which properties to compare to look for changes.
-    # Make sure "stop" is always compared.
-    if compare_props is None:
-        compare_props = list(set(base_t.node_properties + updated_t.node_properties))
-    _compare_props = compare_props.append("stop")
-
     # if the routes to compare are not specified in route_list, select all
     # routes which are common between the transit networks
     if not route_list:
@@ -700,14 +697,16 @@ def evaluate_route_shape_changes(
     # Compare route changes for each route in the list
     shape_change_list = []
     for i in route_list:
-        rt_change = _diff_shape(
+        existing_r_df, change_r_df = _diff_shape(
             base_shapes_df[base_shapes_df[_route_id_prop] == i],
             updated_shapes_df[updated_shapes_df[_route_id_prop] == i],
             match_id,
-            _compare_props,
         )
-        WranglerLogger.debug(f"rt_change: {rt_change}")
-        shape_change_list.append(copy.deepcopy(rt_change))
+        rt_change_dict = project.update_route_routing_change_dict(
+            existing_r_df, change_r_df,
+        )
+        WranglerLogger.debug(f"rt_change: {rt_change_dict}")
+        shape_change_list.append(copy.deepcopy(rt_change_dict))
         WranglerLogger.debug(f"shape_change_list:{shape_change_list}")
 
     WranglerLogger.info(f"Found {len(shape_change_list)} transit changes.")
@@ -806,7 +805,7 @@ def evaluate_model_transit_differences(
     ] = updated_route_props_df[["name", "start_time_HHMM", "end_time_HHMM"]]
 
     _updated_properties_changes = _compare_df.apply(
-        project.update_route_change_dict,
+        project.update_route_prop_change_dict,
         absolute=absolute,
         include_existing=include_existing,
         axis=1,
