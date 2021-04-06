@@ -11,14 +11,16 @@ def write_cube_hwy_net_script_network_from_ff_files(
     script_outfile: str = "build_network_from_ff_s",
     overwrite: bool = False,
 ) -> None:
-    """[summary]
+    """Writes the cube script to read a network written to a fixed-format file to cube.
 
     Args:
-        links_df (DataFrame): [description]
-        nodes_df (DataFrame): [description]
-        link_header_df (DataFrame): [description]
-        node_header_df (DataFrame): [description]
-        script_outfile (str, optional): [description]. Defaults to "build_network_from_ff_s".
+        links_df (DataFrame): Dataframe with link values.
+        nodes_df (DataFrame): Dataframe with node values.
+        link_header_df (DataFrame): Dataframe with a row for each link field and
+            columns "header", "width"
+        node_header_df (DataFrame): ataframe with a row for each link field and
+            columns "header", "width"
+        script_outfile (str, optional): Script filename. Defaults to "build_network_from_ff.s".
         overwrite (bool, optional): Defaults to False.
     """
 

@@ -430,7 +430,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Steps:
          - calculates centroid connectors based on parameters.roadway_network_ps.max_tax
          - adds calculated variables like counts, distance
-         - creates a managed lane network based on fields with prefix "ML_" as
+         - creates a managed lane network based on fields with prefix ML_ as
             self.model_links_df
          - coerces the types of links and nodes based on
             parameters.roadway_network_ps.field_types
@@ -445,7 +445,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.model_links_df,
             self.nodes_df,
             self.shapes_df,
-        ) = self.create_managed_lane_network()
+        ) = RoadwayNetwork.create_managed_lane_network(self)
 
         self.coerce_network_types()
 
@@ -579,16 +579,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 assign to each of them. e.g. {"AM": 0.25, "PM": 0.30}.
                 If not specified, will default to
                 parameters.roadway_network_ps.time_period_vol_split
-            count_fields_to_split_by_tod: Mapping of fields to split counts and the prefix to
+            count_tod_split_fields: Mapping of fields to split counts and the prefix to
                 use for the resulting fields. e.g. {"count_daily":"count_"}.  If not specified,
-                will default to parameters.roadway_network_ps.count_fields_to_split_by_tod.
+                will default to parameters.roadway_network_ps.count_tod_split_fields.
 
         Returns:
             GeoDataFrame storing ModelRoadwayNetwork links with count variables added.
         """
 
         WranglerLogger.info("Adding Counts")
-        count_fields_to_split_by_tod = None
+
         for (
             _count_name,
             _count_value_lookup,
@@ -602,16 +602,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if split_counts_by_tod:
             WranglerLogger.debug("Splitting counts by time of day.")
-            if not count_fields_to_split_by_tod:
-                count_fields_to_split_by_tod = (
-                    self.parameters.roadway_network_ps.count_fields_to_split_by_tod
+            if not count_tod_split_fields:
+                count_tod_split_fields = (
+                    self.parameters.roadway_network_ps.count_tod_split_fields
                 )
             if not time_period_vol_split:
                 time_period_vol_split = (
                     self.parameters.roadway_network_ps.time_period_vol_split
                 )
 
-            for count_to_split_field, prefix in count_fields_to_split_by_tod.items():
+            for count_to_split_field, prefix in count_tod_split_fields.items():
                 for time_period_abbr, volume_portion in time_period_vol_split.items():
                     links_df[prefix + time_period_abbr] = (
                         volume_portion * links_df[count_to_split_field]
@@ -816,8 +816,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_shp(
         self,
-        links_df: GeoDataFrame = None,
-        nodes_df: GeoDataFrame = None,
+        links_df: GeoDataFrame,
+        nodes_df: GeoDataFrame,
         node_output_fields: Collection[str] = None,
         link_output_fields: Collection[str] = None,
         data_to_csv: bool = True,
@@ -895,7 +895,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         ### Check filenames
         if not overwrite_existing_output:
-            for f, suf in itertools.product([_outfile_links, +_outfile_nodes], suffix):
+            for f, suf in itertools.product([_outfile_links, _outfile_nodes], suffix):
                 if os.path.exists(f + suf):
                     overwrite = input(
                         f"File: {f + suf} already exists.Overwrite?\
@@ -944,10 +944,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # Check that bare minimum fields are there and error if not.
         _missing_base_col_nodes = [
-            c for c in _base_fields_nodes not in nodes_df.columns
+            c for c in _base_fields_nodes if c not in nodes_df.columns
         ]
         _missing_base_col_links = [
-            c for c in _base_fields_links not in links_df.columns
+            c for c in _base_fields_links if c not in links_df.columns
         ]
 
         if _missing_base_col_nodes:
@@ -1047,7 +1047,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             overwrite_existing_output (bool, optional): if True, will not ask about overwriting
                 existing output. Defaults to False.
             build_script_type (str, optional): If specified, will output a script to the output
-                directory which will rebuild the network in the. Should be one of ["CUBE_HWYNET"].
+                directory which will rebuild the network. Should be one of ["CUBE_HWYNET"].
                 Defaults to None.
         """
         if not output_directory:
@@ -1065,8 +1065,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             output_basename_links = self.parameters.file_ps.output_basename_links
         if not output_basename_nodes:
             output_basename_nodes = self.parameters.file_ps.output_basename_nodes
-        if not build_script_type:
-            build_script_type = self.parameters.file_ps.network_build_script_type
 
         FF_SUFFIX = ".txt"
         FF_HEADER_SUFFIX = "_FF_Header.txt"
@@ -1167,8 +1165,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         BUILD_SCRIPT_TYPES_FUNCTION_CALL = {
             "CUBE_HWYNET": write_cube_hwy_net_script_network_from_ff_files(
-                links_df[_output_fields_links],
-                nodes_df[_output_fields_nodes],
                 _link_header_df,
                 _node_header_df,
                 script_outfile=_outfile_build_script,

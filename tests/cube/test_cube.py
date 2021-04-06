@@ -21,9 +21,7 @@ SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
 logfile_list = glob.glob(os.path.join(CUBE_DIR, "st_paul_test.log"))
 
 
-@pytest.mark.transit
 @pytest.mark.travis
-@pytest.mark.cube
 def test_parse_transit_linefile(request):
     print("\n--Starting:", request.node.name)
     test_lin = """
@@ -68,7 +66,7 @@ def test_parse_transit_linefile(request):
       129190
     """
 
-    tn = CubeTransit.create_from_source(test_lin)
+    tn = CubeTransit.from_source(test_lin)
     print("TYPE", tn)
     ex_line_name = tn.lines[1]
     print("Line: {}".format(ex_line_name))
@@ -76,9 +74,7 @@ def test_parse_transit_linefile(request):
     print("Nodes: ", tn.shapes[ex_line_name])
 
 
-@pytest.mark.transit
 @pytest.mark.travis
-@pytest.mark.cube
 def test_parse_transit_linefile_with_node_vars(request):
     print("\n--Starting:", request.node.name)
     test_lin = """
@@ -123,7 +119,7 @@ def test_parse_transit_linefile_with_node_vars(request):
       129190
     """
 
-    tn = CubeTransit.create_from_source(test_lin)
+    tn = CubeTransit.from_source(test_lin)
     print("TYPE", tn)
     ex_line_name = tn.lines[1]
     print("Line: {}".format(ex_line_name))
@@ -132,13 +128,12 @@ def test_parse_transit_linefile_with_node_vars(request):
 
 
 @pytest.mark.travis
-@pytest.mark.transit
 @pytest.mark.basic
 def test_create_cube_transit_network_from_dir(request):
     print("\n--Starting:", request.node.name)
     from lasso import CubeTransit
 
-    tn = CubeTransit.create_from_cube(CUBE_DIR)
+    tn = CubeTransit.from_source(CUBE_DIR)
     print("READ {} LINES:\n{}".format(len(tn.lines), "\n - ".join(tn.lines)))
     print("Source files: {}".format("\n - ".join(tn.source_list)))
     ## todo write an assert that actually tests something
@@ -146,7 +141,6 @@ def test_create_cube_transit_network_from_dir(request):
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 @pytest.mark.travis
-@pytest.mark.roadway
 def test_write_roadway_project_card_from_logfile(request, logfilename):
     print("\n--Starting:", request.node.name)
 
@@ -160,7 +154,6 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
 
 
 @pytest.mark.travis
-@pytest.mark.roadway
 @pytest.mark.skip(
     reason="Not currently able to automagically create a managed lane project card"
 )
@@ -176,7 +169,6 @@ def test_write_ml_roadway_project_card_from_logfile(request):
 
 
 @pytest.mark.travis
-@pytest.mark.transit
 def test_write_transit_project_card(request):
     print("\n--Starting:", request.node.name)
     test_lin_base = """
@@ -264,7 +256,6 @@ def test_write_transit_project_card(request):
 
 
 @pytest.mark.travis
-@pytest.mark.transit
 def test_write_transit_project_card_2(request):
     print("\n--Starting:", request.node.name)
     test_lin_base = """
@@ -322,7 +313,6 @@ def test_write_transit_project_card_2(request):
 
 
 @pytest.mark.travis
-@pytest.mark.transit
 def test_write_transit_project_card_diffing_lin(request):
     print("\n--Starting:", request.node.name)
 
@@ -336,7 +326,6 @@ def test_write_transit_project_card_diffing_lin(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.transit
 @pytest.mark.travis
 def test_write_transit_project_card_route_shape(request):
     print("\n--Starting:", request.node.name)

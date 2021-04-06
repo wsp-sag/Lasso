@@ -20,7 +20,7 @@ STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
 def _read_stpaul_net():
-    net = ModelRoadwayNetwork.read(
+    net = MetCouncilRoadwayNetwork.read(
         link_filename=STPAUL_LINK_FILE,
         node_filename=STPAUL_NODE_FILE,
         shape_filename=STPAUL_SHAPE_FILE,
@@ -30,7 +30,6 @@ def _read_stpaul_net():
     return net
 
 
-@pytest.mark.roadway
 @pytest.mark.travis
 def test_parameter_read(request):
     """
@@ -43,7 +42,6 @@ def test_parameter_read(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.roadway
 @pytest.mark.travis
 def test_network_split_variables_by_time(request):
     """
@@ -53,13 +51,12 @@ def test_network_split_variables_by_time(request):
 
     net = _read_stpaul_net()
 
-    net.split_properties_by_time_period_and_category()
+    net.links_df = net.split_properties_by_time_period_and_category(net.links_df)
     assert "trn_priority_AM" in net.links_df.columns
     print(net.links_df.info())
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.roadway
 @pytest.mark.travis
 def test_calculate_count(request):
     """
@@ -69,33 +66,31 @@ def test_calculate_count(request):
 
     net = _read_stpaul_net()
 
-    net.add_counts()
-    assert "AADT" in net.links_df.columns
-    print(net.links_df[net.links_df.drive_access == 1].AADT.value_counts())
+    net.links_df = net.add_counts(net.links_df)
+    assert "count_daily" in net.links_df.columns
+    print(net.links_df[net.links_df.drive_access == 1].count_daily.value_counts())
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.roadway
 @pytest.mark.travis
-def test_write_cube_roadway(request):
+def test_write_cube_roadway_as_ff(request):
     """
     Tests that parameters are read
     """
     print("\n--Starting:", request.node.name)
 
     net = _read_stpaul_net()
-
-    net.write_roadway_as_fixedwidth()
+    net.roadway_standard_to_met_council_network()
+    net.write_roadway_as_fixedwidth(net.model_links_df, net.nodes_df)
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.roadway
 @pytest.mark.travis
 def test_write_roadway_as_shape(request):
     """"""
     print("\n--Starting:", request.node.name)
 
     net = _read_stpaul_net()
-
-    net.write_roadway_as_shp()
+    net.roadway_standard_to_met_council_network()
+    net.write_roadway_as_shp(net.model_links_df, net.nodes_df)
     ## todo write an assert that actually tests something

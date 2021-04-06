@@ -194,3 +194,97 @@ def test_highway_change_project_card_valid(request, logfilename):
     )
 
     assert valid
+
+
+@pytest.mark.transit
+@pytest.mark.travis
+def test_update_route_prop_change_dict(request):
+    print("\n--Starting:", request.node.name)
+    from lasso import project
+
+    df = DataFrame(
+        {
+            ("name", "self"): "Line to be updated",
+            ("headway_secs", "self"): 300,
+            ("headway_secs", "other"): 30,
+            ("start_time_HHMM", "self"): "6:00",
+            ("end_time_HHMM", "self"): "9:00",
+        }
+    )
+    expected_update_change_dict = {
+        "property": "headway_secs",
+        "existing": 300,
+        "set": 30,
+    }
+
+    test_update_change_dict = project.update_route_prop_change_dict(df.iloc[0])
+
+    assert test_update_change_dict == expected_update_change_dict
+
+
+@pytest.mark.transit
+def test_delete_route_change_dict(request):
+    print("\n--Starting:", request.node.name)
+    from lasso import project
+
+    df = DataFrame(
+        {
+            "name": "Line to be deleted",
+            "direction_id": 0,
+            "start_time_HHMM": "6:00",
+            "end_time_HHMM": "9:00",
+        }
+    )
+    test_delete_change_dict = project.delete_route_change_dict(df.iloc[0])
+    expected_delete_change_dict = {
+        "category": "Delete Transit Service",
+        "direction_id": 0,
+        "start_time": "6:00",
+        "end_time": "9:00",
+    }
+    assert test_delete_change_dict == expected_delete_change_dict
+
+
+@pytest.mark.transit
+def test_new_transit_route_change_dict(request):
+    print("\n--Starting:", request.node.name)
+    from lasso import project
+
+    route_props_df = DataFrame(
+        {
+            "name": "New and blue line",
+            "agency_id": 22,
+            "direction_id": 0,
+            "start_time_HHMM": "7:00",
+            "end_time_HHMM": "10:00",
+            "headway_sec": 300,
+            "operator": 6,
+        }
+    )
+
+    shapes_df = DataFrame(
+        {
+            "NAME": ["New and blue line"] * 6,
+            "N": [1, 2, 3, 4, 5, 6],
+            "stop": [True, True, True, True, False, True],
+        }
+    )
+
+    test_new_line_change_dict = project.new_transit_route_change_dict(
+        route_props_df.iloc[0], ["headway_sec", "operator"], shapes_df,
+    )
+    expected_new_line_change_dict = {
+        "category": "New Transit Service",
+        "facility": {
+            "route_id": "New and blue line",
+            "direction_id": 0,
+            "start_time": "7:00",
+            "end_time": "10:00",
+        },
+        "properties": [
+            {"property": "headway_sec", "set": 300},
+            {"property": "operator", "set": 6},
+            {"property": "routing", "set": [1, 3, 4, -5, 6]},
+        ],
+    }
+    assert test_new_line_change_dict == expected_new_line_change_dict

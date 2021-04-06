@@ -2,13 +2,10 @@
 Structures parameters as dataclasses with good defaults.
 
 Parameters can be set by instantiating the classes at run-time.
-
-Example:
-
 """
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass
 from typing import Any, List, Dict, Set, Mapping, Collection, Sequence
 
 from .data import PolygonOverlay, ValueLookup
@@ -126,7 +123,7 @@ class RoadwayNetworkModelParameters:
         time_period_vol_split: dictionary mapping time period abbreviations to
             basic assumptions about
             fractions of daily volumes associated with them.
-        count_fields_to_split_by_tod: a mapping of fields to split counts for
+        count_tod_split_fields: a mapping of fields to split counts for
             by time_period_vol_split mapping, and
             the prefix to use for the resulting fields.
         network_build_script_type: If specified, will output a script to the output
@@ -653,6 +650,6 @@ class Parameters:
     def as_dict(self):
         all_params = {}
         for k, v in self.__dict__.items():
-            if type(v) not in [dict, list]:
+            if is_dataclass(v):
                 all_params.update(v.__dict__)
         return all_params

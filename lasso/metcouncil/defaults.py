@@ -416,7 +416,7 @@ _MC_DEFAULT_PARAMS["time_period_vol_split"] = {
     "NT": 0.25,
 }
 
-_MC_DEFAULT_PARAMS["count_fields_to_split_by_tod"] = {"count_daily": "count_"}
+_MC_DEFAULT_PARAMS["count_tod_split_fields"] = {"count_daily": "count_"}
 
 
 ### ROADWAY_CLASS

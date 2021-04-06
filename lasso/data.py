@@ -1,7 +1,11 @@
 """
-Structures data overlaps as dataclasses with good defaults and helper methods.
+Structures for supplemental data which may be input from a variety of formats so
+they may be available to lasso via a common API. Also includes some validation.
 
-Example:
+Includes:
+    :py:class:`FieldMapping`
+    :py:class:`ValueMapping`
+    :py:class:`PolygonOverlay`
 
 """
 
@@ -25,7 +29,8 @@ class FieldError(ValueError):
 
 @dataclass
 class FieldMapping:
-    """A wrapper data class for mapping field renaming in a dataframe.
+    """A data class for storing mapping between field names from a variety of formats
+    and making them available via a common API. Builds in some checks as well.
 
     Attributes:
         input_filename: csv file with lookup values.
@@ -79,7 +84,8 @@ class FieldMapping:
 
 @dataclass
 class ValueLookup:
-    """A data class for storing lookups dictionaries.
+    """A data class for storing lookups dictionaries from a variety of formats
+    and making them available via a common API. Builds in some checks as well.
 
     Attributes:
         input_filename: file location with lookup values.
@@ -268,7 +274,25 @@ class ValueLookup:
 
 @dataclass
 class PolygonOverlay:
-    """[summary]
+    """Dataclass for storing information about polygon overlays. Useful for storing
+    info about zones, area types, etc. from a variety of different data sources and
+    formats and making it available via a common API – that for a GeoDataFrame.
+    Can be used as an input to the
+    method :py:method:`ModelRoadwayNetwork.add_polygon_overlay_to_links`
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+
+        counties_pgo = PolygonOverlay(
+            input_filename=MC_COUNTY_SHAPEFILE, field_mapping={"NAME": "NAME"}
+        )
+        #make sure it is in the same projection
+        pgo_gdf = counties_pgo.gdf.to_crs(epsg=centroids_df.crs.to_epsg())
+
+        centroids_county__gdf = gpd.sjoin(
+                centroids_gdf, polygon_overlay_gdf, how="left", op="intersects"
+            )
 
     Args:
         input_filename (str, Optional): Defaults to None.
@@ -276,15 +300,11 @@ class PolygonOverlay:
         update_method (str, Optional): update method to use in network_wrangler.update_df.
             One of "overwrite all", "update if found", or "update nan". Defaults to class
             instance value which defaults to "update if found"
-        added_id (str, Optional): If specified, will
+        added_id (str, Optional): ...
         fill_values_dict (Mapping[str,Any], Optional): If filled, will add a field
             for each row in the input_filename's geographic scope equal to the value.
             {new_field_name: value_name}. Cannot be used with field mapping, has to be one
             or the other. Defaults to None.
-
-    Raises:
-        ValueError: [description]
-        ValueError: [description]
     """
 
     input_filename: str = None

@@ -11,8 +11,8 @@ def test_update_params(request):
     p.update(update_dict={"demand_time_periods": ["A", "B"]})
     assert p.demand_model_ps.demand_time_periods == ["A", "B"]
 
-    p.update(output_link_fixed_width_header_filename="hellothere.txt")
-    assert p.file_ps.output_link_fixed_width_header_filename == "hellothere.txt"
+    p.update(demand_time_periods=[1, 2, 3])
+    assert p.demand_model_ps.demand_time_periods == [1, 2, 3]
 
 
 @pytest.mark.params

@@ -1,1 +1,1 @@
-from .cube_model_transit import CubeTransit, CubeTransitWriter
+from .cube_model_transit import CubeTransit, CubeTransitWriter, CubeTransitReader

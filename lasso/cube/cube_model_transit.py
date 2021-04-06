@@ -86,8 +86,32 @@ DEFAULT_CUBE_TRANSIT_PROGRAM = "TRNBUILD"
 
 
 class CubeTransit(ModelTransit):
+    """Subclass of :py:class:`ModelTransit` which has special overriding
+    methods for "special cube things".
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+        tnet = CubeTransit.from_source(GTFS_DIR)
+        tnet.write_cube(outpath="cube_from_gtfs.lin")
+
+    """
+
     @classmethod
     def from_source(cls, source: Any, **kwargs):
+        """Creates a CubeTransit subclass of `ModelTransit` from source data.
+
+        Args:
+            source (Any): source of transit network data to create object from. One of:
+                (1) an existing network wrangler TransitNetwork object
+                (2) a cube line file (source ends in ".lin", is a string with "line name",
+                    or source_type is one of "cube", "trnbuild", "pt")
+                (3) gtfs feed (source_type one of "std", "standard", "gtfs" or
+                    minimum gtfs files found in source )
+
+        Returns:
+            CubeTransit: Subclass of `ModelTransit` with
+        """
         tnet = cls(**kwargs)
         tnet.add_source(source, **kwargs)
         return tnet
@@ -106,6 +130,37 @@ class CubeTransit(ModelTransit):
         required_node_properties: Collection[str] = None,
         **kwargs,
     ):
+        """Constructor for CubeModelTransit class.
+
+        Args:
+            route_properties_df (DataFrame, optional): Dataframe of route properties with one
+                row for each route/line.  Time-varying fields are specified as additional
+                horizontal fields. Defaults to None. Constructed from reading in source files.
+            shapes_df (DataFrame, optional): Dataframe of route id fields with minimum values
+                of "N","order","stop" and any required_node_properties. Defaults to None.
+                Constructed from reading in source files.
+            cube_transit_program (str, optional): One of TRNBUILD or PT. Defaults
+                to `DEFAULT_CUBE_TRANSIT_PROGRAM`.
+            parameters (`Parameters`, optional): Parameters instance. Defaults to `Parameters`()
+                defaults.
+            parameters_dict (Mapping[str, Any], optional): Dictionary which can add additional
+                paramteters to the Parameters instance or to overwrite what is there.
+                Defaults to {}.
+            tp_property (str, optional): Transit route property which defines which time
+                periods the route exists in. Defaults to `TP_PROPERTY`[cube_transit_program].
+            route_properties (Collection[str], optional): Properties which are
+                calculated and saved for route-level properties.
+                Defaults to `MODEL_ROUTE_PROPERTIES`[cube_transit_program].
+            node_properties (Collection[str], optional):  Properties which are
+                calculated and saved for route nodes/shapes.
+                Defaults to `MODEL_NODE_PROPERTIES`[cube_transit_program].
+            required_route_properties (Collection[str], optional): Properties which are required
+                for the route-level properties and will be always written out.
+                Defaults to `REQUIRED_ROUTE_PROPERTIES`[cube_transit_program].
+            required_node_properties (Collection[str], optional): Properties which are required
+                for the route nodes/shapes and will be always written out.
+                Defaults to `REQUIRED_NODE_PROPERTIES`[cube_transit_program].
+        """
 
         self.cube_transit_program = cube_transit_program
 
@@ -140,21 +195,54 @@ class CubeTransit(ModelTransit):
             **kwargs,
         )
 
-    def add_source(self, source: Any, source_type: str = "", **kwargs):
+    def add_source(
+        self, source: Union[str, TransitNetwork], source_type: str = "", **kwargs
+    ):
+        """Wrapper method to add transit to CubeTransitNetwork from either
+        (1) an existing network wrangler TransitNetwork object
+        (2) a cube line file (source ends in ".lin", is a string with "line name", or
+            source_type ios one of "cube", "trnbuild", "pt")
+        (3) gtfs feed (source_type one of "std", "standard", "gtfs" or
+            minimum gtfs files found in source )
+
+        Passes through additional kwargs to read methods:
+        - :py:meth:`add_std_source`
+        - :py:meth:`add_model_source`
+
+        Args:
+            source (Any): Either a network wrangler TransitNetwork object, a file path
+                to a cube line file, a cube line file string, or a directory containing GTFS files.
+            source_type (str, optional): If specified, will use it to determine how
+                to read in source. Values which are used include: ["std", "standard", "gtfs"]
+                    and ["cube", "trnbuild", "pt"] Defaults to "".
+
+        Raises:
+            ValueError: Raised if source is not a TransitNetwork object and
+                isn't a valid file path.
+            NotImplementedError: Raised if not a TransitNetwork object and minimum
+                GTFS files not found.
+        """
+        if (type(source) == TransitNetwork) or (
+            source_type.lower() in ["std", "standard", "gtfs"]
+        ):
+            self.add_std_source(source, **kwargs)
+            return
+        elif (source_type.lower() in ["cube", "trnbuild", "pt"]) or any(
+            [x in source.lower() for x in ["line name", ".lin"]]
+        ):
+            self.add_model_source(source, **kwargs)
+            return
+
+        if not os.path.exists(source):
+            msg = f"No path exists: {source}"
+            raise ValueError(msg)
+
         GTFS_MIN_FILES = ["stops.txt", "trips.txt", "routes.txt"]
         gtfs_files_exist = all(
             [os.path.exists(os.path.join(source, f)) for f in GTFS_MIN_FILES]
         )
 
-        if (type(source) == TransitNetwork) or (
-            source_type.lower() in ["std", "standard", "gtfs"]
-        ):
-            self.add_std_source(source, **kwargs)
-        elif (source_type.lower() in ["cube", "trnbuild", "pt"]) or any(
-            [x in source.lower() for x in ["line name", ".lin"]]
-        ):
-            self.add_model_source(source, **kwargs)
-        elif gtfs_files_exist:
+        if gtfs_files_exist:
             self.add_std_source(source, **kwargs)
         else:
             msg = f"""Not sure how to read source: {source} with source_types: {source_type}.
@@ -172,6 +260,33 @@ class CubeTransit(ModelTransit):
         route_properties: Collection[str] = None,
         parameters: Parameters = None,
     ):
+        """Adds standard transit networks to CubeModelTransit object using
+        :py:class:`StdToCubeAdapter` to translate.
+
+        Args:
+            standardtransit (Union[TransitNetwork, str]): Either a NetworkWrangler
+                standard TransitNetwork object or a directory with GTFS files in it.
+            cube_transit_program (str, optional): Specifies which "flavor" of cube transit
+                the adapter should use. One of ["TRNBUILD","PT"]. Defaults to
+                self.cube_transit_program which is fed by parameters.
+            std_to_model_prop_map (Mapping[str, str], optional): Specifies key:values
+                relating standard transit properties to model properties which don't need to
+                be transformed...just renamed. Defaults to None.
+            std_to_model_prop_trans (Mapping[Collection[str], Any], optional): Maps a tuple of
+                (standard property, model property) to a transformation function that turns the
+                standard property into the model property. Defaults to None.
+            tp_property (str, optional): Property which specifies whether a transit route
+                exists in various time periods.  Defaults to self.tp_property
+                which defaults to "FREQ" for PT or "HEADWAY" for TRNBUILD.
+            node_properties (Collection[str], optional): Specifies the model properties for nodes.
+                Defaults to self.node_properties which defaults to [].
+            route_properties (Collection[str], optional): Specifies the model properties for
+                routes. Defaults to self.route_properties which defaults to ["NAME","LONGNAME",
+                "MODE","ONEWAY","NODES"] for either PT or TRNBUILD and then ["FREQ" and "OPERATOR"]
+                for PT and ["HEADWAY"] for TRNBUILD.
+            parameters (Parameters, optional): parameters object, which is used in the
+                `StdToCubeAdapter`. Defaults to self.parameters.
+        """
         if cube_transit_program is None:
             cube_transit_program = self.cube_transit_program
         if tp_property is None:
@@ -179,7 +294,9 @@ class CubeTransit(ModelTransit):
         if node_properties is None:
             node_properties = self.node_properties
         if route_properties is None:
-            route_properties = self.route_properties_df
+            route_properties = self.route_properties
+        if parameters is None:
+            parameters = self.parameters
 
         if type(standardtransit) is str:
             standardtransit = TransitNetwork.read(standardtransit)
@@ -192,11 +309,13 @@ class CubeTransit(ModelTransit):
             tp_property=tp_property,
             node_properties=node_properties,
             route_properties=route_properties,
-            parameters=self.parameters,
+            parameters=parameters,
         )
 
         model_route_properties_by_time_df, model_nodes_df = _adapter.transform()
-        new_routes = model_route_properties_by_time_df["NAME"].unique().tolist()
+        new_routes = (
+            model_route_properties_by_time_df[self.route_id_prop].unique().tolist()
+        )
 
         super().add_source(
             route_properties_by_time_df=model_route_properties_by_time_df,
@@ -206,10 +325,14 @@ class CubeTransit(ModelTransit):
         )
 
     def add_model_source(self, transit_source: str, cube_transit_program: str = None):
-        """Reads a .lin file and adds it to existing TransitNetwork instance.
+        """Reads a .lin file and adds it to the object instance and the dataframes held in it.
+
+        Checks to make sure route ids (usually NAME) are unique.
 
         Args:
-            transit_source:  a string or the directory of the cube line file to be parsed
+            transit_source: a string or the filename of the cube line file to be parsed.
+            cube_transit_program: can explicitly state either PT or TRNBULD; if not specified,
+                will try and discern from the source.
 
         """
         if not cube_transit_program:
@@ -223,7 +346,7 @@ class CubeTransit(ModelTransit):
 
         if cube_transit_program:
             self.cube_transit_program = cube_transit_program
-        new_routes = route_properties_df["NAME"].unique().tolist()
+        new_routes = route_properties_df[self.route_id_prop].unique().tolist()
         WranglerLogger.debug(f"Adding routes: {new_routes} \nfrom: {source_list}")
 
         super().add_source(
@@ -236,8 +359,20 @@ class CubeTransit(ModelTransit):
         return self
 
     def write_cube(
-        self, outpath=None, route_properties=None, node_properties=None,
+        self,
+        outpath,
+        route_properties: Collection[str] = None,
+        node_properties: Collection[str] = None,
     ):
+        """Writes out the object as a cube line file using `CubeTransitWriter.write_dfs`
+
+        Args:
+            outpath (str): location and filename for the output line files.
+            route_properties (Collection[str], optional): List of route properties to include
+                in line file output. Defaults to self.route_properties.
+            node_properties (Collection[str], optional): List of node properties to include
+                in line file output. Defaults to self.node_properties.
+        """
 
         if not route_properties:
             route_properties = [
@@ -264,22 +399,44 @@ class CubeTransit(ModelTransit):
     def _melt_routes_by_time_period(
         self, transit_properties_df: DataFrame,
     ) -> DataFrame:
+        """Translates a wide dataframe with fields for time-dependent route properties
+        for each time period, to a long dataframe with a row for every route/time period
+        combination.
+
+        Wrapper method for :py:method:`ModelTransit._melt_routes_by_time_period`.
+
+        Uses:
+            df_key = self.route_id_prop
+            tp_property = self.tp_property
+
+        Args:
+            transit_properties_df (DataFrame): dataframe with a row for each route and
+            time periods which are time-dependent.
+
+        Returns:
+            DataFrame: Long dataframew with a row for every route/time period combination.
+        """
 
         df = super()._melt_routes_by_time_period(
-            transit_properties_df, df_key="NAME", tp_property=self.tp_property,
+            transit_properties_df,
+            df_key=self.route_id_prop,
+            tp_property=self.tp_property,
         )
 
         return df
 
     @staticmethod
     def base_prop_from_time_varying_prop(prop: str) -> str:
-        """
+        """Returns the base property name from a composite field name which
+        also contains the time period id.
+
+        Example:  HEADWAY[1] ---> HEADWAY
 
         Args:
-            property (str): [description]
+            property (str): Field name with time period embedded, i.e. FREQ[2]
 
         Returns:
-            str: [description]
+            str: Base field name without time period id.
         """
         return prop.split("[")[0]
 
@@ -304,44 +461,77 @@ class CubeTransit(ModelTransit):
 
     @staticmethod
     def tp_num_from_time_varying_prop(prop: str) -> int:
-        """
+        """Returns the time period number from a composite field name.
+
+        Example:  HEADWAY[1] ---> 1
 
         Args:
-            property (str): [description]
+            property (str): Field name with time period embedded, i.e. FREQ[2]
 
         Returns:
-            int: [description]
+            int: Transit time period ID.
         """
         return prop.split("[")[1][0]
 
     @staticmethod
     def time_varying_props_filter(properties_list: Collection) -> Collection:
-        """[summary]
+        """Filters a collection of route properties into a collection of time-varying
+        route properties.
 
         Args:
-            properties_list (Collection): [description]
+            properties_list (Collection): List of route properties, e.g. ["NAME",
+                "HEADWAY[1]","HEADWAY[2]"]
 
         Returns:
-            Collection: [description]
+            Collection: List of route properties which vary by time,
+                e.g. ["HEADWAY[1]","HEADWAY[2]"]
         """
         time_properties = [p for p in properties_list if ("[" in p) and ("]" in p)]
         return time_properties
 
     @staticmethod
     def model_prop_from_base_prop_tp_num(basename: str, tp_num: int) -> str:
-        """[summary]
+        """Creates a composite, time-varying route property name from a
+        base name and a transit time period number.
 
         Args:
-            basename (str): [description]
-            tp_num (int): [description]
+            basename (str): Base route property name, e.g. "HEADWAY"
+            tp_num (int): Transit time period number, e.g. 2
 
         Returns:
-            str: [description]
+            str: Composite, time-varying route property name, e.g. "HEADWAY[2]"
         """
         return f"{basename}[{tp_num}]"
 
 
 class StdToCubeAdapter(StdToModelAdapter):
+    """Object with methods to translate between a standard GTFS data in a
+    :py:class:`TransitNetwork` instance and :py:class:`ModelTransit`.
+    Subclass of :py:class:`StdToModelAdapter` with cube-specific methods.
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+        _adapter = StdToCubeAdapter(
+            standardtransit,
+            cube_transit_program="PT",
+            std_to_model_prop_map={
+                "route_long_name": "LONGNAME",
+                "shape_model_node_id": "N",
+                "shape_pt_sequence": "order",
+                },
+            std_to_model_prop_trans={
+                 ("HEADWAY", "headway_secs"): lambda x: x * 60,
+            },
+            tp_property="HEADWAY",
+            node_properties=[],
+            route_properties=["HEADWAY","NAME","OPERATOR"],
+            parameters=parameters,
+        )
+
+        model_route_properties_by_time_df, model_nodes_df = _adapter.transform()
+    """
+
     def __init__(
         self,
         standardtransit: TransitNetwork,
@@ -354,6 +544,37 @@ class StdToCubeAdapter(StdToModelAdapter):
         route_properties: Collection[str] = None,
         **kwargs,
     ):
+        """Constructor method for StdToCubeAdapter.
+
+        Args:
+            standardtransit (:py:class:`TransitNetwork`): Input standard transit instance.
+            cube_transit_program (str, optional): TRNBUILD or PT. Defaults to
+                DEFAULT_CUBE_TRANSIT_PROGRAM.
+            parameters (py:class:`Parameters`): Parameters instance for doing translations
+                between time periods. Defaults to none and then default parameters.
+            std_to_model_prop_map (Mapping[str, str], optional): Dictionary mapping
+                standard transit property to cube model property which just need to be renamed
+                without any translation.
+                Example:
+                    {
+                        "route_long_name": "LONGNAME",
+                        "shape_model_node_id": "N",
+                        "shape_pt_sequence": "order",
+                    }.Defaults to :py:`STD_TO_MODEL_PROP_MAP`.
+            std_to_model_prop_trans (Mapping[Collection[str], Any], optional): Maps a tuple of
+                (standard property,model property) to a transformation function that turns the
+                standard/gtfs property into the cube model property.
+                Defaults to :py:`std_to_model_prop_trans`.
+                Example: {} ("HEADWAY", "headway_secs"): lambda x: x * 60}
+            tp_property (str, optional): transit route property which defines which time
+                periods the route exists in. Defaults to :py:`TP_PROPERTY`[cube_transit_program].
+            node_properties (Collection[str], optional):  Properties which are
+                calculated and saved for route nodes/shapes.
+                Defaults to `MODEL_NODE_PROPERTIES`[cube_transit_program].
+            route_properties (Collection[str], optional): Properties which are
+                calculated and saved for route-level properties.
+                Defaults to `MODEL_ROUTE_PROPERTIES`[cube_transit_program].
+        """
         self.__standardtransit = standardtransit
         self.feed = self.__standardtransit.feed
         self.cube_transit_program = cube_transit_program
@@ -498,11 +719,13 @@ class StdToCubeAdapter(StdToModelAdapter):
     def transform_nodes(self) -> pd.DataFrame:
         """Transforms std node/shapes to model shapes.
 
-        Args:
-            feed ([type]): [description]
+        Identifies stops by finding them in stop_times for each trip.
+        Replicates shapes for each trip to create a shape dataframe.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Dataframe for each route, node, visit order combination
+                with following fields: "NAME","N", "stop","order" + fields specified
+                in self.node_properties.
         """
         # msg = f"""self.feed.shapes:\n
         #    {self.feed.shapes[['shape_pt_sequence','shape_model_node_id']]}"""
@@ -582,14 +805,15 @@ class StdToCubeAdapter(StdToModelAdapter):
         _nodes_df = _nodes_df.sort_values(by=["NAME", "order"])
         # WranglerLogger.debug(f"_nodes_df 3 :\n {_nodes_df}")
         WranglerLogger.debug(f"Number of Stops:{len(_nodes_df[_nodes_df.stop])}")
-        _properties_list = ["N", "stop", "NAME"] + [
+        _properties_list = ["N", "stop", "NAME", "order"] + [
             p for p in self.node_properties if p in _nodes_df.columns
         ]
 
         return _nodes_df[_properties_list]
 
     def transform_routes(self, feed=None) -> pd.DataFrame:
-        """[summary]
+        """Transforms route properties from standard properties to
+        Cube properties.
 
         Returns:
             DataFrame: (DataFrame): DataFrame of trips with cube-appropriate values for:
@@ -634,6 +858,22 @@ class StdToCubeAdapter(StdToModelAdapter):
 
 
 class CubeToStdAdapter(ModelToStdAdapter):
+    """Object with methods to translate between a :py:class:`ModelTransit`
+    instance and standard GTFS data in a :py:class:`TransitNetwork`.
+    Subclass of :py:class:`ModelToStdAdapter` with cube-specific methods.
+
+    WIP. INCOMPLETE.
+
+
+    Args:
+        ModelToStdAdapter ([type]): [description]
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+        ##todo
+    """
+
     def __init__(
         self,
         modeltransit: ModelTransit,
@@ -641,6 +881,20 @@ class CubeToStdAdapter(ModelToStdAdapter):
         model_to_std_prop_map: Mapping[str, str] = None,
         model_to_std_prop_trans: Mapping[Collection[str], Any] = None,
     ) -> None:
+        """Constructor method for object to translate between a :py:class:`ModelTransit` instance
+         and standard GTFS data in a :py:class:`TransitNetwork`. WIP. INCOMPLETE.
+
+        Args:
+            modeltransit (ModelTransit): Instance to be transformed.
+            cube_transit_program ([type], optional): TRNBUILD or PT.
+                Defaults to None.
+            model_to_std_prop_map (Mapping[str, str], optional): Specifies key:values
+                relating  model transit properties to standard transit properties/gtfs which
+                don't need to be transformed...just renamed.  Defaults to None.
+            model_to_std_prop_trans (Mapping[Collection[str], Any], optional):Maps a tuple of
+                (model property,standard property) to a transformation function that turns the
+                model property into the standard/gtfs property. Defaults to None.
+        """
 
         if not model_to_std_prop_map:
             model_to_std_prop_map = MODEL_TO_STD_PROP_MAP
@@ -658,18 +912,72 @@ class CubeToStdAdapter(ModelToStdAdapter):
 
 
 class CubeTransitReader:
-    def __init__(self, cube_transit_program: str):
-        self.program = cube_transit_program
+    """Class with methods for reading cube lines as a file
+    or a string and translating them into two dataframes:
+        - route_properties_df: keyed by route NAME with a column for
+            each route-level property
+        - route_shapes_df: keyed by route NAME, N (node #), and order. Also
+            has a boolean field for stop.
 
-    @classmethod
-    def validate_routes(cls, route_properties_df: DataFrame) -> None:
+    .. highlight:: python
+    Typical usage example:
+    ::
+
+        (
+            route_properties_df,
+            route_shapes_df,
+            source_list,
+            cube_transit_program
+        ) = CubeTransitReader.read(
+            "my_line_file.lin",
+        )
+
+    """
+
+    def __init__(
+        self, cube_transit_program: str, route_id_prop: str = "NAME",
+    ):
+        self.program = cube_transit_program
+        self.route_id_prop = route_id_prop
+
+    def validate_routes(self, route_properties_df: DataFrame) -> None:
+        """Validates that routes in the route_properties_df have unique
+        names using self.route_id_prop.
+
+        Args:
+            route_properties_df (DataFrame): Dataframe of routes read in.
+
+        Raises:
+            ValueError: Raised if duplicate name found.
+        """
         _dupes = route_properties_df[route_properties_df.duplicated(subset=["NAME"])]
         if len(_dupes) > 0:
-            msg = f"Invalid transit: following route names are duplicate: {_dupes['NAME']}."
+            msg = f"Invalid transit: following route names are duplicate:\
+                {_dupes[self.route_id_prop ]}."
             raise ValueError(msg)
 
     @classmethod
-    def read(cls, transit_source: str):
+    def read(cls, transit_source: str) -> Collection:
+        """Read in and parse cube transit lines using `TRANSIT_LINE_FILE_GRAMMAR`
+        and transform using `CubeTransformer` to a parsed data tree. Translate the
+        data tree into route_properties_df and route_shapes_df.
+
+        Args:
+            transit_source (str): Cube line file location or a string representing
+                a cube line string.
+
+        Raises:
+            ValueError: Raised if cannot understand the transit_source format.
+
+        Returns:
+            (route_properties_df, route_shapes_df, source_list, cube_transit_program)
+            - route_properties_df has a line for each transit route read in and a field
+                for each route-level property.
+            - route_shapes_df has a line for each route/node/visit order as well as a
+                boolean-field for 'stop' as well as any additional node-level properties.
+            - source_list is a list of sources/filenames.
+            - cube_transit_program is the parser's guess as to whether it is TRNBUILD or PT.
+        """
         parser = Lark(TRANSIT_LINE_FILE_GRAMMAR, debug="debug", parser="lalr")
 
         source_list = []
@@ -724,6 +1032,22 @@ class CubeTransitReader:
 
 
 class CubeTransitWriter:
+    """
+    Class with methods to write to cube transit line files.
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+        CubeTransitWriter.write_dfs(
+            route_properties_df,
+            nodes_df,
+            node_properties = [],
+            route_properties = ["HEADWAY","NAME","OPERATOR","MODE"],
+            cube_transit_program = "PT",
+            outpath = "my_transit_routes.lin",
+        )
+    """
+
     @classmethod
     def write_std_transit(std_transit):
         raise NotImplementedError
@@ -742,13 +1066,27 @@ class CubeTransitWriter:
         cube_transit_program: str = DEFAULT_CUBE_TRANSIT_PROGRAM,
         outpath: str = "outtransit.lin",
     ) -> None:
-        """
-        Writes the gtfs feed as a cube line file after
+        """Writes the gtfs feed as a cube line file after
         converting gtfs properties to model properties.
 
         Args:
-            outpath: File location for output cube line file.
+            route_properties_df (DataFrame): Dataframe with route properties: one row for
+                each cube transit line which will be written. For now, new cube transit
+                lines are written for each route/time period combination.
+            nodes_df (DataFrame): Shape nodes dataframe with fields NAME, N, stop
+            node_properties (Collection[str], optional): Node properties which will
+                be written out in addition to required. Defaults to None.
+            route_properties (Collection[str], optional): Route properties which will
+                be written out in addition to required. Defaults to None.
+            cube_transit_program (str, optional): [description]. Defaults to
+                `DEFAULT_CUBE_TRANSIT_PROGRAM`.
+            outpath (str, optional): File location for output cube line file.
+                Defaults to "outtransit.lin".
+
+        Returns:
+            [str]: outpath where the file was written (so you don't lose it!)
         """
+
         WranglerLogger.debug(f"nodes_df: \n{nodes_df}")
         if not node_properties:
             node_properties = REQUIRED_NODE_PROPERTIES[cube_transit_program]
@@ -797,15 +1135,15 @@ class CubeTransitWriter:
         properties: Collection[str] = [],
         id_field: str = "NAME",
     ) -> pd.DataFrame:
-        """
-        Creates a dataframe of cube node strings for each trip_id from shapes_df and stop_times_df
-        of a
+        """Creates a dataframe of cube node strings for each route as specified by the id_field.
 
         Args:
-            stop_times_df: DataFrame row with both shape_id and trip_id
+            nodes_df (pd.DataFrame): Shape nodes dataframe with fields NAME, N, stop
+            properties (Collection[str], optional): Node properties to write out. Defaults to [].
+            id_field (str, optional): [description]. Defaults to "NAME".
 
-        Returns: Dataframe with `NAME` and `agg_cube_node_str`
-
+        Returns:
+            pd.DataFrame: [ Dataframe with `NAME` and `agg_cube_node_str`
         """
         # WranglerLogger.debug(f"nodes_df:\n{nodes_df}")
         nodes_df["cube_node_str"] = nodes_df.apply(
@@ -823,22 +1161,29 @@ class CubeTransitWriter:
 
     @staticmethod
     def _route_to_cube_str(
-        row,
+        row: pd.Series,
         cube_node_string_df: DataFrame,
         route_properties: Collection[str],
         cube_transit_program: str,
         time_varying_properties: Collection = TIME_VARYING_TRANSIT_PROPERTIES,
-    ):
-        """
-        Creates a string representing the route in cube line file notation.
+    ) -> str:
+        """Creates a string representing the route in cube line file notation.
 
         Args:
-            row: row of a DataFrame representing a cube-formatted trip, with the Attributes
-                trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY, MODE, ONEWAY, OPERATOR
-            cube_node_string_df:
+            row (pd.Series): row of a DataFrame representing a cube-formatted trip,
+                with the Attributes trip_id, shape_id, NAME, LONGNAME, tod, HEADWAY,
+                MODE, ONEWAY, OPERATOR
+            cube_node_string_df (DataFrame): dataframe with cube node shape
+                representations keyed by NAME
+            route_properties (Collection[str]): List of route-level properties to
+                be written out
+            cube_transit_program (str): TRNBUILD or PT
+            time_varying_properties (Collection, optional): List of properties which
+                need to be keyed by transit time period number, e.g. "HEADWAY".
+                Defaults to TIME_VARYING_TRANSIT_PROPERTIES.
 
         Returns:
-            string representation of route in cube line file notation
+            [str]: string representation of route in cube line file notation
         """
         USE_QUOTES = ["NAME", "LONGNAME"]
         FIRST_PROP = "NAME"

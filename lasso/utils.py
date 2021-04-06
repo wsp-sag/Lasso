@@ -1,3 +1,6 @@
+"""
+Functions which support Lasso but are not specific to a class.
+"""
 from typing import Mapping, Collection, Union
 import os
 
@@ -6,6 +9,28 @@ from pandas import DataFrame
 import numpy as np
 
 from .logger import WranglerLogger
+
+import cProfile
+import functools
+import pstats
+import tempfile
+
+
+def profile_me(func):
+    """Function wrapper to do performance profiling using `cProfile`."""
+
+    @functools.wraps(func)
+    def wrapped_func(*args, **kwargs):
+        file = tempfile.mktemp()
+        profiler = cProfile.Profile()
+        profiler.runcall(func, *args, **kwargs)
+        profiler.dump_stats(file)
+        metrics = pstats.Stats(file)
+        stats = metrics.strip_dirs().sort_stats("time")
+        stats.print_stats()
+        WranglerLogger.info(stats)
+
+    return wrapped_func
 
 
 def get_shared_streets_intersection_hash(lat, lon, osm_node_id=None):
@@ -31,51 +56,66 @@ def column_name_to_parts(
     c: str,
     parameters=None,
     delim="_",
-    order: Collection[str] = ["managed", "base_name", "category", "time_period"],
-) -> Collection[str]:
-    """[summary]
+    in_order: Collection[str] = ["managed", "base_name", "category", "time_period"],
+) -> Collection[Union[str, bool]]:
+    """Transforms a roadway column name for a property with a given basename (e.g. LANES),
+    category (e.g. HOV), managed status ("ML"), and time period (e.g. "AM) into a tuple
+    (basename, time_period, category, managed).
+
+    Will look for categories and time periods in parameter set if given, otherwise
+    will use default parameters.
+
+    Parameters used:
+    - timeperiod abbreviations: `parameters.network_model_ps.network_time_period_abbr`
+    - categories: `parameters.roadway_network_ps.category_grouping.keys()`
 
     Args:
         c ([type]): composite column name
         parameters (Parameters, optional): Defaults to default Parameters().
-        delim = what column parts are delimted by. Defaults to "_".
-        order = what order the variables are concatenated together in. Defaults to:
-            managed, base_name, category,
+        delim: what column parts are delimted by. Defaults to "_".
+        in_order: what order the variables are concatenated together in in the input.
+            Defaults to: managed, base_name, category, time_period
 
     Returns:
-        Collection[str]: base_name, time_period, category, managed
+        Tuple of base_name, time_period, category, managed.
     """
+    if in_order != ["managed", "base_name", "category", "time_period"]:
+        raise NotImplementedError
 
     if not parameters:
         from .parameters import Parameters
 
         parameters = Parameters()
 
-    if c[0:2] == "ML":
+    tps = parameters.network_model_ps.network_time_period_abbr
+    cats = list(parameters.roadway_network_ps.category_grouping.keys())
+    ML_FLAG = "ML"
+
+    parts = c.split(delim)
+
+    if parts[0] is ML_FLAG:
         managed = True
     else:
+        parts.insert(0, False)
         managed = False
 
-    time_period = None
-    category = None
+    base_name = parts[1]
 
-    tps = parameters.network_model_ps.network_time_period_abbr
-    cats = list(parameters.roadway_network_ps.category_grouping.keys)
-
-    if c.split("_")[-1] in tps:
-        time_period = c.split("_")[-1]
-        base_name = c.split(time_period)[-2][:-1]
-        if c.split("_")[-2] in cats:
-            category = c.split("_")[-2]
-            base_name = c.split(category)[-2][:-1]
-    elif c.split("_")[-1] in cats:
-        category = c.split("_")[-1]
-        base_name = c.split(category)[-2][:-1]
+    if parts[2] in cats:
+        category = parts[2]
+    elif parts[3] in cats:
+        category = parts[3]
     else:
         category = None
-        time_period = None
 
-    return base_name, time_period, category, managed
+    if parts[2] in tps:
+        timeperiod = parts[2]
+    elif parts[3] in tps:
+        timeperiod = parts[3]
+    else:
+        timeperiod = None
+
+    return base_name, timeperiod, category, managed
 
 
 def fill_df_na(df: DataFrame, type_lookup: Mapping) -> DataFrame:
@@ -153,7 +193,7 @@ def add_id_field_to_shapefile(
         outfile_filename: shapefile to save as
         fieldname: name of the field to add as the ID field
 
-    Returns: the string of the filename of the shapefile with the added ID.
+    Returns: The string of the filename of the shapefile with the added ID.
     """
     gdf = gpd.read_file(shapefile_filename)
     if fieldname in gdf.columns:
@@ -184,7 +224,7 @@ def write_df_to_fixed_width(
         sep (str): separator for data_outfile. Defaults to ";"
 
     Returns:
-       DataFrame: with columns for header, width of ff fields
+       DataFrame with columns for header, width of ff fields
     """
     if not overwrite:
         for f in [data_outfile, header_outfile]:

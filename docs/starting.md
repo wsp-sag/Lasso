@@ -53,12 +53,12 @@ Notes:
 
 If you are going to be doing Lasso development, we also recommend:
  -  a good IDE such as [Atom](http://atom.io), VS Code, Sublime Text, etc.
- with Python syntax highlighting turned on.  
- - [GitHub Desktop](https://desktop.github.com/) to locally update your clones   
+ with Python syntax highlighting turned on.
+ - [GitHub Desktop](https://desktop.github.com/) to locally update your clones
 
 ## Brief Intro
 
-Lasso is a 'wrapper' around the [Network Wrangler](http://wsp-sag.github.io/network_wrangler) utility.  
+Lasso is a 'wrapper' around the [Network Wrangler](http://wsp-sag.github.io/network_wrangler) utility.
 
 Both Lasso and NetworkWrangler are built around the following data schemas:
  - [`roadway network`], which is based on a mashup of Open Street Map and [Shared Streets](http://sharedstreets.io).  In Network Wrangler these are read in from three json files reprsenting: links, shapes, and nodes. Data fields that change by time of day or by user category are represented as nested fields such that any field can be defined for an ad-hoc time-of-day span or user category.
@@ -69,25 +69,23 @@ In addition, Lasso utilizes the following data schemas:
 
  - [`MetCouncil Model Roadway Network Schema`], which adds data fields to the `roadway network` schema that MetCouncil uses in their travel model including breaking out data fields by time period.
  - [`MetCouncil Model Transit Network Schema`], which uses the Cube PublicTransport format,  and
- - [`Cube Log Files`], which document changes to the roadway network done in the Cube GUI. Lasso translates these to project cards in order to be used by NetworkWrangler.  
+ - [`Cube Log Files`], which document changes to the roadway network done in the Cube GUI. Lasso translates these to project cards in order to be used by NetworkWrangler.
  - [`Cube public transport line files`], which define a set of transit lines in the cube software.
 
 ### Components
 Network Wrangler has the following atomic parts:
 
- - _RoadwayNetwork_ object, which represents the `roadway network` data as GeoDataFrames;  
- - _TransitNetwork_ object, which represents the `transit network` data as DataFrames;  
- - _ProjectCard_ object, which represents the data of the `project card`.  Project cards identify the infrastructure that is changing (a selection) and defines the changes; or contains information about a new facility to be constructed or a new service to be run.;  
+ - _RoadwayNetwork_ object, which represents the `roadway network` data as GeoDataFrames;
+ - _TransitNetwork_ object, which represents the `transit network` data as DataFrames;
+ - _ProjectCard_ object, which represents the data of the `project card`.  Project cards identify the infrastructure that is changing (a selection) and defines the changes; or contains information about a new facility to be constructed or a new service to be run.;
  - _Scenario_ object, which consist of at least a RoadwayNetwork, and
 TransitNetwork.  Scenarios can be based on or tiered from other scenarios.
 Scenarios can query and add ProjectCards to describe a set of changes that should be made to the network.
 
-In addition, Lasso has the following atomic parts:  
+In addition, Lasso has the following atomic parts:
 
  - _Project_ object, creates project cards from one of the following: a base and a build transit network in cube format, a base and build highway network, or a base highway network and a Cube log file.
  - _ModelRoadwayNetwork_ object is a subclass of `RoadwayNetwork` and contains MetCouncil-specific methods to define and create MetCouncil-specific variables and export the network to a format that can be read by Cube.
- - _StandardTransit_, an object for holding a standard transit feed as a Partridge object and contains
-   methods to manipulate and translate the GTFS data to MetCouncil's Cube Line files.   
  - _CubeTransit_, an object for storing information about transit defined in `Cube public transport line files`
    . Has the capability to parse cube line file properties and shapes into python dictionaries and compare line files and represent changes as Project Card dictionaries.
  - _Parameters_, A class representing all the parameters defining the networks
@@ -106,7 +104,7 @@ net = RoadwayNetwork.read(
         node_filename=MY_NODE_FILE,
         shape_filename=MY_SHAPE_FILE,
         shape_foreign_key ='shape_id',
-        
+
     )
 my_selection = {
     "link": [{"name": ["I 35E"]}],
@@ -188,7 +186,7 @@ my_scenario.scenario_summary()
 ```
 
 #### Project
-Creates project cards by comparing two MetCouncil Model Transit Network files or by reading a cube log file and a base network;  
+Creates project cards by comparing two MetCouncil Model Transit Network files or by reading a cube log file and a base network;
 
 ```python
 
@@ -224,22 +222,25 @@ net.write_roadway_as_fixedwidth()
 
 ```
 
-#### StandardTransit
-Translates the standard GTFS data to MetCouncil's Cube Line files.
+#### ModelTransit
+Class for holding transit data needed by the model. Can be instantiated from
+one of:
+ - Directory of GTFS files
+ - :py:class:`network_wrangler.TransitNetwork` instance
+ - Model transit data files
 
-```Python
-cube_transit_net = StandardTransit.read_gtfs(BASE_TRANSIT_DIR)
-cube_transit_net.write_as_cube_lin(os.path.join(WRITE_DIR, "outfile.lin"))
+```python
+model_transit_net = ModelTransit.from_source(BASE_TRANSIT_DIR)
+model_transit_net.write(os.path.join(WRITE_DIR, "outfile.lin"))
 ```
 
 #### CubeTransit
-Used by the project class and has the capability to:
- - Parse cube line file properties and shapes into python dictionaries  
- - Compare line files and represent changes as Project Card dictionaries  
+Subclass of :py:class:`ModelTransit` with cube-specific read/write capabilities.
 
 ```python
-tn = CubeTransit.create_from_cube(CUBE_DIR)
-transit_change_list = tn.evaluate_differences(base_transit_network)
+base_transit = CubeTransit.create_from_cube(BASE_CUBE_DIR)
+build_transit = CubeTransit.create_from_cube(BASE_CUBE_DIR)
+transit_change_list = evaluate_differences(base_transit,build_transit)
 ```
 
 #### Parameters
@@ -263,7 +264,7 @@ model_road_net.write_roadway_as_shp()
 
 ### Typical Workflow
 
-Workflows in Lasso and Network Wrangler typically accomplish one of two goals:  
+Workflows in Lasso and Network Wrangler typically accomplish one of two goals:
 1. Create Project Cards to document network changes as a result of either transit or roadway projects.
 2. Create Model Network Files for a scenario as represented by a series of Project Cards layered on top of a base network.
 
@@ -279,10 +280,10 @@ Workflows in Lasso and Network Wrangler typically accomplish one of two goals:
 
 ## Running Quickstart Jupyter Notebooks
 
-To learn basic lasso functionality, please refer to the following jupyter notebooks in the `/notebooks` directory:  
+To learn basic lasso functionality, please refer to the following jupyter notebooks in the `/notebooks` directory:
 
- - `Lasso Project Card Creation Quickstart.ipynb`   
- - `Lasso Scenario Creation Quickstart.ipynb`  
+ - `Lasso Project Card Creation Quickstart.ipynb`
+ - `Lasso Scenario Creation Quickstart.ipynb`
 
  Jupyter notebooks can be started by activating the lasso conda environment and typing `jupyter notebook`:
 

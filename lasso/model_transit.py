@@ -1,13 +1,3 @@
-"""Transit-related classes to parse, compare, and write standard and cube transit files.
-
-    Typical usage example:
-
-    tn = CubeTransit.create_from_cube(CUBE_DIR)
-    transit_change_list = tn.evaluate_differences(base_transit_network)
-
-    cube_transit_net = StandardTransit.read_gtfs(BASE_TRANSIT_DIR)
-    cube_transit_net.write_as_cube_lin(os.path.join(WRITE_DIR, "outfile.lin"))
-"""
 import copy
 from typing import Any, Union, Collection, Mapping
 
@@ -122,16 +112,26 @@ class ModelTransit:
         route_properties_by_time_df: DataFrame = None,
         route_shapes_df: DataFrame = None,
         new_routes: Collection[str] = [],
-        source_list: Collection[str] = [],
     ):
-        """[summary]
+        """Method to add transit to ModelTransitNetwork from either
+        route_properties_df or route_properties_by_type_df as well as
+        route_shapes_df. DOES NOT DO EXTENSIVE VALIDATION.
+
+        ##TODO: add valdiation of route_shapes_df to make sure there
+        is a shape for each route.
 
         Args:
-            route_properties_df (DataFrame, optional): [description]. Defaults to None.
-            route_properties_by_time_df (DataFrame, optional): [description]. Defaults to None.
-            route_shapes_df (DataFrame, optional): [description]. Defaults to None.
-            new_routes (Collection[str], optional): [description]. Defaults to [].
-            source_list (Collection[str], optional): [description]. Defaults to [].
+            route_properties_df (DataFrame, optional): Table of routes with a column for each
+                property by time of day (wide representation). Either route_properties_df or
+                route_properties_by_time_df must be specified.
+            route_properties_by_time_df (DataFrame, optional): Table with a row for each routes/
+                time period combination with a column for each property (long representation).
+                Either route_properties_df or route_properties_by_time_df must be specified.
+                Defaults to None.
+            route_shapes_df (DataFrame):  Table with a row for each route/node/order combination
+                which also has a boolean field for "stop". Defaults to None.
+            new_routes (Collection[str], optional): If specified, will only import the listed
+                routes. Defaults to [].
 
         Raises:
             ValueError: [description]
@@ -192,16 +192,16 @@ class ModelTransit:
         add_to_route_props: Collection[str] = None,
         add_to_route_props_by_time: Collection[str] = None,
     ) -> None:
-        """[summary]
+        """Makes sure self.route_properties_df (wide) and self.route_properties_by_time_df
+        (long) are concurrent with each other.
 
         Args:
-            add_to_route_props (Collection[str], optional): [description].
+            add_to_route_props (Collection[str], optional): List of route names which need
+                to be added to self.route_properties_df from self.route_properties_by_time_df.
                 Defaults to None.
-            add_to_route_props_by_time (Collection[str], optional): [description].
+            add_to_route_props_by_time (Collection[str], optional): List of route names which need
+                to be added to self.route_properties_by_time_df from self.route_properties_df.
                 Defaults to None.
-
-        Returns:
-            [type]: [description]
         """
         msg = f"Adding routes {len(add_to_route_props)} to \
             self.route_props_df: {add_to_route_props}"
@@ -213,10 +213,12 @@ class ModelTransit:
             self.add_route_props_by_time_from_unmelted(add_to_route_props_by_time)
 
     def add_route_props_from_route_props_by_time(self, routes: Collection[str]) -> None:
-        """[summary]
+        """Method which adds selected routes to self.route_properties_df from
+        self.route_properties_by_time_df.
 
         Args:
-            routes (Collection[str]): [description]
+            routes (Collection[str]): List of route names which need to be added to
+                self.route_properties_df from self.route_properties_by_time_df.
         """
         if self.route_properties_df is None:
             self.route_properties_df = self._route_properties_by_time_df
@@ -229,13 +231,12 @@ class ModelTransit:
             )
 
     def add_route_props_by_time_from_unmelted(self, routes: Collection[str]) -> None:
-        """[summary]
+        """Method which adds selected routes to self.route_properties_by_time_df from
+        self.route_properties_df.
 
         Args:
-            routes (Collection[str]): [description]
-
-        Returns:
-            [type]: [description]
+            routes (Collection[str]):  List of route names which need to be added to
+                self.route_properties_by_time_df from self.route_properties_df.
         """
         msg = f"Adding {len(routes)}routes \
                 to self.route_properties_by_time_df: \
@@ -297,7 +298,6 @@ class ModelTransit:
         transit_properties_df: DataFrame,
         df_key: str = "NAME",
         tp_property: str = "HEADWAY",
-        route_properties=True,
     ) -> DataFrame:
         """Go from wide to long DataFrame with additional rows for transit routes which
         span multiple time periods, noted by additional column `model_time_period_number`.
@@ -305,8 +305,10 @@ class ModelTransit:
             self._model_route_properties_by_time_period_df
 
         Args:
-            transit_properties_df (DataFrame): Dataframe with route properties keyd by key.
-            df_key = Defaults to "name".
+            transit_properties_df (DataFrame): Dataframe in "wide" format.
+            df_key (str, optional): Key of the route dataframe. Defaults to "NAME".
+            tp_property (str, optional): Field name for property which specifies which
+                time period a route is active for. Defaults to "HEADWAY".
 
         Returns:
             DataFrame: With additional rows for transit routes which span multiple time periods,
@@ -371,7 +373,17 @@ class ModelTransit:
 
 
 class StdToModelAdapter:
+    """Object with methods to translate between a standard GTFS data in a
+    :py:class:`TransitNetwork` instance and :py:class:`ModelTransit`.
+    """
+
     def transform(self) -> Collection[DataFrame]:
+        """Wrapper method to transform routes and nodes.
+
+        Returns:
+            Collection[DataFrame]: Returns tuple with transformed
+                model_route_properties_by_time_df and model_nodes_df
+        """
         model_route_properties_by_time_df = self.transform_routes()
         model_nodes_df = self.transform_nodes()
 
@@ -388,7 +400,7 @@ class StdToModelAdapter:
         ],
         delim: str = "_",
     ) -> pd.Series:
-        """[summary]
+        """Calculates the route name based on name_field_list.
 
         Args:
             route_properties_df (pd.DataFrame): dataframe with fields in `name_field_list`
@@ -465,8 +477,16 @@ class ModelToStdAdapter:
 
         return _std_shapes_df
 
-    def calculate_start_end_time_HHMM(self, routes_df):
-        # Create dataframe with columns for start and end times
+    def calculate_start_end_time_HHMM(self, routes_df: DataFrame) -> DataFrame:
+        """Adds fields to dataframe for start and end times based on
+        :py:`self.time_period_abbr_to_time`.
+
+        Args:
+            routes_df (DataFrame): Routes dataframe with "tp_abbr".
+
+        Returns:
+            DataFrame: DataFrame with new fields "start_time_HHMM" and "end_time_HHMM"
+        """
         _start_end_df = routes_df["tp_abbr"].map(self.time_period_abbr_to_time)
         routes_df[["start_time_HHMM", "end_time_HHMM"]] = _start_end_df.apply(pd.Series)
         return routes_df
@@ -499,10 +519,8 @@ class ModelToStdAdapter:
 
     def transform_routes(self) -> DataFrame:
         """
-        Converts model style properties to standard properties.
-
-        Args:
-            model_transit_routes_df: dataframe of all routes with fields for route properties
+        Converts model style properties in :py:`self.model_transit_routes_df` to
+        standard properties.
 
         Returns:
             An updated dataframe with standard network property names and units.
@@ -528,9 +546,27 @@ def _diff_shape(
     shape_a: DataFrame,
     shape_b: DataFrame,
     match_id: Union[str, Collection[str]],
-    props: Collection[str] = [],
     n_buffer_vals: int = 3,
-) -> DataFrame:
+) -> Collection[DataFrame]:
+    """Selects subset of shape_a and shape_b which encompasses any changes in the field(s) specified
+    in match_id, plus a buffer as specified in n_buffer_vals.
+
+    Args:
+        shape_a (DataFrame): Base transit shape with row for each route/N/order combination as
+            well as 'stop'.
+        shape_b (DataFrame): Updated transit shape with row for each route/N/order combination as
+            well as 'stop'.
+        match_id (Union[str, Collection[str]]): Field name or a collection of field names to
+            use as the match, e.g. ["N","stop"]. Defaults to None.
+        n_buffer_vals (int, optional): Number of nodes on either side which are included in
+            the output string of the match. Defaults to 3.
+
+    Returns:
+        Collection[DataFrame]: existing_df, set_df for subset of input shape_a and shape_b which
+            should be specified in a route change project card – the different part as well as
+            a buffer (n_buffer_vals) so it can be matched.
+    """
+
     import difflib
 
     if type(match_id) != str:
@@ -629,23 +665,27 @@ def evaluate_route_shape_changes(
     base_t: ModelTransit,
     updated_t: ModelTransit,
     match_id: Union[Collection[str], str] = None,
-    compare_props: Collection[str] = None,
     route_list: Collection = None,
-    n_buffer_vals=2,
+    n_buffer_vals: int = 3,
 ) -> Collection[Mapping]:
-    """
-    Compares two route shapes and constructs returns list of changes
-    suitable for a project card.
+    """Compares all the shapes (or the subset specified in `route_list`) for two
+    :py:class:`ModelTransit` objects and outputs a list of project card changes
+    which would turn `base_t.shapes_df` --> `updated_t.shapes_df`.
 
     Args:
-        base_transit: ModelTransit,
-        updated_transit: ModelTransit,
-        match_id:
-        compare_props:
-        route_list:
+        base_t (ModelTransit): Updated :py:class:`ModelTransit` with `shapes_df`.
+        updated_t (ModelTransit): Updated :py:class:`ModelTransit` to compare to `base_t`
+        match_id (Union[Collection[str], str], optional): Field name or a collection
+            of field names to use as the match, e.g. ["N","stop"]. Defaults to None.
+            Defaults to [base_t.node_id_prop, "stop"]
+        route_list (Collection, optional): List of routes to compare. If not provided,
+            will evaluate changes between all routes common between `base_t` and `updated_t`.
+        n_buffer_vals (int, optional): Number of values on either side to include in
+            match. Defaults to 3.
 
     Returns:
-        List of shape changes formatted as a project card-change dictionary.
+        Collection[Mapping]: [List of shape changes formatted as a
+            project card-change dictionary.
 
     """
     base_shapes_df = base_t.shapes_df.copy()
@@ -727,17 +767,19 @@ def evaluate_model_transit_differences(
     new_route_property_list: Collection[str] = None,
     absolute: bool = True,
     include_existing: bool = False,
-    n_buffer_vals=2,
+    n_buffer_vals: int = 3,
 ) -> Collection[Mapping]:
-    """
+    """Evaluates differences between :py:class:`ModelTransit` instances
+    `base_transit` and `updated_transit` and outputs a list of project card changes
+    which would turn `base_transit` --> `updated_transit`.
     1. Identifies what routes need to be updated, deleted, or added
     2. For routes being added or updated, identify if the time periods
         have changed or if there are multiples, and make duplicate lines if so
     3. Create project card dictionaries for each change.
 
     Args:
-        base_transit (CubeTransit): an ModelTransit instance for the base condition
-        updated_transit (CubeTransit): an ModelTransit instance for the updated condition
+        base_transit (ModelTransit): an :py:class:`ModelTransit` instance for the base condition
+        updated_transit (ModelTransit): an ModelTransit instance for the updated condition
         route_property_update_list (Collection[str], Optional): list of properties
             to consider updates for, ignoring others.
             If not set, will default to all the fields in updated_transit.
@@ -747,7 +789,8 @@ def evaluate_model_transit_differences(
             [True case]'set' notation a project card. Defaults to True.
         include_existing (Bool): if set to True, will include 'existing' in project card.
             Defaults to False.
-
+        n_buffer_vals (int): Number of values on either side to include in
+            match for routes changes. Defaults to 3.
 
     Returns:
         A list of dictionaries containing project card changes

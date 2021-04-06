@@ -1,3 +1,16 @@
+"""
+Functions which support datetime and time period operations.
+
+Includes:
+    :py:func:`_hhmmss_to_datetime`
+    :py:func:`_secs_to_datetime`
+    :py:func:`datetime_to_time_period_abbr`
+    :py:func:`hhmmss_to_time_period_abbr`
+    :py:func:`time_sec_to_time_period`
+    :py:func:`get_timespan_from_transit_network_model_time_period`
+    :py:func:`get_timespan_from_network_model_time_period_abbr`
+"""
+
 import datetime
 
 from typing import Mapping, Collection

@@ -226,7 +226,7 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_transit_source:
-            base_transit_network = ModelTransit.create_from_source(base_transit_source)
+            base_transit_network = ModelTransit.from_source(base_transit_source)
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
             )
@@ -886,7 +886,9 @@ class Project(object):
 
 
 def new_transit_route_change_dict(
-    route_row: Union[pd.Series, Mapping], transit_route_property_list, shapes: dict
+    route_row: Union[pd.Series, Mapping],
+    transit_route_property_list: Collection[str],
+    shapes_df: DataFrame,
 ) -> Mapping:
     """Processes a row of a pandas dataframe or a dictionary with the fields:
     - name
@@ -901,9 +903,14 @@ def new_transit_route_change_dict(
         route_row (pd.Series): [description]
         shapes[]
     """
+    route_shapes_df = shapes_df.loc[shapes_df["NAME"] == route_row["NAME"]]
     routing_properties = {
         "property": "routing",
-        "set": shapes[route_row["name"]]["node"].tolist(),
+        "set": route_shapes_df.apply(
+            CubeTransitWriter._cube_node_format,
+            # properties = properties,
+            axis=1,
+        ).tolist(),
     }
 
     transit_route_properties = [

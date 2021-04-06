@@ -1,7 +1,7 @@
 import pytest
+from lasso.utils import profile_me
 
 
-@pytest.mark.utils
 def test_get_shared_streets_intersection_hash():
     from lasso.utils import get_shared_streets_intersection_hash
 
@@ -14,7 +14,7 @@ def test_get_shared_streets_intersection_hash():
     assert hash_result == hash_expected
 
 
-@pytest.mark.utils
+@pytest.mark.travis
 def test_column_name_to_parts():
     from lasso.utils import column_name_to_parts
     from lasso.parameters import Parameters
@@ -31,7 +31,7 @@ def test_column_name_to_parts():
     assert ("PRICE", "NT", None, True) == result_3
 
 
-@pytest.mark.utils
+@pytest.mark.travis
 def test_fill_df_na():
     from lasso.utils import fill_df_na
     from pandas import DataFrame, NA
@@ -54,7 +54,7 @@ def test_fill_df_na():
     assert_frame_equal(result_1, df_expected)
 
 
-@pytest.mark.utils
+@pytest.mark.travis
 def test_coerce_df_types():
     from lasso.utils import coerce_df_types
     from pandas import DataFrame, NA
@@ -81,3 +81,13 @@ def test_coerce_df_types():
         {"i_am_string": ["hi", ""], "i_am_float": [4.6, 0.0], "i_am_int": [1000, 0],},
     )
     assert_frame_equal(result_1, df_expected)
+
+
+def test_profiler():
+    @profile_me
+    def _hi():
+        def _mult(x):
+            return x ^ 2
+
+        for x in range(10):
+            return _mult(x)

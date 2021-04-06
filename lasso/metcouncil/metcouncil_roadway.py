@@ -3,7 +3,7 @@ from typing import Mapping, Any
 from pandas import DataFrame
 from geopandas import GeoDataFrame
 
-from network_wrangler import update_df
+from network_wrangler import update_df, RoadwayNetwork
 
 from ..parameters import Parameters, RoadwayNetworkModelParameters
 from ..model_roadway import ModelRoadwayNetwork
@@ -13,12 +13,34 @@ from .defaults import MC_DEFAULT_PARAMS
 
 
 class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
-    @staticmethod
-    def convert_model_roadway_net_to_metcouncil(
-        model_roadway_network: ModelRoadwayNetwork,
+    """MetCouncil specific methods for :py:class:`ModelRoadwayNetwork`
+
+    .. highlight:: python
+    Typical usage example:
+    ::
+        net = MetCouncilRoadwayNetwork.read(
+            link_filename=STPAUL_LINK_FILE,
+            node_filename=STPAUL_NODE_FILE,
+            shape_filename=STPAUL_SHAPE_FILE,
+            fast=True,
+        )
+        net.roadway_standard_to_met_council_network()
+
+    """
+
+    @classmethod
+    def convert_from_model_roadway_net(
+        cls, model_roadway_network: ModelRoadwayNetwork,
     ) -> None:
-        WranglerLogger("Converting ModelRoadwayNetwork to MetCouncil flavor.")
-        model_roadway_network.__class__ = MetCouncilRoadwayNetwork
+        """Static method for converting from a model roadway network
+        to a MetCouncil flavor. Doesn't do anything other than change
+        the __class__.
+
+        Args:
+            model_roadway_network (ModelRoadwayNetwork): :py:class:`ModelRoadwayNetwork` instance.
+        """
+        WranglerLogger(f"Converting ModelRoadwayNetwork to {cls} flavor.")
+        model_roadway_network.__class__ = cls
 
     @staticmethod
     def read(
@@ -94,10 +116,10 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         Args:
             links_df: links dataframe to calculate number of lanes for. Defaults to self.links_df.
-            network_variable: Name of the lanes variable
+            network_variable: Name of the lanes variable. Defaults to "lanes".
             update_method: update_method: update method to use in network_wrangler.update_df.
                 One of "overwrite all",
-                "update if found", or "update nan". Defaults to "update if found"
+                "update if found", or "update nan". Defaults to "update if found".
 
         Returns:
             GeoDataFrame of links_df
@@ -177,7 +199,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         return _output_links_df
 
     def _set_final_assignment_group(self, x):
-        """
+        """Method for applying to a dataframe when determining assignment group.
 
         Args:
             x: row in link dataframe
@@ -201,7 +223,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             return int(x.assignment_group_osm)
 
     def _set_final_roadway_class(self, x):
-        """
+        """Method for applying to a dataframe when determining roadway class.
 
         Args:
             x: row in link dataframe
@@ -361,12 +383,12 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         Args:
             links_df: Links dataframe. If not set, defaults to self.links_df.
             assign_group_variable_name: Name of the variable assignment group should
-                 be written to.  Default to "assign_group".
+                 be written to.  Defaults to "assign_group".
             road_class_variable_name: Name of the variable roadway class should be
-                written to. Default to "roadway_class".
+                written to. Defaults to "roadway_class".
             update_method: update method to use in network_wrangler.update_df.
                 One of "overwrite all", "update if found", or "update nan".
-                Defaults to "update if found"
+                Defaults to "update if found".
         Returns:
             RoadwayNetwork
         """
@@ -442,7 +464,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         Adds calculated roadway variables to specified link dataframe.
 
         Args:
-            link_df: specified link dataframe (model_links_df or links_df)
+            links_df: specified link dataframe (model_links_df or links_df)
         """
         WranglerLogger.info("Creating metcouncil calculated roadway variables.")
 
@@ -475,9 +497,9 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         - roadway_value_lookups["mc_mpo_counties_dict"]
 
         Args:
-            links_df: the input ModelRoadwayNetwork.
+            links_df: specified link dataframe (model_links_df or links_df).
 
-        Returns: ModelRoadwayNetwork with area type
+        Returns: links dataframe with area type
         """
         roadway_ps = self.parameters.roadway_network_ps
 
@@ -510,10 +532,10 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         - roadway_value_lookups["mc_mpo_counties_dict"]
 
         Args:
-            roadway_net: the input ModelRoadwayNetwork.
+            links_df: specified link dataframe (model_links_df or links_df).
             roadway_ps: overrides roadway_ps from roadway_net
 
-        Returns: ModelRoadwayNetwork with counties and MPO variables
+        Returns: links dataframe with counties and MPO variables
         """
         if roadway_ps is None:
             roadway_ps = self.parameters.roadway_network_ps
@@ -534,18 +556,10 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         return links_df
 
-    def roadway_standard_to_met_council_network(self,) -> None:
+    def roadway_standard_to_met_council_network(self) -> None:
         """
         Rename and format roadway attributes to be consistent with what metcouncil's
-        model is expecting.
-
-        Args:
-            roadway_net:
-
-        Returns:
-            tuple (model_links_df,nodes_df, shapes_df, list of steps completed) where
-                list of steps completed is a set of link_geometry_complete, geography_complete,
-                field_name_complete, and types_compelte.
+        model is expecting in self.model_nodes_df and self.model_links_df.
         """
 
         WranglerLogger.info(
@@ -560,7 +574,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             self.model_links_df,
             self.nodes_df,
             self.shapes_df,
-        ) = self.create_managed_lane_network()
+        ) = RoadwayNetwork.create_managed_lane_network(self)
 
         self.model_links_df = super().calculate_centroid_connectors(self.model_links_df)
         self.model_links_df = super().update_distance(
