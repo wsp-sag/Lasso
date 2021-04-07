@@ -321,7 +321,6 @@ class CubeTransit(ModelTransit):
             route_properties_by_time_df=model_route_properties_by_time_df,
             route_shapes_df=model_nodes_df,
             new_routes=new_routes,
-            source_list=["standard transit object"],
         )
 
     def add_model_source(self, transit_source: str, cube_transit_program: str = None):

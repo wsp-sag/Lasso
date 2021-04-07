@@ -8,6 +8,7 @@ from network_wrangler import update_df, RoadwayNetwork
 from ..parameters import Parameters, RoadwayNetworkModelParameters
 from ..model_roadway import ModelRoadwayNetwork
 from ..logger import WranglerLogger
+from ..utils import profile_me, fill_df_cols
 
 from .defaults import MC_DEFAULT_PARAMS
 
@@ -41,6 +42,25 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         """
         WranglerLogger(f"Converting ModelRoadwayNetwork to {cls} flavor.")
         model_roadway_network.__class__ = cls
+
+    @classmethod
+    def from_RoadwayNetwork(
+        cls,
+        roadway_network_object: RoadwayNetwork,
+        parameters: Parameters = None,
+        parameters_dict: dict = {},
+        ml_already_split: bool = False,
+        split_properties: bool = False,
+        **kwargs,
+    ):
+        return super().from_RoadwayNetwork(
+            roadway_network_object,
+            parameters=parameters,
+            parameters_dict=parameters_dict,
+            ml_already_split=ml_already_split,
+            split_properties=split_properties,
+            **kwargs,
+        )
 
     @staticmethod
     def read(
@@ -472,7 +492,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         links_df = self.calculate_county_mpo(links_df)
 
         links_df = self.add_counts(links_df)
-        links_df = self.update_distance(links_df, use_shapes=True)
+        links_df = self.update_distance(links_df, use_shapes=True, inplace=False)
 
         mc_variables_init_dict = {
             "count_year": 2017,
@@ -482,9 +502,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             "HOV": 0,
         }
 
-        links_df = self.add_placeholder_variables(
-            links_df, variables_init_dict=mc_variables_init_dict
-        )
+        links_df = fill_df_cols(links_df, mc_variables_init_dict,)
 
         return links_df
 
@@ -504,7 +522,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         roadway_ps = self.parameters.roadway_network_ps
 
         links_df = self.add_polygon_overlay_to_links(
-            links_df, roadway_ps.roadway_overlays["area_type"], method="link centroid"
+            links_df, roadway_ps.roadway_overlays["area_type"], method="link centroid",
         )
 
         links_df = self.add_polygon_overlay_to_links(
@@ -515,9 +533,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         links_df["area_type"] = links_df["area_type_name"].map(
             roadway_ps.roadway_value_lookups["area_type_codes_dict"]
-            .fillna(1)
-            .astype(int)
         )
+        links_df["area_type"] = links_df["area_type"].fillna(1).astype(int)
 
         return links_df
 
@@ -541,18 +558,20 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             roadway_ps = self.parameters.roadway_network_ps
 
         links_df = self.add_polygon_overlay_to_links(
-            links_df, roadway_ps.roadway_overlays["counties"], method="link_centroid"
+            links_df, roadway_ps.roadway_overlays["counties"], method="link centroid"
         )
 
         links_df["county"] = links_df["county_name"].map(
-            roadway_ps.roadway_value_lookups["county_codes_dict"].fillna(10).astype(int)
+            roadway_ps.roadway_value_lookups["mc_county_code_dict"]
         )
+
+        links_df["county"] = links_df["county"].fillna(10).astype(int)
 
         links_df["mpo"] = links_df["county_name"].map(
             roadway_ps.roadway_value_lookups["mc_mpo_counties_dict"]
-            .fillna(0)
-            .astype(int)
         )
+
+        links_df["mpo"] = links_df["mpo"].fillna(0).astype(int)
 
         return links_df
 
@@ -574,11 +593,11 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             self.model_links_df,
             self.nodes_df,
             self.shapes_df,
-        ) = RoadwayNetwork.create_managed_lane_network(self)
+        ) = self.create_managed_lane_network()
 
         self.model_links_df = super().calculate_centroid_connectors(self.model_links_df)
         self.model_links_df = super().update_distance(
-            self.model_links_df, use_shapes=True
+            self.model_links_df, use_shapes=True, inplace=False,
         )
 
         self.model_links_df = self.add_met_council_calculated_roadway_variables(

@@ -33,10 +33,11 @@ _MC_DEFAULT_PARAMS["shape_foreign_key"] = "shape_id"
 # NETWORK
 ############################
 
-_MC_DEFAULT_PARAMS["time period_abbr_to_names"] = {
+_MC_DEFAULT_PARAMS["time_period_abbr_to_names"] = {
     "AM": "AM Peak",
     "MD": "Midday",
     "PM": "PM Peak",
+    "NT": "Night",
 }
 
 _MC_DEFAULT_PARAMS["time_period_abbr_to_time"] = {
@@ -294,7 +295,7 @@ MC_COUNTY_SHAPEFILE = os.path.join(
 )
 
 _MC_DEFAULT_PARAMS["roadway_overlays"]["counties"] = PolygonOverlay(
-    input_filename=MC_COUNTY_SHAPEFILE, field_mapping={"NAME": "NAME"}
+    input_filename=MC_COUNTY_SHAPEFILE, field_mapping={"NAME": "county_name"}
 )
 
 _MC_DEFAULT_PARAMS["roadway_value_lookups"]["mc_county_code_dict"] = {
@@ -367,7 +368,8 @@ _MC_DEFAULT_PARAMS["roadway_overlays"]["downtown_area_type"] = PolygonOverlay(
 # The area type code used in the MetCouncil cube network.
 #
 # noqa: E501 source https://metrocouncil.org/Planning/Publications-And-Resources/Thrive-MSP-2040-Plan-(1)/7_ThriveMSP2040_LandUsePoliciesbyCD.aspx
-MC_AREA_TYPE_CODE_MAP = {
+
+_MC_DEFAULT_PARAMS["roadway_value_lookups"]["area_type_codes_dict"] = {
     "downtown": 5,  # downtown
     23: 4,  # urban center
     24: 3,  # urban center

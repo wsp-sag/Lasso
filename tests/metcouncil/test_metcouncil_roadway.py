@@ -17,36 +17,34 @@ STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
 
-def _read_stpaul_model_net():
-    net = MetCouncilRoadwayNetwork.read(
+@pytest.fixture
+def stpaul_model_net():
+    return MetCouncilRoadwayNetwork.read(
         link_filename=STPAUL_LINK_FILE,
         node_filename=STPAUL_NODE_FILE,
         shape_filename=STPAUL_SHAPE_FILE,
         fast=True,
     )
 
-    # print("net.shape_foreign_key: ", net.shape_foreign_key)
-    return net
-
 
 @pytest.mark.metcouncil
 @pytest.mark.params
-def test_read_metcouncil_net_with_params(request):
+def test_read_metcouncil_net_with_params(request, stpaul_model_net):
     if request:
         print("\n--Starting:", request.node.name)
-    _read_stpaul_model_net()
+    stpaul_model_net
 
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
-def test_calculate_lanes(request):
+def test_calculate_lanes(request, stpaul_model_net):
     """
     Tests that lanes are computed
     """
     if request:
         print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = stpaul_model_net
 
     if "lanes" in net.links_df.columns:
         net.links_df.drop(["lanes"], axis=1)
@@ -61,14 +59,14 @@ def test_calculate_lanes(request):
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
-def test_assign_group_roadway_class(request):
+def test_assign_group_roadway_class(request, stpaul_model_net):
     """
     Tests that assign group and roadway class are computed
     """
     if request:
         print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = stpaul_model_net
 
     net.links_df = net.calculate_assign_group_and_roadway_class(net.links_df)
     assert "assign_group" in net.links_df.columns
@@ -80,17 +78,16 @@ def test_assign_group_roadway_class(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.elo
 @pytest.mark.metcouncil
 @pytest.mark.travis
-def test_calculate_area_type(request):
+def test_calculate_area_type(request, stpaul_model_net):
     """
     Tests that parameters are read
     """
     if request:
         print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = stpaul_model_net
     net.links_df = net.calculate_area_type(net.links_df)
     assert "area_type" in net.links_df.columns
 
@@ -102,14 +99,14 @@ def test_calculate_area_type(request):
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
-def test_calculate_county_mpo(request):
+def test_calculate_county_mpo(request, stpaul_model_net):
     """
     Tests that parameters are read
     """
     if request:
         print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = stpaul_model_net
 
     net.links_df = net.calculate_county_mpo(net.links_df)
 
@@ -121,14 +118,14 @@ def test_calculate_county_mpo(request):
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
-def test_roadway_standard_to_met_council_network(request):
+def test_roadway_standard_to_met_council_network(request, stpaul_model_net):
     """
     Tests that parameters are read
     """
     if request:
         print("\n--Starting:", request.node.name)
 
-    net = _read_stpaul_model_net()
+    net = stpaul_model_net
 
     net.roadway_standard_to_met_council_network()
     ## todo write an assert that actually tests something
@@ -137,4 +134,5 @@ def test_roadway_standard_to_met_council_network(request):
 if __name__ == "__main__":
     # test_read_metcouncil_net_with_params(None)
     # test_calculate_lanes()
-    test_calculate_area_type(None)
+    # test_calculate_area_type(None)
+    pass

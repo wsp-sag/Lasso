@@ -1,7 +1,7 @@
 """
 Functions which support Lasso but are not specific to a class.
 """
-from typing import Mapping, Collection, Union
+from typing import Mapping, Collection, Union, Any
 import os
 
 import geopandas as gpd
@@ -169,7 +169,12 @@ def coerce_df_types(
 
     for c in list(df.columns):
         if type_lookup.get(c):
-            df[c] = df[c].astype(type_lookup[c])
+            try:
+                df[c] = df[c].astype(type_lookup[c])
+            except ValueError:
+                WranglerLogger.warning(
+                    f"couldn't coerce column {c} to a {type_lookup[c]}."
+                )
         else:
             WranglerLogger.debug(
                 "Dataframe column {} not found in type lookup, leaving as type: {}".format(
@@ -249,6 +254,27 @@ def write_df_to_fixed_width(
     )
 
     return _max_width_df
+
+
+def fill_df_cols(
+    df: DataFrame, fill_dict: Mapping[str, Any], overwrite: bool = False,
+) -> DataFrame:
+    """Fills any number of columns (keys) with the mapped values.  Overwrites existing
+    data and columns unless overwrite = False.
+
+    Args:
+        df: dataframe to modify.
+        fill_dict: mapping of variable names to initialize to.
+        overwrite: If True, will overwrite existing columns. Defaults to False.
+
+    returns: Updated dataframe with columns filled.
+    """
+    for var, init_val in fill_dict.items():
+        if var in df.columns and overwrite is False:
+            continue
+        df[var] = init_val
+
+    return df
 
 
 def df_as_fixed_width(df: DataFrame) -> Collection[Union[DataFrame, dict]]:

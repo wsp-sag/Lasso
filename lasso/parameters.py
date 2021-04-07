@@ -31,7 +31,7 @@ class NetworkModelParameters:
     """
 
     Attributes:
-        time period_abbr_to_names: Maps time period abbreviations to names.
+        time_period_abbr_to_names: Maps time period abbreviations to names.
         time_periods_to_time: Maps time period abbreviations used in
             Cube to time of days used on transit/gtfs and highway network standard.
         network_time_period_abbr: list of network time period abbreviations,

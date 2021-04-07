@@ -14,7 +14,7 @@ from .cube.cube_roadway import write_cube_hwy_net_script_network_from_ff_files
 from .parameters import Parameters
 from .logger import WranglerLogger
 from .data import FieldMapping, PolygonOverlay, update_df
-from .utils import fill_df_na, coerce_df_types, write_df_to_fixed_width
+from .utils import fill_df_na, coerce_df_types, write_df_to_fixed_width, fill_df_cols
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):
@@ -183,7 +183,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 which is useful for creating project cards. Defaults to False.
         """
 
-        self.links_df = self.add_placeholder_variables(self.links_df)
+        self.links_df = fill_df_cols(self.links_df, {"ML_lanes": 0})
 
         if split_properties:
             self.links_df = self.split_properties_by_time_period_and_category(
@@ -197,8 +197,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.coerce_network_types()
 
-    @staticmethod
+    @classmethod
     def from_RoadwayNetwork(
+        cls,
         roadway_network_object: RoadwayNetwork,
         parameters: Parameters = None,
         parameters_dict: dict = {},
@@ -227,11 +228,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Returns: ModelRoadwayNetwork instance.
         """
 
-        WranglerLogger("Converting RoadwayNetwork to ModelRoadwayNetwork flavor.")
+        WranglerLogger.info(f"Converting RoadwayNetwork to {cls} flavor.")
 
         # Copy and change the class of the copy
         m_road_net = copy.deepcopy(roadway_network_object)
-        m_road_net.__class__ = ModelRoadwayNetwork
+        m_road_net.__class__ = cls
 
         # Add additional variables which a *model*roadway network needs to have.
         if parameters:
@@ -420,7 +421,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Returns: links  GeoDataFrame with calculated variables.
         """
         links_df = self.add_counts(links_df)
-        links_df = self.update_distance(links_df, use_shapes=True)
+        links_df = self.update_distance(links_df, use_shapes=True, inplace=False)
         return links_df
 
     def create_model_network(self) -> None:
@@ -527,13 +528,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 field_mapping, fill_values_dict, polygon_overlay.input_filename
             )
         )
-        # WranglerLogger.info("LINKS_DF.CRS: {}".format(links_df.crs.to_epsg()))
+        WranglerLogger.info("LINKS_DF.CRS: {}".format(links_df.crs.to_epsg()))
         polygon_overlay_gdf = polygon_overlay.gdf.to_crs(epsg=links_df.crs.to_epsg())
 
         if fill_values_dict:
-            polygon_overlay_gdf = self.add_placeholder_variables(
-                polygon_overlay_gdf, variables_init_dict=fill_values_dict
-            )
+            polygon_overlay_gdf = fill_df_cols(polygon_overlay_gdf, fill_values_dict,)
             field_mapping = {k: k for k in fill_values_dict.keys()}
 
         if method == "link centroid":
@@ -543,10 +542,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 [self.unique_link_key, "geometry"]
             ]
 
-            polygon_overlay_gdf.rename(columns=field_mapping)
+            polygon_overlay_gdf.rename(columns=field_mapping, inplace=True)
 
             _update_gdf = gpd.sjoin(
-                _link_centroids_gdf, polygon_overlay_gdf, how="left", op="intersects"
+                _link_centroids_gdf[[self.unique_link_key, "geometry"]],
+                polygon_overlay_gdf,
+                how="left",
+                op="intersects",
             )
 
         _output_links_df = update_df(
@@ -592,12 +594,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for (
             _count_name,
             _count_value_lookup,
-        ) in self.parameters.roadway_network_ps.counts:
-            WranglerLogger.debug(
-                "Adding {} counts to variable: {}.".format(
-                    _count_name, _count_value_lookup.value_mapping.keys()
-                )
-            )
+        ) in self.parameters.roadway_network_ps.counts.items():
             links_df = _count_value_lookup.apply_mapping(links_df)
 
         if split_counts_by_tod:
@@ -621,34 +618,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         return links_df
 
-    def add_placeholder_variables(
-        self,
-        df: DataFrame = None,
-        variables_init_dict: Mapping[str, Any] = {"ML_lanes": 0},
-    ) -> DataFrame:
-        """
-        Created ML lanes placeholder for project to write out ML changes
-
-        ML lanes default to 0, ML info comes from cube LOG file and store in project cards
-
-        Args:
-            df: dataframe to write to. If not specified, will add to self.links_df.
-            variables_init_dict: mapping of variable names to initialize if they aren't
-                already in the df
-                mapped to their initial values. Defaults to {"ML_lanes",0}.
-
-        returns: updated df
-        """
-        if df is not None:
-            df = self.links_df
-
-        for var, init_val in variables_init_dict.items():
-            if var in df.columns:
-                continue
-            df[var] = init_val
-
-        return df
-
     def calculate_centroid_connectors(
         self,
         links_df: DataFrame = None,
@@ -670,6 +639,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         _centroid_connector_properties.update(
             self.parameters.roadway_network_ps.centroid_connector_properties
         )
+        # self.parameters.roadway_network_ps.centroid_connector_properties =
+        # {"centroidconnect": 1, "lanes": 1}
+        _centroid_connector_prop_list = [
+            {"property": k, "set": v} for k, v in _centroid_connector_properties.items()
+        ]
+
         if links_df is None:
             links_df = self.links_df
         max_taz = max_taz if max_taz else self.parameters.roadway_network_ps.max_taz
@@ -691,11 +666,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Start actual process
         """
 
-        links_df.apply_roadway_feature_change(
+        self.apply_roadway_feature_change(
             link_idx=self.links_df.index[
                 (self.links_df["A"] <= max_taz) | (self.links_df["B"] <= max_taz)
             ],
-            properties=_centroid_connector_properties,
+            properties=_centroid_connector_prop_list,
+            links_df=links_df,
         )
 
         return links_df
@@ -1001,8 +977,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_fixedwidth(
         self,
-        links_df,
-        nodes_df,
+        links_df: DataFrame,
+        nodes_df: DataFrame,
         node_output_fields: Collection[str] = None,
         link_output_fields: Collection[str] = None,
         output_directory: str = None,

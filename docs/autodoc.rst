@@ -4,14 +4,13 @@ Lasso Classes and Functions
 .. automodule:: lasso
    :no-members:
    :no-undoc-members:
-   :no-inherited-members:
-   :no-show-inheritance:
 
 
 Base Classes
 --------------
 .. autosummary::
   :toctree: _generated
+  :show-inheritance:
 
   ModelRoadwayNetwork
   ModelTransit
@@ -23,6 +22,7 @@ Key Functions
 .. autosummary::
   :toctree: _generated
 
+
   model_transit.evaluate_route_shape_change
   model_transit.evaluate_model_transit_differences
 
@@ -32,6 +32,7 @@ Sub-classes with some overloaded methods along with some additional helper metho
 
 .. autosummary::
   :toctree: _generated
+  :show-inheritance:
 
   cube.CubeTransit
   cube.CubeTransitWriter
@@ -44,6 +45,7 @@ Sub-classes with some overloaded methods along with some additional helper metho
 
 .. autosummary::
   :toctree: _generated
+  :show-inheritance:
 
   metcouncil.MetCouncilRoadwayNetwork
   metcouncil.MetCouncilTransit
