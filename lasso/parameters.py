@@ -519,6 +519,10 @@ class Parameters:
         self.legacy_tm2_attributes = os.path.join(
             self.data_file_location, "lookups", "legacy_tm2_attributes.csv"
         )
+
+        self.assignable_analysis = os.path.join(
+            self.data_file_location, "lookups", "assignable_analysis_links.csv"
+        )
         ###
         ### AREA TYPE - MC
         self.area_type_shape = os.path.join(

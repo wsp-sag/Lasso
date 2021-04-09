@@ -428,7 +428,9 @@ def calculate_assignable(
     parameters = None,
     network_variable: str = "assignable",
     legacy_tm2_attributes: str = None,
+    assignable_analysis: str = None,
     overwrite:bool = False,
+    use_assignable_analysis: bool = True,
 ):
     """
     Calculates assignable variable.
@@ -439,6 +441,7 @@ def calculate_assignable(
         parameters (Parameters): Lasso parameters object
         network_variable (str): Variable that should be written to in the network. Default to "assignable"
         legacy_tm2_attributes (str): MTC travel mode two attributes lookup filename
+        assignable_analysis (str): assignable lookup filename
         overwrite (Bool): True if overwriting existing variable in network.  Default to False.
 
     Returns:
@@ -481,6 +484,17 @@ def calculate_assignable(
             )
             return roadway_network
 
+    assignable_analysis = (
+        assignable_analysis
+        if assignable_analysis
+        else parameters.assignable_analysis
+    )
+
+    if not assignable_analysis:
+        msg = "'assignable_analysis' not found in method or lasso parameters, will use TM2 legacy."
+        WranglerLogger.warning(msg)
+        use_assignable_analysis = False
+
     legacy_tm2_attributes = (
         legacy_tm2_attributes
         if legacy_tm2_attributes
@@ -502,14 +516,24 @@ def calculate_assignable(
         )
     )
 
-    legacy_df = pd.read_csv(legacy_tm2_attributes)
+    if use_assignable_analysis:
+        assignable_df = pd.read_csv(assignable_analysis)
 
-    join_gdf = pd.merge(
-        roadway_network.links_df,
-        legacy_df[["shstReferenceId", network_variable]],
-        how = "left",
-        on = "shstReferenceId"
-    )
+        join_gdf = pd.merge(
+            roadway_network.links_df,
+            assignable_df[["A", "B", network_variable]],
+            how = "left",
+            on = ["A", "B"]
+        )
+    else:
+        legacy_df = pd.read_csv(legacy_tm2_attributes)
+
+        join_gdf = pd.merge(
+            roadway_network.links_df,
+            legacy_df[["shstReferenceId", network_variable]],
+            how = "left",
+            on = "shstReferenceId"
+        )
 
     roadway_network.links_df[network_variable] = join_gdf[network_variable]
 
@@ -1178,6 +1202,45 @@ def cube_fare_format(zonal_fare_system_df, flat_fare_system_df, transfer = DataF
 
     return far
 
+def assign_link_id_by_county(
+    roadway_network = None,
+    add_links_df = None
+):
+    """
+    when adding new links, assign id by county rules
+
+    Args:
+        roadway_network (RoadwayNetwork): Input Wrangler roadway network
+        add_links_df: new links
+
+    Returns:
+        add_links_df with unique link ids
+
+    """
+
+    county_last_link_id_df = roadway_network.links_df.groupby("county")["model_link_id"].max().reset_index().rename(
+        columns = {"model_link_id" : "county_last_id"}
+    )
+
+    if "model_link_id" in add_links_df.columns:
+        add_links_df.drop(["model_link_id"], axis = 1, inplace = True)
+
+    if "county_last_id" in add_links_df.columns:
+        add_links_df.drop(["county_last_id"], axis = 1, inplace = True)
+
+    add_links_df = pd.merge(
+        add_links_df,
+        county_last_link_id_df,
+        how = "left",
+        on = "county"
+    )
+
+    add_links_df["model_link_id"] = add_links_df.groupby(["county"]).cumcount() + 1
+
+    add_links_df["model_link_id"] = add_links_df["model_link_id"] + add_links_df["county_last_id"]
+
+    return add_links_df
+
 def add_centroid_and_centroid_connector(
     roadway_network = None,
     parameters = None,
@@ -1278,6 +1341,8 @@ def add_centroid_and_centroid_connector(
         ignore_index = True
     )
 
+    centroid_connector_link_gdf = assign_link_id_by_county(roadway_network, centroid_connector_link_gdf)
+
     roadway_network.links_df = pd.concat(
         [roadway_network.links_df,
         centroid_connector_link_gdf[
@@ -1297,8 +1362,6 @@ def add_centroid_and_centroid_connector(
         sort = False,
         ignore_index = True
     )
-
-
 
     WranglerLogger.info(
         "Finished adding centroid and centroid connectors"
@@ -2261,6 +2324,8 @@ def add_tap_and_tap_connector(
         sort = False,
         ignore_index = True
     )
+
+    tap_connector_link_gdf = assign_link_id_by_county(roadway_network, tap_connector_link_gdf)
 
     roadway_network.links_df = pd.concat(
         [roadway_network.links_df,
