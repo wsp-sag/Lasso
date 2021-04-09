@@ -1147,6 +1147,7 @@ class StandardTransit(object):
         trip_stop_times_df["internal_stop_sequence"] = range(1, 1+len(trip_stop_times_df))
         # sometimes GTFS `departure_time` is not recorded for every stop, e.g. VTA light rails
         trip_stop_times_df["departure_time"].fillna(method = "ffill", inplace = True)
+        trip_stop_times_df["departure_time"].fillna(0, inplace = True)
         trip_stop_times_df["NNTIME"] = trip_stop_times_df["departure_time"].diff() / 60
         # CUBE NNTIME takes 2 decimals
         trip_stop_times_df["NNTIME"] = trip_stop_times_df["NNTIME"].round(2)
