@@ -909,6 +909,7 @@ class StandardTransit(object):
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
 
         l = trip_cube_df["LIN"].tolist()
+        l = [";;<<PT>><<LINE>>;;"] + l
 
         with open(outpath, "w") as f:
             f.write("\n".join(l))
@@ -978,24 +979,26 @@ class StandardTransit(object):
         trip_df["shp_id"] = trip_df["shp_id"].astype(str)
         trip_df["shp_id"] = "shp" + trip_df["shp_id"]
 
+        trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.replace(",", "_").str.slice(stop = 50)
+
+        trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
+
         trip_df["NAME"] = trip_df.apply(
             lambda x: x.agency_id
             + "_"
             + x.route_id
             + "_"
-            + x.route_short_name
-            + "_"
             + x.tod_name
             + "_"
-            + "dir"
+            + "d"
             + str(x.direction_id)
-            + "_"
-            + x.shp_id,
+            + "_s"
+            + x.shape_id,
             axis=1,
         )
 
         # CUBE max string length
-        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 30)
+        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
 
         trip_df["LONGNAME"] = trip_df["route_long_name"]
         # CUBE max string length
@@ -1005,6 +1008,7 @@ class StandardTransit(object):
         trip_df["MODE"] = trip_df.apply(self.calculate_cube_mode, axis=1)
         trip_df["ONEWAY"] = "T"
         trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
+        trip_df["SHORTNAME"] = trip_df["route_short_name"].str.slice(stop = 30)
 
         return trip_df
 
@@ -1183,6 +1187,7 @@ class StandardTransit(object):
         s += "\n MODE={},".format(row.MODE)
         s += "\n ONEWAY={},".format(row.ONEWAY)
         s += "\n OPERATOR={},".format(row.OPERATOR)
+        s += '\n SHORTNAME="{}",'.format(row.SHORTNAME)
         s += "\n NODES={}".format(self.shape_gtfs_to_cube(row))
 
         return s
