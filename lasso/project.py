@@ -809,10 +809,47 @@ class Project(object):
             log_df["OPERATION_final"] = log_df.apply(lambda x: _final_op(x), axis=1)
             return log_df[changeable_col + ["OPERATION_final"]]
 
+        delete_link_dict = None
+        add_link_dict = None
+        change_link_dict_list = []
+
         if len(link_changes_df) != 0:
             link_changes_df = _consolidate_actions(
                 link_changes_df, self.base_roadway_network.links_df, ["A", "B"]
             )
+
+            # process deletions
+            delete_link_dict = _process_deletions(link_changes_df)
+
+            # process additions
+            add_link_dict = _process_link_additions(
+                link_changes_df, limit_variables_to_existing_network
+            )
+
+            # process changes
+            WranglerLogger.debug("Processing changes")
+            WranglerLogger.debug(link_changes_df)
+            changeable_col = list(
+                (
+                    set(link_changes_df.columns)
+                    & set(self.base_roadway_network.links_df.columns)
+                )
+                - set(Project.STATIC_VALUES)
+            )
+
+            cols_in_changes_not_in_net = list(
+                set(link_changes_df.columns)
+                - set(self.base_roadway_network.links_df.columns)
+            )
+
+            if cols_in_changes_not_in_net:
+                WranglerLogger.warning(
+                    "The following attributes are specified in the changes but do not exist in the base network: {}".format(
+                        cols_in_changes_not_in_net
+                    )
+                )
+
+            change_link_dict_list = _process_link_changes(link_changes_df, changeable_col)
 
         if len(node_changes_df) != 0:
             node_changes_df = _consolidate_actions(
@@ -828,43 +865,14 @@ class Project(object):
                 WranglerLogger.error(msg)
                 raise ValueError(msg)
             node_add_df = node_changes_df[node_changes_df.OPERATION_final == "A"]
+
+            if add_link_dict:
+                add_link_dict["nodes"] = _process_node_additions(node_add_df)
+            else:
+                add_link_dict = {"category": "Add New Roadway", "nodes": _process_node_additions(node_add_df)}
+
         else:
-            node_add_df = pd.DataFrame()
-
-        # process deletions
-        delete_link_dict = _process_deletions(link_changes_df)
-
-        # process additions
-        add_link_dict = _process_link_additions(
-            link_changes_df, limit_variables_to_existing_network
-        )
-        if len(_process_node_additions(node_add_df)):
-            add_link_dict["nodes"] = _process_node_additions(node_add_df)
-
-        # process changes
-        WranglerLogger.debug("Processing changes")
-        WranglerLogger.debug(link_changes_df)
-        changeable_col = list(
-            (
-                set(link_changes_df.columns)
-                & set(self.base_roadway_network.links_df.columns)
-            )
-            - set(Project.STATIC_VALUES)
-        )
-
-        cols_in_changes_not_in_net = list(
-            set(link_changes_df.columns)
-            - set(self.base_roadway_network.links_df.columns)
-        )
-
-        if cols_in_changes_not_in_net:
-            WranglerLogger.warning(
-                "The following attributes are specified in the changes but do not exist in the base network: {}".format(
-                    cols_in_changes_not_in_net
-                )
-            )
-
-        change_link_dict_list = _process_link_changes(link_changes_df, changeable_col)
+            None
 
         # combine together
 
