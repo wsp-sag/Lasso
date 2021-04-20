@@ -1175,13 +1175,18 @@ class StandardTransit(object):
                 if (add_nntime) & (stop_seq > 1):
                     if len(trip_stop_times_df[
                         trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]]) > 1:
-                        nntime = ", NNTIME=%s" % (trip_stop_times_df.loc[
+                        nntime_v = trip_stop_times_df.loc[
                             (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]) &
                             (trip_stop_times_df["internal_stop_sequence"] == stop_seq),
-                            "NNTIME"].iloc[0])
+                            "NNTIME"].iloc[0]
                     else:
-                        nntime = ", NNTIME=%s" % (trip_stop_times_df.loc[
-                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"NNTIME"].iloc[0])
+                        nntime_v = trip_stop_times_df.loc[
+                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"NNTIME"].iloc[0]
+
+                    if nntime_v > 0:
+                        nntime = ", NNTIME=%s" % (nntime_v)
+                    else:
+                        nntime = ""
                 else:
                     nntime = ""
 
@@ -1195,7 +1200,7 @@ class StandardTransit(object):
                 node_list_str += "\n %s%s%s" % (trip_node_list[nodeIdx], nntime, access)
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
-                    if ((add_nntime) & (stop_seq > 1)) | (len(access) > 0):
+                    if ((add_nntime) & (stop_seq > 1) & (len(nntime) > 0)) | (len(access) > 0):
                         node_list_str += " N="
             else:
                 node_list_str += "\n -%s" % (trip_node_list[nodeIdx])
