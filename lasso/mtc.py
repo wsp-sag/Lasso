@@ -1506,6 +1506,8 @@ def route_properties_gtfs_to_cube(
         dtype = {"route_id" : "object"}
     )
 
+    veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
+
     """
     Add information from: routes, frequencies, and routetype to trips_df
     """
@@ -1593,6 +1595,11 @@ def route_properties_gtfs_to_cube(
     # GTFS fare info is incomplete
     trip_df["faresystem"].fillna(99,inplace = True)
 
+    # special vehicle types
+    trip_df["VEHTYPE"] = trip_df.apply(lambda x: _special_vehicle_type(x), axis = 1)
+    # get vehicle capacity
+    trip_df = pd.merge(trip_df, veh_cap_crosswalk, how = "left", on = "VEHTYPE")
+
     return trip_df
 
 def cube_format(transit_network, row):
@@ -1617,6 +1624,7 @@ def cube_format(transit_network, row):
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=\"%s",' % (row.route_short_name,)
+    s += '\n VEHICLETYPE={}'.format(row.vehtype_num)
     if row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail", "Ferry service"]:
         add_nntime = True
     else:
@@ -1644,6 +1652,15 @@ def write_as_cube_lin(
         outpath  = os.path.join(parameters.scratch_location,"outtransit.lin")
     trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters, outpath)
 
+    vehicle_type_df = trip_cube_df.drop_duplicates(subset = ["VEHTYPE"]).copy()
+    vehicle_type_df.sort_values(by = "vehtype_num", inplace = True)
+    vehicle_type_df["VEHICLETYPE"] = vehicle_type_df.apply(lambda x: vehicle_type_pts_format(x), axis=1)
+
+    p = vehicle_type_df["VEHICLETYPE"].tolist()
+
+    with open(os.path.join(os.path.dirname(outpath), "vehtype.pts") , "w") as f:
+        f.write("\n".join(p))
+
     trip_cube_df["LIN"] = trip_cube_df.apply(lambda x: cube_format(transit_network, x), axis=1)
 
     l = trip_cube_df["LIN"].tolist()
@@ -1651,6 +1668,27 @@ def write_as_cube_lin(
 
     with open(outpath, "w") as f:
         f.write("\n".join(l))
+
+def vehicle_type_pts_format(row):
+    """
+    Creates a string representing the vehicle type in cube pts file notation.
+
+    Args:
+        row: row of a DataFrame representing a cube-formatted vehicle type, with the Attributes
+            NUMBER, NAME, SEATCAP, CRUSHCAP
+
+    Returns:
+        string representation of vehicle type in cube pts file notation
+    """
+
+    s = '\nVEHICLETYPE NUMBER={} '.format(row.vehtype_num)
+    s += 'NAME="{}" '.format(row.VEHTYPE)
+    s += 'SEATCAP={} '.format(row.seatcap)
+    s += 'CRUSHCAP={} '.format(row["100%Capacity"])
+    s += 'LOADDISTFAC=0.8 ' # use the same made-up value from TM2
+    s += 'CROWDCURVE[1]=3 CROWDCURVE[2]=3 CROWDCURVE[3]=3 ' # use the same made-up value from TM2
+
+    return s
 
 def _is_express_bus(x):
     if x.agency_name == "AC Transit":
@@ -1678,6 +1716,75 @@ def _is_express_bus(x):
         if (x.route_short_name.startswith("J")) | (x.route_short_name.startswith("Lynx")):
             return 1
     return 0
+
+def _special_vehicle_type(x):
+    if x.agency_name == "AC Transit":
+        if x.route_short_name in ["1", "6", "72R", "OX", "J", "LA", "SB", "OX", "O", "N", "NX", "NX3", "NX4", "NL", "F", "FS"]:
+            return "Motor Articulated Bus"
+        if x.route_short_name in ["40", "40L", "57", "60", "52", "217", "97", "99"]:
+            return "Motor Bus Mix of Standard and Artics"
+    if x.agency_name == "Bay Area Rapid Transit":
+        if x.route_color == "0099cc": # blue
+            if x.tod_name in ["AM", "PM"]:
+                return "9 Car BART"
+            else:
+                return "5 Car BART RENOVATED"
+        if x.route_color == "339933": # green
+            if x.tod_name not in ["AM", "PM"]:
+                return "5 Car BART RENOVATED"
+        if x.route_color == "ff9933": # orange
+            return "7 Car BART"
+        if x.route_color == "ff0000": # red
+            if x.tod_name in ["AM", "PM"]:
+                return "9 Car BART"
+            else:
+                return "5 Car BART RENOVATED"
+        if x.route_color == "ffff33": # yellow
+            if x.tod_name not in ["AM", "PM"]:
+                return "5 Car BART RENOVATED"
+    if x.route_short_name == "Vallejo Ferry":
+        return "Ferry Vallejo"
+    if x.agency_name == "SamTrans":
+        if x.route_short_name in ["294", "295", "296", "297"]:
+            return "SamTrans Plus Bus"
+        if x.route_short_name in ["292", "398", "ECR"]:
+            return "Motor Articulated Bus"
+    if x.agency_name == "San Francisco Municipal Transportation Agency":
+        if x.route_short_name in ["59", "60", "61"]:
+            return "Cable Car"
+        if x.route_short_name in ["J"]:
+            return "LRV1"
+        if x.route_short_name in ["KT", "L", "M", "N"]:
+            return "LRV2"
+        if x.route_short_name in ["38", "38R"]:
+            return "Motor Articulated Bus"
+        if x.route_short_name in ["1BX", "8", "8AX", "8BX", "14X", "14R"]:
+            return "Motor Articulated Bus ALLDOOR"
+        if x.route_short_name in ["35", "66"]:
+            return "Motor Small Bus"
+        if x.route_short_name in ["36", "37", "39", "52", "56", "67"]:
+            return "Motor Small Bus ALLDOOR"
+        if x.route_short_name in ["1AX", "10", "12", "18", "19", "2",
+        "23", "27", "28", "29", "30X", "31AX", "31BX", "43", "44", "47",
+        "48", "52", "54", "5R", "67", "82X", "83X", "88", "9", "91", "9R"]:
+            return "Motor Standard Bus ALLDOOR"
+        if x.route_short_name in ["E", "F"]:
+            return "Streetcar"
+        if x.route_short_name in ["14", "30", "49"]:
+            return "Trolley Articulated Bus ALLDOOR"
+        if x.route_short_name in ["55", "7", "7R", "7X"]:
+            return "Trolley Standard Bus"
+        if x.route_short_name in ["1", "21", "22", "24", "3", "31", "41", "45", "5", "6"]:
+            return "Trolley Standard Bus ALLDOOR"
+    if x.agency_name == "VTA":
+        if x.route_short_name in ["22", "122", "522"]:
+            return "Motor Articulated Bus"
+        if x.route_short_name in ["140", "40", "55"]:
+            return "Motor Bus Mix of Standard and Artics"
+        if x.route_short_name in ["10", "201", "822", "823", "824", "825",
+        "826", "827", "831", "828"]:
+            return "Motor Small Bus"
+    return x.VEHTYPE
 
 def create_taps_tm2(
     transit_network = None,

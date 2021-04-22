@@ -642,6 +642,10 @@ class Parameters:
         self.mode_crosswalk_file = os.path.join(
             self.data_file_location, "lookups", "gtfs_to_tm2_mode_crosswalk.csv"
         )
+
+        self.veh_cap_crosswalk_file = os.path.join(
+            self.data_file_location, "lookups", "transitSeatCap.csv"
+        )
         ####
         #MC
         self.widot_count_variable_shp = "AADT_wi"
