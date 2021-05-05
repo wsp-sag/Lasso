@@ -1275,6 +1275,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 self.links_df[c] = self.links_df[c].astype(int)
 
         for c in list(set(self.nodes_df.columns) & set(int_col_names)):
+            self.nodes_df[c] = self.nodes_df[c].replace("", 0)
             self.nodes_df[c] = self.nodes_df[c].astype(int)
 
     def fill_na(self):

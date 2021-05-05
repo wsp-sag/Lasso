@@ -431,6 +431,7 @@ def calculate_assignable(
     assignable_analysis: str = None,
     overwrite:bool = False,
     use_assignable_analysis: bool = True,
+    update_network_variable: bool = False,
 ):
     """
     Calculates assignable variable.
@@ -506,6 +507,21 @@ def calculate_assignable(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
+    if network_variable in roadway_network.links_df:
+        if overwrite:
+            WranglerLogger.info(
+                "Overwriting existing Variable '{}' already in network".format(
+                    network_variable
+                )
+            )
+        else:
+            WranglerLogger.info(
+                "Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                    network_variable
+                )
+            )
+            update_network_variable = True
+
     """
     Start actual process
     """
@@ -535,7 +551,16 @@ def calculate_assignable(
             on = "shstReferenceId"
         )
 
-    roadway_network.links_df[network_variable] = join_gdf[network_variable]
+    roadway_network.links_df[network_variable + "_cal"] = join_gdf[network_variable]
+
+    if update_network_variable:
+        roadway_network.links_df[network_variable] = np.where(
+                roadway_network.links_df[network_variable].notnull(),
+                roadway_network.links_df[network_variable],
+                roadway_network.links_df[network_variable + "_cal"]
+            )
+    else:
+        roadway_network.links_df[network_variable] = roadway_network.links_df[network_variable + "_cal"]
 
     WranglerLogger.info(
         "Finished determining assignable using variable: {}".format(network_variable)
@@ -1324,6 +1349,8 @@ def add_centroid_and_centroid_connector(
     centroid_connector_link_gdf["ft"] = 8
     centroid_connector_link_gdf["managed"] = 0
 
+    centroid_connector_link_gdf["assignable"] = 1
+
     centroid_gdf["X"] = centroid_gdf.geometry.apply(
         lambda g: g.x
     )
@@ -1414,6 +1441,7 @@ def roadway_standard_to_mtc_network(
     roadway_network = calculate_transit(roadway_network, parameters)
     roadway_network = calculate_useclass(roadway_network, parameters)
     roadway_network = calculate_facility_type(roadway_network, parameters, update_network_variable = True)
+    roadway_network = calculate_assignable(roadway_network, parameters, update_network_variable = True)
 
     roadway_network.calculate_distance(overwrite = True)
 
@@ -1624,7 +1652,7 @@ def cube_format(transit_network, row):
     s += "\n ONEWAY={},".format(row.ONEWAY)
     s += "\n OPERATOR={},".format(int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99)
     s += '\n SHORTNAME=\"%s",' % (row.route_short_name,)
-    s += '\n VEHICLETYPE={}'.format(row.vehtype_num)
+    s += '\n VEHICLETYPE={},'.format(row.vehtype_num)
     if row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail", "Ferry service"]:
         add_nntime = True
     else:
@@ -2154,9 +2182,9 @@ def snap_stop_to_node(stops, node_gdf):
     stop_df.drop(['X','Y'], axis = 1, inplace = True)
     stop_to_node_gdf = pd.merge(stop_df, stop_to_node_gdf, how = 'left', on = 'stop_id')
 
-    column_list = ["stop_id", 'osm_node_id', 'shst_node_id', "model_node_id"]
+    #column_list = ["stop_id", 'osm_node_id', 'shst_node_id', "model_node_id"]
 
-    return stop_to_node_gdf[column_list]
+    return stop_to_node_gdf#[column_list]
 
 def create_taps_kmeans(
     transit_network = None,
@@ -2334,6 +2362,7 @@ def create_tap_nodes_and_links(
 
 def add_tap_and_tap_connector(
     roadway_network = None,
+    transit_network = None,
     parameters = None,
     tap_file: str = None,
     tap_connector_link_file: str = None,
@@ -2375,6 +2404,11 @@ def add_tap_and_tap_connector(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
+    if not transit_network:
+        msg = "'transit_network' is missing from the method call.".format(transit_network)
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
     tap_file = (
         tap_file
         if tap_file
@@ -2411,16 +2445,105 @@ def add_tap_and_tap_connector(
     tap_connector_link_gdf = pd.read_pickle(tap_connector_link_file)
     tap_connector_shape_gdf = pd.read_pickle(tap_connector_shape_file)
 
-    tap_connector_link_gdf["lanes"] = 1
-    tap_connector_link_gdf["ft"] = 8
-    tap_connector_link_gdf["managed"] = 0
-
     tap_gdf["X"] = tap_gdf.geometry.apply(
         lambda g: g.x
     )
     tap_gdf["Y"] = tap_gdf.geometry.apply(
         lambda g: g.y
     )
+
+    # check if there's stops that are not connected to TAPs, this happens when new stops are added
+    # if so, connect it to the closest TAP
+    stops_df = transit_network.feed.stops.copy()
+    stops_not_connected_to_tap_df = stops_df[~(stops_df.model_node_id.astype(int).isin(tap_connector_link_gdf.A.tolist()))].copy()
+
+    if len(stops_not_connected_to_tap_df) > 0:
+        WranglerLogger.info(
+            "There are {} stops not connected to taps, connecting them to the closest taps.".format(len(stops_not_connected_to_tap_df))
+        )
+
+        stops_not_connected_to_tap_df = snap_stop_to_node(stops_not_connected_to_tap_df, tap_gdf)
+
+        stops_not_connected_to_tap_df.drop(["X", "Y", "model_node_id_y", "geometry_x", "geometry_y"], axis = 1, inplace = True)
+        stops_not_connected_to_tap_df.rename(columns = {"model_node_id_x": "model_node_id"}, inplace = True)
+        stops_not_connected_to_tap_df["model_node_id"] = stops_not_connected_to_tap_df["model_node_id"].astype(int)
+
+        stops_not_connected_to_tap_df = pd.merge(
+            stops_not_connected_to_tap_df,
+            roadway_network.nodes_df[["model_node_id", "X", "Y"]],
+            how = "left",
+            on = ["model_node_id"]
+        )
+
+        # tap shapes
+        add_tap_shapes_gdf = pd.merge(stops_not_connected_to_tap_df,
+                      tap_gdf[["tap_id", "X", "Y"]].rename(columns = {"X" : "tap_X", "Y" : "tap_Y"}),
+                      how = 'left',
+                      on = ["tap_id"])
+
+        add_tap_shapes_gdf.drop_duplicates(subset = ["model_node_id", "tap_id"], inplace = True)
+
+        existing_tap_shape_id_max = tap_connector_shape_gdf.id.str.strip("tap_").astype(int).max()
+
+        add_tap_shapes_gdf["id"] = range(existing_tap_shape_id_max + 1, 1 + existing_tap_shape_id_max + len(add_tap_shapes_gdf))
+        add_tap_shapes_gdf["id"] = add_tap_shapes_gdf["id"].apply(lambda x : "tap_" + str(x))
+        add_tap_shapes_gdf["shstGeometryId"] = add_tap_shapes_gdf["id"]
+
+        add_tap_shapes_gdf["geometry"] = add_tap_shapes_gdf.apply(
+            lambda x: LineString([Point(x.X, x.Y), Point(x.tap_X, x.tap_Y)]),
+            axis = 1
+        )
+
+        add_tap_shapes_gdf = gpd.GeoDataFrame(
+            add_tap_shapes_gdf,
+            geometry = add_tap_shapes_gdf["geometry"],
+            crs = "EPSG:4326"
+        )
+
+        # tap links
+        add_tap_links_gdf = add_tap_shapes_gdf.copy()
+        add_tap_links_gdf.rename(columns = {"model_node_id" : "A"}, inplace = True)
+
+        tap_dict = dict(zip(tap_gdf.tap_id, tap_gdf.model_node_id))
+        add_tap_links_gdf["B"] = add_tap_links_gdf["tap_id"].map(tap_dict)
+        print(add_tap_links_gdf.columns)
+        """
+        add_tap_links_gdf = pd.merge(
+            add_tap_links_gdf,
+            tap_gdf[["tap_id", "county"]],
+            how = "left",
+            on = "tap_id"
+        )
+        """
+        add_tap_links_gdf_copy = add_tap_links_gdf.copy()
+        add_tap_links_gdf_copy.rename(columns = {"A" : "B", "B" : "A"}, inplace = True)
+
+        add_tap_links_gdf = pd.concat(
+            [add_tap_links_gdf, add_tap_links_gdf_copy],
+            sort = False,
+            ignore_index = True
+        )
+
+        add_tap_links_gdf["roadway"] = "tap"
+        add_tap_links_gdf["walk_access"] = 1
+
+        tap_connector_link_gdf = pd.concat(
+            [tap_connector_link_gdf,
+            add_tap_links_gdf],
+            sort = False,
+            ignore_index = True
+        )
+
+        tap_connector_shape_gdf = pd.concat(
+            [tap_connector_shape_gdf,
+            add_tap_shapes_gdf],
+            sort = False,
+            ignore_index = True
+        )
+
+    tap_connector_link_gdf["lanes"] = 1
+    tap_connector_link_gdf["ft"] = 8
+    tap_connector_link_gdf["managed"] = 0
 
     roadway_network.nodes_df = pd.concat(
         [roadway_network.nodes_df,
