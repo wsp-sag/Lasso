@@ -1057,6 +1057,10 @@ def write_cube_fare_files(
     fare_attributes_df = pd.read_csv(os.path.join(outpath, "fare_attributes.txt"))
     fare_rules_df = pd.read_csv(os.path.join(outpath, "fare_rules.txt"))
 
+    # deflate 2015 fare to 2010 dollars
+    fare_attributes_df["price"] = fare_attributes_df["price"] * parameters.fare_2015_to_2010_deflator
+    fare_attributes_df["price"] = fare_attributes_df["price"].round(2)
+
     fare_df = pd.merge(
         fare_attributes_df,
         fare_rules_df,

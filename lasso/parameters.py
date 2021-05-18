@@ -646,6 +646,9 @@ class Parameters:
         self.veh_cap_crosswalk_file = os.path.join(
             self.data_file_location, "lookups", "transitSeatCap.csv"
         )
+
+        # https://app.asana.com/0/12291104512575/1200287255197808/f
+        self.fare_2015_to_2010_deflator = 0.927
         ####
         #MC
         self.widot_count_variable_shp = "AADT_wi"
