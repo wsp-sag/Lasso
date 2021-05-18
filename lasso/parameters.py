@@ -483,6 +483,10 @@ class Parameters:
         + list(range(410001, 490000)) + list(range(510001, 590000)) + list(range(610001, 690000)) + list(range(710001, 790000))\
         + list(range(810001, 890000))
 
+        self.tap_N_list = list(range(90001, 99999)) + list(range(190001, 199999)) + list(range(290001, 299999)) + list(range(390001, 399999))\
+        + list(range(490001, 499999)) + list(range(590001, 599999)) + list(range(690001, 699999)) + list(range(790001, 799999))\
+        + list(range(890001, 899999))
+
         self.tap_N_start = {
             "San Francisco" : 90001,
             "San Mateo" : 190001,
@@ -720,6 +724,7 @@ class Parameters:
             "tollbooth",
             "tollseg",
             "farezone",
+            "tap_id",
             ####
             #MC
             "bike_facility",
@@ -826,6 +831,7 @@ class Parameters:
             "tollseg",
             "tollbooth",
             "farezone",
+            "tap_id",
         ]
 
         self.float_col = [

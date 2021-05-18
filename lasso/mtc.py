@@ -1400,6 +1400,87 @@ def add_centroid_and_centroid_connector(
 
     return roadway_network
 
+def add_tap_id_to_node(
+    roadway_network = None,
+    parameters = None,
+    network_variable: str = "tap_id",
+    overwrite:bool = False,
+    update_network_variable: bool = False,
+):
+    """
+    adds tap_id as a node attribute
+
+    Args:
+        roadway_network (RoadwayNetwork): Input Wrangler roadway network
+        parameters (Parameters): Lasso parameters object
+        network_variable (str): Variable that should be written to in the network. Default to "tap_id"
+        overwrite (Bool): True if overwriting existing variable in network.  Default to False.
+
+    Returns:
+        roadway object
+    """
+
+    WranglerLogger.info("Adding tap_id to node layer")
+
+    """
+    Verify inputs
+    """
+    if type(parameters) is dict:
+        parameters = Parameters(**parameters)
+    elif isinstance(parameters, Parameters):
+        parameters = Parameters(**parameters.__dict__)
+    else:
+        msg = "Parameters should be a dict or instance of Parameters: found {} which is of type:{}".format(
+            parameters, type(parameters)
+        )
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if not roadway_network:
+        msg = "'roadway_network' is missing from the method call.".format(roadway_network)
+        WranglerLogger.error(msg)
+        raise ValueError(msg)
+
+    if network_variable in roadway_network.nodes_df:
+        if overwrite:
+            WranglerLogger.info(
+                "Overwriting existing Variable '{}' already in network".format(
+                    network_variable
+                )
+            )
+        else:
+            WranglerLogger.info(
+                "Variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
+                    network_variable
+                )
+            )
+            update_network_variable = True
+
+    """
+    Start actual process
+    """
+
+    WranglerLogger.info(
+        "Adding roadway network variable: {}".format(
+            network_variable
+        )
+    )
+
+    tap_links_df = roadway_network.links_df[roadway_network.links_df["roadway"] == "tap"].copy()
+
+    tap_links_df["tap_id"] = tap_links_df.apply(lambda x: x.A if x.A in parameters.tap_N_list else x.B, axis = 1)
+    tap_links_df["model_node_id"] = tap_links_df.apply(lambda x: x.B if x.A in parameters.tap_N_list else x.A, axis = 1)
+
+    node_tap_dict = dict(zip(tap_links_df["model_node_id"], tap_links_df["tap_id"]))
+
+    roadway_network.nodes_df[network_variable] = roadway_network.nodes_df["model_node_id"].map(node_tap_dict)
+
+    WranglerLogger.info(
+        "Finished adding {} to node layer".format(
+            network_variable
+        )
+    )
+
 def roadway_standard_to_mtc_network(
     roadway_network = None,
     parameters = None,
@@ -1446,6 +1527,7 @@ def roadway_standard_to_mtc_network(
     roadway_network = calculate_useclass(roadway_network, parameters)
     roadway_network = calculate_facility_type(roadway_network, parameters, update_network_variable = True)
     roadway_network = calculate_assignable(roadway_network, parameters, update_network_variable = True)
+    roadway_network = add_tap_id_to_node(roadway_network, parameters, update_network_variable = True)
 
     roadway_network.calculate_distance(overwrite = True)
 
@@ -2510,15 +2592,7 @@ def add_tap_and_tap_connector(
 
         tap_dict = dict(zip(tap_gdf.tap_id, tap_gdf.model_node_id))
         add_tap_links_gdf["B"] = add_tap_links_gdf["tap_id"].map(tap_dict)
-        print(add_tap_links_gdf.columns)
-        """
-        add_tap_links_gdf = pd.merge(
-            add_tap_links_gdf,
-            tap_gdf[["tap_id", "county"]],
-            how = "left",
-            on = "tap_id"
-        )
-        """
+
         add_tap_links_gdf_copy = add_tap_links_gdf.copy()
         add_tap_links_gdf_copy.rename(columns = {"A" : "B", "B" : "A"}, inplace = True)
 
