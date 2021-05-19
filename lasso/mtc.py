@@ -1481,6 +1481,8 @@ def add_tap_id_to_node(
         )
     )
 
+    return roadway_network
+
 def roadway_standard_to_mtc_network(
     roadway_network = None,
     parameters = None,
@@ -1828,6 +1830,12 @@ def _is_express_bus(x):
             return 1
     if x.agency_name == "WestCat (Western Contra Costa)":
         if (x.route_short_name.startswith("J")) | (x.route_short_name.startswith("Lynx")):
+            return 1
+    if x.agency_name == "SolTrans":
+        if (x.route_short_name in ["80", "92", "78"]) | (x.route_long_name in ["80", "92", "78"]):
+            return 1
+    if x.agency_name == "Vine (Napa County)":
+        if x.route_short_name in ["29"]:
             return 1
     return 0
 
