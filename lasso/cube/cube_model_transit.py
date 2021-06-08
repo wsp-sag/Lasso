@@ -222,6 +222,7 @@ class CubeTransit(ModelTransit):
             NotImplementedError: Raised if not a TransitNetwork object and minimum
                 GTFS files not found.
         """
+
         if (type(source) == TransitNetwork) or (
             source_type.lower() in ["std", "standard", "gtfs"]
         ):
@@ -242,12 +243,18 @@ class CubeTransit(ModelTransit):
             [os.path.exists(os.path.join(source, f)) for f in GTFS_MIN_FILES]
         )
 
-        if gtfs_files_exist:
-            self.add_std_source(source, **kwargs)
-        else:
+        lin_files = glob.glob(os.path.join(source, "*.[Ll][Ii][Nn]"))
+
+        if not (gtfs_files_exist or lin_files):
             msg = f"""Not sure how to read source: {source} with source_types: {source_type}.
                 Try specifying keyword: `source_type`."""
             raise NotImplementedError(msg)
+
+        if gtfs_files_exist:
+            self.add_std_source(source, **kwargs)
+
+        if lin_files:
+            self.add_model_source(source, **kwargs)
 
     def add_std_source(
         self,
@@ -336,12 +343,16 @@ class CubeTransit(ModelTransit):
         """
         if not cube_transit_program:
             cube_transit_program = self.cube_transit_program
+
+        reader = CubeTransitReader(cube_transit_program)
+
+        print("AHA", transit_source)
         (
             route_properties_df,
             route_shapes_df,
             source_list,
             cube_transit_program,
-        ) = CubeTransitReader(cube_transit_program).read(transit_source)
+        ) = reader.read(transit_source)
 
         if cube_transit_program:
             self.cube_transit_program = cube_transit_program
@@ -354,8 +365,6 @@ class CubeTransit(ModelTransit):
             new_routes=new_routes,
             source_list=source_list,
         )
-
-        return self
 
     def write_cube(
         self,
@@ -956,7 +965,7 @@ class CubeTransitReader:
             raise ValueError(msg)
 
     @classmethod
-    def read(cls, transit_source: str) -> Collection:
+    def read(cls, transit_source: str, route_id_prop: str = "NAME") -> Collection:
         """Read in and parse cube transit lines using `TRANSIT_LINE_FILE_GRAMMAR`
         and transform using `CubeTransformer` to a parsed data tree. Translate the
         data tree into route_properties_df and route_shapes_df.
@@ -990,6 +999,8 @@ class CubeTransitReader:
                 source_list.append(transit_source)
                 parse_tree = parser.parse(file.read())
         elif os.path.isdir(transit_source):
+            msg = "YES I'M A DIRECTORY - but not implemented"
+            raise NotImplementedError(msg)
             for lin_file in glob.glob(os.path.join(transit_source, "*.LIN")):
                 cls.read(lin_file)
             return
@@ -1013,7 +1024,13 @@ class CubeTransitReader:
         )
         msg = f"CubeToStdAdapter.read.route_properties_df: {route_properties_df[0:5]}"
         # WranglerLogger.debug(msg)
-        cls.validate_routes(route_properties_df)
+
+        msg = "Validating Routes."
+        WranglerLogger.info(msg)
+        _reader = CubeTransitReader(
+            cube_transit_program=cube_transit_program, route_id_prop=route_id_prop,
+        )
+        _reader.validate_routes(route_properties_df)
 
         # _key1 = list(_line_data.keys())[0]
         # msg = f"LINESHAPES:{_line_data[_key1]['line_shape']}"
@@ -1336,7 +1353,7 @@ TIME_PERIOD       : "1".."5"
                     | "operator"i
                     | "faresystem"i
 
-attr_value        : BOOLEAN | STRING | SIGNED_INT
+attr_value        : BOOLEAN | STRING | SIGNED_INT | SIGNED_NUMBER
 
 nodes             : lin_node+
 lin_node          : ("N" | "NODES")? "="? NODE_NUM ","? SEMICOLON_COMMENT? lin_nodeattr*
@@ -1355,6 +1372,7 @@ mode              : SEMICOLON_COMMENT* "MODE" opmode_attr* SEMICOLON_COMMENT*
 opmode_attr       : ( (opmode_attr_name "=" attr_value) ","?  )
 opmode_attr_name  : "number" | "name" | "longname"
 
+%import common.SIGNED_NUMBER
 %import common.SIGNED_INT
 %import common.WS
 %ignore WS

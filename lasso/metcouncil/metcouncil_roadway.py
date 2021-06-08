@@ -151,8 +151,10 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             "lanes"
         ]
         _max_taz = self.parameters.roadway_network_ps.max_taz
-        roadway_params = self.parameters.roadway_network_ps
-        _centroidconnector_lanes = roadway_params.centroid_connector_properties["lanes"]
+        _roadway_params = self.parameters.roadway_network_ps
+        _centroidconnector_lanes = _roadway_params.centroid_connector_properties[
+            "lanes"
+        ]
 
         msg = "Parameter set: {}\nMAX TAZ: {}\nCentroid Connector Lanes: {}".format(
             self.parameters.name, _max_taz, _centroidconnector_lanes
@@ -165,26 +167,31 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         )
         WranglerLogger.debug(msg)
 
-        _update_df = _lanes_value_lookup.apply_mapping(links_df)
+        _update_df = _lanes_value_lookup.apply_mapping(
+            links_df, update_method="overwrite all"
+        )
         _update_df = _update_df.fillna(0)
+        _update_df["cty_lanes"] = _update_df[
+            ["anoka", "hennepin", "carver", "dakota", "washington"]
+        ].max(axis=1)
 
         msg = f"""[roadway_ps.roadway_value_lookups.lanes._mapping_df.value_counts()]:
             \n{_lanes_value_lookup._mapping_df.describe()}"""
         WranglerLogger.debug(msg)
 
-        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts()-1]:
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts() #1]:
             \n{_update_df.lanes.value_counts()}"""
         WranglerLogger.debug(msg)
 
-        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.columns -1]:
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.columns]:
             \n{_update_df.columns}"""
         WranglerLogger.info(msg)
 
         def _set_lanes(x):
             if (x.A <= _max_taz) or (x.B <= _max_taz):
                 return int(_centroidconnector_lanes)
-            elif any([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]) > 0:
-                return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
+            elif x.cty_lanes > 0:
+                return int(x.cty_lanes)
             elif max([x.widot, x.mndot]) > 0:
                 return int(max([x.widot, x.mndot]))
             elif x.osm_min > 0:
@@ -196,8 +203,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         _update_df[network_variable] = _update_df.apply(lambda x: _set_lanes(x), axis=1)
 
-        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts()-2]:
-        \n{_update_df.value_counts()}"""
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._update_df.value_counts() #2]:
+        \n{_update_df[network_variable].value_counts()}"""
         WranglerLogger.debug(msg)
 
         _output_links_df = update_df(
@@ -208,12 +215,12 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             method=update_method,
         )
 
-        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._output_links_df.value_counts()]:
+        msg = f"""[MetcouncilRoadwayNetwork.calculate_number_of_lanes._output_links_df.value_counts() #3]:
             \n{_update_df.lanes.value_counts()}"""
         WranglerLogger.debug(msg)
 
         WranglerLogger.info(
-            f"Finished calculating number of lanes to: {network_variable}"
+            f"Finished calculating number of lanes to column: {network_variable}"
         )
 
         return _output_links_df

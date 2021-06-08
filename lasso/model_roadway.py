@@ -464,7 +464,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             AssertionError if not ready.
         """
         ##TODO
-        pass
+        return True
 
     def replace_geometry_with_true_shape(self, links_df: GeoDataFrame) -> GeoDataFrame:
         """
@@ -820,7 +820,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 the excpetion
                 of following fields
                   - Links: ["A", "B", "shape_id", "geometry"]
-                  - Nodes: ["N", "x", "y", "geometry"]
+                  - Nodes: ["N", "X", "Y", "geometry"]
                 Defaults to True.
             output_directory (str, optional): If set, will combine with output_link_shp and
                 output_node_shp

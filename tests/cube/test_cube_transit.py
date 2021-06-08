@@ -1,6 +1,7 @@
 import pytest
 import os
 
+from lasso.cube import CubeTransit
 
 """
 Run tests from bash/shell
@@ -9,39 +10,179 @@ usage:
 """
 
 BASE_TRANSIT_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
+CUBE_DIR = os.path.join(BASE_TRANSIT_DIR, "cube")
+
+
+##############
+# 1. Parsing #
+##############
+@pytest.mark.transit
+@pytest.mark.travis
+def test_parse_transit_linefile(request):
+    print("\n--Starting:", request.node.name)
+    test_lin = """
+    ;;<<PT>><<LINE>>;;
+    LINE NAME="0_452-111_452_pk1",
+    MODE=5,
+    HEADWAY[1]=10,
+    NODES=
+     39249,
+     -39240,
+     54648
+
+     LINE NAME="0_134-111_134_pk1",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=20,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      39249,
+      -39240,
+      54648,
+      43503,
+      -55786,
+      -55785,
+      55782,
+      -55781,
+      -55779
+
+     LINE NAME="0_134-111_134_pk0",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=90,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      83733,
+      -9533,
+      20208,
+      84250,
+      92566,
+      129190
+    """
+
+    tn = CubeTransit.from_source(test_lin)
+    print("TYPE", tn)
+    ex_line_name = tn.routes[1]
+    print("Route: {}".format(ex_line_name))
+    print("Properties: ", tn.properties_of_route(ex_line_name))
+    print("Nodes: ", tn.shapes_of_route(ex_line_name))
 
 
 @pytest.mark.travis
 @pytest.mark.transit
-def test_read_std_transit_from_wrangler_object(request):
+def test_parse_transit_linefile_with_node_vars(request):
     print("\n--Starting:", request.node.name)
-    from network_wrangler import TransitNetwork
-    from lasso.cube import CubeTransit
+    test_lin = """
+    ;;<<PT>><<LINE>>;;
+    LINE NAME="0_452-111_452_pk1",
+    MODE=5,
+    HEADWAY[1]=10,
+    NODES=
+     39249,ACCESS=1,
+     -39240,
+     54648
 
-    wrangler_transit = TransitNetwork.read(BASE_TRANSIT_DIR)
-    tnet = CubeTransit.from_source(wrangler_transit)
-    print(f"routes: {tnet.routes}")
+     LINE NAME="0_134-111_134_pk1",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=20,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      39249,
+      -39240,
+      54648,
+      43503,ACCESS=-1,
+      -55786,
+      -55785,
+      55782,
+      -55781,
+      -55779
+
+     LINE NAME="0_134-111_134_pk0",
+      LONGNAME="Ltd Stop - Highland - Cleveland - Cretin - Mpls",
+      HEADWAY[1]=90,
+      MODE=5,
+      ONEWAY=T,
+      OPERATOR=3,
+     NODES=
+      83733,
+      -9533,
+      20208,NNTIME=1.5,
+      84250,NNTIME=1.5,
+      92566,
+      129190
+    """
+
+    tn = CubeTransit.from_source(test_lin)
+    print("TYPE", tn)
+    ex_line_name = tn.routes[1]
+    print("Line: {}".format(ex_line_name))
+    print("Properties: ", tn.properties_of_route(ex_line_name))
+    print("Nodes: ", tn.shapes_of_route(ex_line_name))
 
 
-@pytest.mark.travis
-@pytest.mark.transit
-def test_read_std_transit_from_gtfs(request):
-    print("\n--Starting:", request.node.name)
-    from lasso.cube import CubeTransit
-
-    tnet = CubeTransit.from_source(BASE_TRANSIT_DIR)
-    print(f"routes: {tnet.routes}")
+##################
+# 2. Input       #
+# - from file    #
+# - from dir     #
+# - from wrangler#
+# - from gtfs    #
+##################
 
 
 @pytest.mark.travis
 @pytest.mark.transit
 def test_read_cube_transit_from_file(request):
     print("\n--Starting:", request.node.name)
-    from lasso.cube import CubeTransit
 
     cube_t = os.path.join(BASE_TRANSIT_DIR, "cube", "transit_orig.lin")
     tnet = CubeTransit.from_source(cube_t)
-    print(f"routes: {tnet.routes}")
+
+    print(f"Routes: {tnet.routes}")
+
+
+@pytest.mark.travis
+@pytest.mark.transit
+def test_read_cube_transit_from_dir(request):
+    print("\n--Starting:", request.node.name)
+
+    tn = CubeTransit.from_source(CUBE_DIR)
+
+    print("Read {} routes:\n{}".format(len(tn.routes), "\n - ".join(tn.routes)))
+    print("Source files: {}".format("\n - ".join(tn.source_list)))
+    ## todo write an assert that actually tests something
+
+
+@pytest.mark.travis
+@pytest.mark.transit
+def test_read_cube_transit_from_wrangler_object(request):
+    print("\n--Starting:", request.node.name)
+    from network_wrangler import TransitNetwork
+
+    wrangler_transit = TransitNetwork.read(BASE_TRANSIT_DIR)
+    tn = CubeTransit.from_source(wrangler_transit)
+
+    print("Read {} routes:\n{}".format(len(tn.routes), "\n - ".join(tn.routes)))
+
+
+@pytest.mark.travis
+@pytest.mark.transit
+def test_read_cube_transit_from_gtfs(request):
+    print("\n--Starting:", request.node.name)
+    from lasso.cube import CubeTransit
+
+    tn = CubeTransit.from_source(BASE_TRANSIT_DIR)
+    print("Read {} routes:\n{}".format(len(tn.routes), "\n - ".join(tn.routes)))
+
+
+##########################
+# 3. Translation/Output  #
+# - gtfs to cube         #
+# - cube to cube         #
+##########################
 
 
 @pytest.mark.travis
@@ -50,8 +191,9 @@ def test_write_cube_transit_fr_standard(request):
     print("\n--Starting:", request.node.name)
     from lasso.cube import CubeTransit
 
-    tnet = CubeTransit.from_source(BASE_TRANSIT_DIR)
-    tnet.write_cube(outpath="t_transit_test_from_std.lin")
+    tn = CubeTransit.from_source(BASE_TRANSIT_DIR)
+    tn.write_cube(outpath="t_transit_test_from_std.lin")
+    # todo write an assert
 
 
 @pytest.mark.travis
@@ -61,107 +203,6 @@ def test_write_cube_transit_fr_cube(request):
     from lasso.cube import CubeTransit
 
     cube_t = os.path.join(BASE_TRANSIT_DIR, "cube", "transit_orig.lin")
-    tnet = CubeTransit.from_source(cube_t)
-    print(f"tnet.route_properties_by_time_df:\n{tnet.route_properties_by_time_df}")
-    tnet.write_cube(outpath="t_transit_test_from_cube.lin")
-
-
-route_edits = [
-    [
-        "Adding stops at node 3 and 4",
-        "N=1,2,-3,-4,-5,-6,7,8,9,10",
-        "N=1,2,3,4,-5,-6,7,8,9,10",
-        ["1", "2", "-3", "-4", "-5", "-6"],
-        ["1", "2", "3", "4", "-5", "-6"],
-    ],
-    [
-        "Extend from 4 to 7",
-        "N=1,2,3,4",
-        "N=1,2,3,4,5,6,7",
-        ["3", "4"],
-        ["3", "4", "5", "6", "7"],
-    ],
-    [
-        "Reroute between 3 and 4",
-        "N=1,2,3,4",
-        "1,2,3,31,35,37,4",
-        ["2", "3", "4"],
-        ["2", "3", "31", "35", "37", "4"],
-    ],
-    [
-        "Shorten from 7 to 5",
-        "N=1,2,3,4,5,6,7",
-        "N=1,2,3,4,5",
-        ["4", "5", "6", "7"],
-        ["4", "5"],
-    ],
-    [
-        "Shorten from from 1 to 4",
-        "N=1,2,3,4,5,6,7",
-        "4,5,6,7",
-        ["1", "2", "3", "4", "5"],
-        ["4", "5"],
-    ],
-    [
-        "Edit within a loop",
-        "N=1,2,3,4,15,16,4,5,6",
-        "N=1,2,3,4,25,26,27,4,5,6",
-        ["3", "4", "15", "16", "4", "5"],
-        ["3", "4", "25", "26", "27", "4", "5"],
-    ],
-    [
-        "Edit after a loop",
-        "N=1,2,3,4,15,16,4,5,6",
-        "N=1,2,3,4,15,16,4,55,66",
-        ["16", "4", "5", "6"],
-        ["16", "4", "55", "66"],
-    ],
-    [
-        "Edit before a loop",
-        "N=1,2,3,4,15,16,4,5,6",
-        "N=1,22,33,4,15,16,4,5,6",
-        ["1", "2", "3", "4", "15"],
-        ["1", "22", "33", "4", "15"],
-    ],
-]
-
-
-@pytest.mark.menow
-@pytest.mark.travis
-@pytest.mark.transit
-@pytest.mark.parametrize(
-    "name,base_r,edit_r,expected_existing,expected_set", route_edits
-)
-def test_compare_route_shapes(
-    request, name, base_r, edit_r, expected_existing, expected_set
-):
-    print("\n--Starting:", request.node.name)
-    print("\n--------Edit:", name)
-    base_t = f"""
-    ;;<<PT>><<LINE>>;;
-    LINE NAME="1234",
-     LONGNAME="Adding stops at node 3 and 4",
-     HEADWAY[1]=60, MODE=7, {base_r}
-    """
-    edit_t = f"""
-    ;;<<PT>><<LINE>>;;
-    LINE NAME="1234",
-     LONGNAME="Adding stops at node 3 and 4",
-     HEADWAY[1]=60, MODE=7, {edit_r}
-    """
-
-    from lasso.cube import CubeTransit
-
-    base_tnet = CubeTransit.from_source(base_t)
-    edit_tnet = CubeTransit.from_source(edit_t)
-
-    from lasso.model_transit import evaluate_route_shape_changes
-
-    change_list = evaluate_route_shape_changes(base_tnet, edit_tnet, n_buffer_vals=2,)
-    change_dict = change_list[0]
-
-    print(f"\nexisting: {base_r}\nedit: {edit_r}\nchange_dict: {change_dict}")
-    assert (change_dict["existing"], change_dict["set"]) == (
-        expected_existing,
-        expected_set,
-    )
+    tn = CubeTransit.from_source(cube_t)
+    print(f"tnet.route_properties_by_time_df:\n{tn.route_properties_by_time_df}")
+    tn.write_cube(outpath="t_transit_test_from_cube.lin")

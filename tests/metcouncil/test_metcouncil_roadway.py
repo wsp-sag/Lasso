@@ -37,9 +37,12 @@ def test_read_metcouncil_net_with_params(request, stpaul_model_net):
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
+@pytest.mark.sijia
 def test_calculate_lanes(request, stpaul_model_net):
     """
-    Tests that lanes are computed
+    Tests that lanes are computed.
+
+    TODO: see why join for model_limk id leaves 56,226 links empty?
     """
     if request:
         print("\n--Starting:", request.node.name)
@@ -112,7 +115,7 @@ def test_calculate_county_mpo(request, stpaul_model_net):
 
     assert "county" in net.links_df.columns
     assert "mpo" in net.links_df.columns
-    print(net.links_df.area_type.value_counts())
+    print(net.links_df[["mpo", "county"]].value_counts())
     ## todo write an assert that actually tests something
 
 

@@ -106,12 +106,40 @@ class ModelTransit:
             )
         return self._route_properties_by_time_df
 
+    def properties_of_route(self, route_id) -> dict:
+        """Given a route id, returns properties associated w ith it.
+
+        Args:
+            route_id: id of route corresponding to a value in self.route_id_prop
+
+        Returns:
+            Dict: key:val of column name: value for first instance of where route_id matches
+        """
+        rt_records = self.route_properties_df[
+            self.route_properties_df[self.route_id_prop] == route_id
+        ]
+        d = rt_records.to_dict(orient="records")[0]
+        return d
+
+    def shapes_of_route(self, route_id) -> pd.DataFrame:
+        """Given a route id, returns shape values associated w ith it.
+
+        Args:
+            route_id: id of route corresponding to a value in self.route_id_prop
+
+        Returns:
+            DataFrame of shape records for route
+        """
+        rt_records = self.shapes_df[self.shapes_df[self.route_id_prop] == route_id]
+        return rt_records
+
     def add_source(
         self,
         route_properties_df: DataFrame = None,
         route_properties_by_time_df: DataFrame = None,
         route_shapes_df: DataFrame = None,
         new_routes: Collection[str] = [],
+        source_list: Collection[str] = [],
     ):
         """Method to add transit to ModelTransitNetwork from either
         route_properties_df or route_properties_by_type_df as well as
@@ -132,6 +160,7 @@ class ModelTransit:
                 which also has a boolean field for "stop". Defaults to None.
             new_routes (Collection[str], optional): If specified, will only import the listed
                 routes. Defaults to [].
+            source_list: If specified, will add this list of strings to the source_list variable.
 
         Raises:
             ValueError: [description]
@@ -186,6 +215,9 @@ class ModelTransit:
             add_to_route_props=_add_to_not_time,
             add_to_route_props_by_time=_add_to_time,
         )
+
+        # add to source list
+        self.source_list += source_list
 
     def fix_concurrency_between_route_representations(
         self,

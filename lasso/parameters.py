@@ -118,7 +118,7 @@ class RoadwayNetworkModelParameters:
         required_fields_links: list of fields that must be in link output.
             ["A", "B", "shape_id", "geometry"]
         required_fields_nodes: list of fields that must be in node output.
-            Defaults to ["N", "x", "y", "geometry"]
+            Defaults to ["N", "X", "Y", "geometry"]
         counts: mapping of count names and count files to be added.
         time_period_vol_split: dictionary mapping time period abbreviations to
             basic assumptions about
@@ -169,7 +169,7 @@ class RoadwayNetworkModelParameters:
         default_factory=lambda: ["A", "B", "shape_id", "geometry"]
     )
     required_fields_nodes: Collection[str] = field(
-        default_factory=lambda: ["N", "x", "y", "geometry"]
+        default_factory=lambda: ["N", "X", "Y", "geometry"]
     )
     counts: Mapping[str, ValueLookup] = field(default_factory=dict)
     time_period_vol_split: Mapping[str, float] = field(default_factory=dict)

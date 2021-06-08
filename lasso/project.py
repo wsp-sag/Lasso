@@ -226,6 +226,8 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_transit_source:
+            __import__(_parameters.transit_network_ps.model_transit_class)
+            ## todo need to figure out how to make this the right source.
             base_transit_network = ModelTransit.from_source(base_transit_source)
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
