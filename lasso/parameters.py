@@ -247,8 +247,6 @@ class TransitNetworkModelParameters:
     """
 
     Attributes:
-        model_transit_class: str
-        std_transit_class: str
         network_model_parameters: NetworkModelParameters instance
         transit_value_lookups: dictionary of lookups
         transit_network_model_to_general_network_time_period_abbr: Maps cube time period
@@ -258,8 +256,6 @@ class TransitNetworkModelParameters:
     """
 
     network_model_parameters: NetworkModelParameters
-    model_transit_class: str = ".transit.ModelTransitNetwork"
-    std_transit_class: str = "network_wrangler.TransitNetwork"
     transit_network_model_to_general_network_time_period_abbr: Mapping[
         Any, Any
     ] = field(default_factory=lambda: {"1": "AM", "2": "MD"})
@@ -278,7 +274,7 @@ class TransitNetworkModelParameters:
         ).issubset(set(self.network_model_parameters.time_period_abbr_to_time.keys())):
             raise (
                 ValueError(
-                    f"""specified transit_to_network_time_periods:
+                    f"""specified transit_network_model_to_general_network_time_period_abbr:
                         {self.transit_network_model_to_general_network_time_period_abbr}
                         does not align with specified network time periods
                         {self.network_model_parameters.time_period_abbr_to_time.keys()}"""

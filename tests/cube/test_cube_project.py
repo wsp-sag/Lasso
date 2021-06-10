@@ -3,8 +3,8 @@ import glob
 
 import pytest
 
-from lasso.cube import CubeTransit
-from lasso import Project
+from lasso.cube.cube_project import CubeProject
+from lasso.cube.cube_model_transit import CubeTransit
 
 """
 Run tests from bash/shell
@@ -84,6 +84,7 @@ route_edits = [
 ]
 
 
+@pytest.mark.menow
 @pytest.mark.travis
 @pytest.mark.transit
 @pytest.mark.parametrize(
@@ -110,7 +111,7 @@ def test_compare_route_shapes(
     base_tnet = CubeTransit.from_source(base_t)
     edit_tnet = CubeTransit.from_source(edit_t)
 
-    from lasso.model_transit import evaluate_route_shape_changes
+    from lasso.cube.cube_model_transit import evaluate_route_shape_changes
 
     change_list = evaluate_route_shape_changes(base_tnet, edit_tnet, n_buffer_vals=2,)
     change_dict = change_list[0]
@@ -122,7 +123,6 @@ def test_compare_route_shapes(
     )
 
 
-@pytest.mark.menow
 @pytest.mark.transit
 @pytest.mark.travis
 def test_write_transit_project_card(request):
@@ -201,7 +201,7 @@ def test_write_transit_project_card(request):
       92566,
       129190
     """
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         base_transit_source=test_lin_base,
         build_transit_source=test_lin_build,
         project_name="test suite small changes",
@@ -211,7 +211,6 @@ def test_write_transit_project_card(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.menow
 @pytest.mark.transit
 @pytest.mark.travis
 def test_write_transit_project_card_2(request):
@@ -260,7 +259,7 @@ def test_write_transit_project_card_2(request):
       92566,
       129190
     """
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         base_transit_source=test_lin_base,
         build_transit_source=test_lin_build,
         project_name="test suite small changes",
@@ -270,13 +269,12 @@ def test_write_transit_project_card_2(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.menow
 @pytest.mark.transit
 @pytest.mark.travis
 def test_write_transit_project_card_diffing_lin(request):
     print("\n--Starting:", request.node.name)
 
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         base_transit_source=os.path.join(CUBE_DIR, "transit.LIN"),
         build_transit_source=os.path.join(
             CUBE_DIR, "single_transit_route_attribute_change"
@@ -286,13 +284,12 @@ def test_write_transit_project_card_diffing_lin(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.menow
 @pytest.mark.transit
 @pytest.mark.travis
 def test_write_transit_project_card_route_shape(request):
     print("\n--Starting:", request.node.name)
 
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         base_transit_source=os.path.join(CUBE_DIR, "transit.LIN"),
         build_transit_source=os.path.join(CUBE_DIR, "transit_route_shape_change"),
     )
@@ -316,7 +313,7 @@ logfile_list = glob.glob(os.path.join(CUBE_DIR, "st_paul_test.log"))
 def test_write_roadway_project_card_from_logfile(request, logfilename):
     print("\n--Starting:", request.node.name)
 
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         roadway_log_file=logfilename,
         base_roadway_dir=BASE_ROADWAY_DIR,
         shape_foreign_key="shape_id",
@@ -332,7 +329,7 @@ def test_write_roadway_project_card_from_logfile(request, logfilename):
 def test_write_ml_roadway_project_card_from_logfile(request):
     print("\n--Starting:", request.node.name)
 
-    test_project = Project.create_project(
+    test_project = CubeProject.create_project(
         roadway_log_file=os.path.join(CUBE_DIR, "ML_log.log"),
         base_roadway_dir=BASE_ROADWAY_DIR,
     )

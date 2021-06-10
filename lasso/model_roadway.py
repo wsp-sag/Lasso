@@ -10,11 +10,16 @@ from pandas import DataFrame
 
 from network_wrangler import RoadwayNetwork
 
-from .cube.cube_roadway import write_cube_hwy_net_script_network_from_ff_files
 from .parameters import Parameters
 from .logger import WranglerLogger
 from .data import FieldMapping, PolygonOverlay, update_df
-from .utils import fill_df_na, coerce_df_types, write_df_to_fixed_width, fill_df_cols
+from .utils import (
+    fill_df_na,
+    coerce_df_types,
+    write_df_to_fixed_width,
+    fill_df_cols,
+    check_overwrite,
+)
 
 
 class ModelRoadwayNetwork(RoadwayNetwork):
@@ -986,15 +991,12 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_basename_links: str = None,
         output_basename_nodes: str = None,
         overwrite_existing_output: bool = False,
-        build_script_type: str = None,
-    ) -> None:
-        """Writes out fixed width files, headers, and
+    ) -> Collection[DataFrame]:
+        """Writes out fixed width files and headers
 
         This function does:
         1. write out link and node fixed width data files for cube.
         2. write out header and width correspondence.
-        3. write out build script with header and width specification based
-            on format specified.
 
         Args:
             links_df (GeoDataFrame, optional): The links file to be output. If not specified,
@@ -1022,9 +1024,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 "links_out".
             overwrite_existing_output (bool, optional): if True, will not ask about overwriting
                 existing output. Defaults to False.
-            build_script_type (str, optional): If specified, will output a script to the output
-                directory which will rebuild the network. Should be one of ["CUBE_HWYNET"].
-                Defaults to None.
+
+        Returns: _link_header_df, _node_header_df
         """
         if not output_directory:
             output_directory = self.parameters.file_ps.output_directory
@@ -1065,34 +1066,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             _outfile_nodes_header,
         ]
 
-        # specify script names for each avail. script type
-        BUILD_SCRIPT_TYPES_SUFFIX = {"CUBE_HWYNET": "_build_cube_hwynet.s"}
-
-        if build_script_type:
-            _outfile_build_script = os.path.join(
-                output_directory,
-                output_prefix + BUILD_SCRIPT_TYPES_SUFFIX[build_script_type],
-            )
-            _outfiles.append(_outfile_build_script)
-
-        ### Check filenames
         if not overwrite_existing_output:
-            for f in _outfiles:
-                if os.path.exists(f):
-                    overwrite = input(
-                        f"""File: {f} already exists.
-                        Overwrite?
-                          Y = yes,
-                          I = ignore and overwrite all\n"""
-                    )
-                    if overwrite.lower() == "y":
-                        continue
-                    if overwrite.lower() == "i":
-                        break
-                    else:
-                        msg = f"Stopped execution because user input declined to overwrite file:\
-                            {f}"
-                        raise ValueError(msg)
+            check_overwrite(_outfiles)
 
         WranglerLogger.info(
             "Writing Network to fixed format files: \n{}".format(
@@ -1139,14 +1114,4 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             overwrite=True,
         )
 
-        BUILD_SCRIPT_TYPES_FUNCTION_CALL = {
-            "CUBE_HWYNET": write_cube_hwy_net_script_network_from_ff_files(
-                _link_header_df,
-                _node_header_df,
-                script_outfile=_outfile_build_script,
-                overwrite=True,
-            )
-        }
-
-        if build_script_type:
-            BUILD_SCRIPT_TYPES_FUNCTION_CALL[build_script_type]
+        return _link_header_df, _node_header_df

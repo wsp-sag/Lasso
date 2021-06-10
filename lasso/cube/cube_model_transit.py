@@ -1,3 +1,4 @@
+import copy
 import os
 import glob
 from typing import Collection, Any, Mapping, Union
@@ -8,9 +9,13 @@ from pandas import DataFrame
 from lark import Lark, Transformer, v_args
 
 from network_wrangler import TransitNetwork, WranglerLogger
-from ..model_transit import ModelTransit, StdToModelAdapter, ModelToStdAdapter
+from ..model_transit import (
+    ModelTransit,
+    StdToModelAdapter,
+    ModelToStdAdapter,
+    diff_shape,
+)
 from ..parameters import Parameters
-
 
 MODEL_TO_STD_PROP_MAP = {
     "LONGNAME": "route_long_name",
@@ -346,7 +351,6 @@ class CubeTransit(ModelTransit):
 
         reader = CubeTransitReader(cube_transit_program)
 
-        print("AHA", transit_source)
         (
             route_properties_df,
             route_shapes_df,
@@ -1005,7 +1009,9 @@ class CubeTransitReader:
                 cls.read(lin_file)
             return
         else:
-            msg = "{} not a valid transit line string, directory, or file"
+            msg = (
+                f"{transit_source} not a valid transit line string, directory, or file"
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -1378,3 +1384,469 @@ opmode_attr_name  : "number" | "name" | "longname"
 %ignore WS
 
 """
+
+
+def evaluate_route_shape_changes(
+    base_t: ModelTransit,
+    updated_t: ModelTransit,
+    match_id: Union[Collection[str], str] = None,
+    route_list: Collection = None,
+    n_buffer_vals: int = 3,
+) -> Mapping[str, Mapping]:
+    """Compares all the shapes (or the subset specified in `route_list`) for two
+    :py:class:`ModelTransit` objects and outputs a list of project card changes
+    which would turn `base_t.shapes_df` --> `updated_t.shapes_df`.
+
+    Args:
+        base_t (ModelTransit): Updated :py:class:`ModelTransit` with `shapes_df`.
+        updated_t (ModelTransit): Updated :py:class:`ModelTransit` to compare to `base_t`
+        match_id (Union[Collection[str], str], optional): Field name or a collection
+            of field names to use as the match, e.g. ["N","stop"]. Defaults to None.
+            Defaults to [base_t.node_id_prop, "stop"]
+        route_list (Collection, optional): List of routes to compare. If not provided,
+            will evaluate changes between all routes common between `base_t` and `updated_t`.
+        n_buffer_vals (int, optional): Number of values on either side to include in
+            match. Defaults to 3.
+
+    Returns:
+        Mapping[str,Mapping]: Dictionary of shape changes formatted as a
+            project card-change dictionary keyed by route_id
+
+    """
+    base_shapes_df = base_t.shapes_df.copy()
+    updated_shapes_df = updated_t.shapes_df.copy()
+
+    WranglerLogger.debug(
+        f"\nbase_shapes_df: \n{base_shapes_df}\
+        \nupdated_shapes_df: \n {updated_shapes_df}"
+    )
+
+    if not base_t.node_id_prop == updated_t.node_id_prop:
+        msg = f"Base and updated node_id fields not same {base_t.node_id_prop} vs\
+            {updated_t.node_id_prop} can't create comparison."
+        raise ValueError(msg)
+
+    if not base_t.route_id_prop == updated_t.route_id_prop:
+        msg = f"Base and updated route_id fields not same {base_t.route_id_prop} vs\
+            {updated_t.route_id_prop} can't create comparison."
+        raise ValueError(msg)
+
+    # set the fields which match up routes and routing on
+    _route_id_prop = base_t.route_id_prop
+    if not match_id:
+        match_id = [base_t.node_id_prop, "stop"]
+
+    # reduce down routing matching from a list of properties to a single field
+    # make sure the fields exist...
+    if type(match_id) == Collection and len(match_id) == 1:
+        match_id = match_id[0]
+
+    if type(match_id) != str:
+        col_id = "_".join(match_id)
+        base_shapes_df[col_id] = (
+            base_shapes_df[match_id].to_records(index=False).tolist()
+        )
+        updated_shapes_df[col_id] = (
+            updated_shapes_df[match_id].to_records(index=False).tolist()
+        )
+    else:
+        err = f""
+        if match_id not in base_shapes_df.columns:
+            err += f"match_id: {match_id} not in base_shapes_df columns.\
+                Available columns: {base_shapes_df.columns}."
+        if match_id not in updated_shapes_df.columns:
+            err += f"match_id: {match_id} not in updated_shapes_df columns.\
+                Available columns: {updated_shapes_df.columns}."
+        if err:
+            raise ValueError(err)
+
+    # if the routes to compare are not specified in route_list, select all
+    # routes which are common between the transit networks
+    if not route_list:
+        route_list = [i for i in updated_t.routes if i in base_t.routes]
+
+    # Compare route changes for each route in the list
+    shape_changes_by_route_id_dict = {}
+    for i in route_list:
+        existing_r_df, change_r_df = diff_shape(
+            base_shapes_df[base_shapes_df[_route_id_prop] == i],
+            updated_shapes_df[updated_shapes_df[_route_id_prop] == i],
+            match_id,
+        )
+        rt_change_dict = update_route_routing_change_dict(existing_r_df, change_r_df,)
+        WranglerLogger.debug(f"rt_change: {rt_change_dict}")
+        shape_changes_by_route_id_dict[i] = copy.deepcopy(rt_change_dict)
+
+    WranglerLogger.info(f"Found {len(shape_changes_by_route_id_dict)} transit changes.")
+
+    return shape_changes_by_route_id_dict
+
+
+def evaluate_model_transit_differences(
+    base_transit: ModelTransit,
+    updated_transit: ModelTransit,
+    route_property_update_list: Collection[str] = None,
+    new_route_property_list: Collection[str] = None,
+    absolute: bool = True,
+    include_existing: bool = False,
+    n_buffer_vals: int = 3,
+) -> Collection[Mapping]:
+    """Evaluates differences between :py:class:`ModelTransit` instances
+    `base_transit` and `updated_transit` and outputs a list of project card changes
+    which would turn `base_transit` --> `updated_transit`.
+    1. Identifies what routes need to be updated, deleted, or added
+    2. For routes being added or updated, identify if the time periods
+        have changed or if there are multiples, and make duplicate lines if so
+    3. Create project card dictionaries for each change.
+
+    Args:
+        base_transit (ModelTransit): an :py:class:`ModelTransit` instance for the base condition
+        updated_transit (ModelTransit): an ModelTransit instance for the updated condition
+        route_property_update_list (Collection[str], Optional): list of properties
+            to consider updates for, ignoring others.
+            If not set, will default to all the fields in updated_transit.
+        new_route_property_list (Collection[str], Optional): list of properties to add
+            to new routes. If not set, will default to all the fields in updated_transit.
+        absolute (Bool): indicating if should use the [False case]'existing'+'change' or
+            [True case]'set' notation a project card. Defaults to True.
+        include_existing (Bool): if set to True, will include 'existing' in project card.
+            Defaults to False.
+        n_buffer_vals (int): Number of values on either side to include in
+            match for routes changes. Defaults to 3.
+
+    Returns:
+        A list of dictionaries containing project card changes
+        required to evaluate the differences between the base_transit
+        and updated_transit network instance.
+    """
+
+    # Project cards are coded with "wrangler standard" variables (which is mostly GTFS)
+    # Use CubeToStdAdapter to translate the variable names from Model Transit
+
+    _base_adapter = CubeToStdAdapter(base_transit)
+    _build_adapter = CubeToStdAdapter(updated_transit)
+
+    base_route_props_df = _base_adapter.transform_routes()
+    updated_route_props_df = _build_adapter.transform_routes()
+
+    # Identify which routes to delete, add, or update
+
+    _base_routes = base_transit.routes
+    _updated_routes = updated_transit.routes
+
+    _routes_to_delete = [i for i in _base_routes if i not in _updated_routes]
+    _routes_to_add = [i for i in _updated_routes if i not in _base_routes]
+    _routes_to_update = [i for i in _updated_routes if i in _base_routes]
+
+    # Initialize
+
+    project_card_changes = []
+
+    if not route_property_update_list:
+        route_property_update_list = list(updated_route_props_df.columns)
+
+    if not new_route_property_list:
+        new_route_property_list = list(updated_route_props_df.columns)
+
+    """
+    Deletions
+    """
+
+    if _routes_to_delete:
+        WranglerLogger.debug(f"Deleting Routes: {_routes_to_delete}")
+        _delete_changes = (
+            base_route_props_df[
+                base_route_props_df[ROUTE_ID_PROP].isin(_routes_to_delete)
+            ]
+            .apply(delete_route_change_dict, axis=1)
+            .tolist()
+        )
+        project_card_changes += _delete_changes
+
+    """
+    Additions
+    """
+
+    if _routes_to_add:
+        WranglerLogger.debug(f"Adding Routes: {_routes_to_add}")
+        _addition_changes = (
+            updated_route_props_df[
+                updated_route_props_df[ROUTE_ID_PROP].isin(_routes_to_add)
+            ]
+            .apply(
+                new_transit_route_change_dict,
+                transit_route_property_list=new_route_property_list,
+                shapes_df=updated_transit.shapes_df,
+                axis=1,
+            )
+            .tolist()
+        )
+        project_card_changes += _addition_changes
+
+    """
+    Evaluate Property Updates
+    """
+    if _routes_to_update:
+
+        _base_df = base_route_props_df[
+            base_route_props_df[ROUTE_ID_PROP].isin(_routes_to_update)
+        ]
+        _updated_df = updated_route_props_df[
+            updated_route_props_df[ROUTE_ID_PROP].isin(_routes_to_update)
+        ]
+
+        _compare_df = _base_df[route_property_update_list].compare(
+            _updated_df[route_property_update_list], keep_shape=True,
+        )
+
+        # add ID fields
+        _id_fields = ModelToStdAdapter.REQUIRED_STD_ROUTE_ID_PROPERTIES + [
+            ROUTE_ID_PROP
+        ]
+        _compare_df[[(i, "self") for i in _id_fields]] = updated_route_props_df[
+            _id_fields
+        ]
+
+        # drop columns where there aren't any differences
+        _compare_df = _compare_df.dropna(axis=1, how="all")
+
+        _compare_df["property_changes"] = _compare_df.apply(
+            update_route_prop_change_dict,
+            absolute=absolute,
+            include_existing=include_existing,
+            ignore_fields=_id_fields,
+            axis=1,
+        )
+
+        print("PROPS", _compare_df["property_changes"][0])
+
+        _compare_df.columns = _compare_df.columns.droplevel(level=1)
+        _compare_df = _compare_df[_id_fields + ["property_changes"]]
+
+        _routing_changes_by_route_id = evaluate_route_shape_changes(
+            base_transit,
+            updated_transit,
+            route_list=_routes_to_update,
+            n_buffer_vals=n_buffer_vals,
+        )
+
+        _compare_df["shape_changes"] = _compare_df[ROUTE_ID_PROP].map(
+            _routing_changes_by_route_id
+        )
+
+        _update_changes = _compare_df.apply(update_project_card_dict, axis=1,)
+
+        project_card_changes += _update_changes.tolist()
+
+    return project_card_changes
+
+
+def new_transit_route_change_dict(
+    route_row: Union[pd.Series, Mapping],
+    transit_route_property_list: Collection[str],
+    shapes_df: DataFrame,
+) -> Mapping:
+    """Processes a row of a pandas dataframe or a dictionary with the fields:
+    - name
+    - direction_id
+    - start_time_HHMM
+    - end_time_HHMM
+    - agency_id
+    - routing
+    - + all fields in route_property_list
+
+    Args:
+        route_row (pd.Series): [description]
+        shapes[]
+    """
+    route_shapes_df = shapes_df.loc[shapes_df["NAME"] == route_row["NAME"]]
+
+    routing_properties = {
+        "property": "routing",
+        "set": route_shapes_df.apply(
+            _wrangler_node_format,
+            ## TODO
+            # properties = properties,
+            axis=1,
+        ).tolist(),
+    }
+
+    transit_route_properties = [
+        {"property": p, "set": route_row[p]} for p in transit_route_property_list
+    ]
+
+    add_transit_card_dict = {
+        "category": "New Transit Service",
+        "facility": {
+            "route_id": route_row.name,
+            "direction_id": route_row.direction_id,
+            "start_time": route_row.start_time_HHMM,
+            "end_time": route_row.end_time_HHMM,
+            "agency_id": route_row.agency_id,
+        },
+        "properties": transit_route_properties + [routing_properties],
+    }
+
+    WranglerLogger.debug(f"Adding transit line: {route_row.name}")
+
+    return add_transit_card_dict
+
+
+def delete_route_change_dict(route_row: Union[pd.Series, Mapping]) -> Mapping:
+    """
+    Creates a project card change formatted dictionary for deleting a line.
+
+    Args:
+        route_row: row of df with line to be deleted or a dict with following attributes:
+        - name
+        - direction_id
+        - start_time_HHMM
+        - end_time_HHMM
+
+    Returns:
+        A project card change-formatted dictionary for the route deletion.
+    """
+
+    delete_card_dict = {
+        "category": "Delete Transit Service",
+        "facility": {
+            "route_id": route_row.name,
+            "direction_id": route_row.direction_id,
+            "start_time": route_row.start_time_HHMM,
+            "end_time": route_row.end_time_HHMM,
+        },
+    }
+
+    WranglerLogger.debug(f"Deleting transit route {route_row.name}")
+
+    return delete_card_dict
+
+
+def update_project_card_dict(route_row: pd.Series) -> Mapping:
+    """[summary]
+
+    Args:
+        route_row (pd.Series): [description]
+
+    Returns: project card dictionary
+    """
+    update_card_dict = {
+        "category": "Update Transit Service",
+        "facility": {
+            "route_id": route_row.name,
+            "direction_id": route_row.direction_id,
+            "start_time": route_row.start_time_HHMM,
+            "end_time": route_row.end_time_HHMM,
+        },
+        "properties": route_row.property_changes + [route_row.shape_changes],
+    }
+
+    return update_card_dict
+
+
+def update_route_prop_change_dict(
+    compare_route_row: pd.Series,
+    include_existing: bool = False,
+    ignore_fields: Collection[str] = ["NAME"],
+    absolute: bool = True,
+) -> Collection[Mapping]:
+    """[summary]
+
+    Args:
+        compare_route_row (pd.Series): row of df with transit route to be deleted or
+            a dict with following attributes:
+        include_existing (bool, optional): If set to True, will include 'existing'
+            in project card.
+        ignore_fields: list of fields to ignore comparisons of. For example, because they
+            are identifiers. Defaults to ["NAME"].
+        absolute: If set to false, will print change in project card from base value rather
+            than absolute value. Defaults to True.
+
+    Returns:
+        Collection[Mapping[str]]: [description]
+    """
+    if not absolute:
+        raise NotImplementedError
+
+    compare_route_row = compare_route_row.iloc[
+        ~compare_route_row.index.get_level_values(0).isin(ignore_fields)
+    ]
+
+    compare_route_row = compare_route_row.dropna()
+
+    _properties_update_list = []
+    for p in list(set(compare_route_row.index.get_level_values(0))):
+        change_item = {}
+        change_item["property"] = p
+        change_item["set"] = compare_route_row[p, "other"]
+        if include_existing:
+            change_item["existing"] = compare_route_row[p, "self"]
+
+        _properties_update_list.append(change_item)
+    return _properties_update_list
+
+
+def update_route_routing_change_dict(
+    existing_routing_df: Collection[Any], set_routing_df: Collection[Any],
+) -> Mapping[str, Any]:
+    """Format route changes for project cards. Right now, this matches
+        the formatting for cube nodes. Could change in future.
+
+    Args:
+        existing_routing (Collection[Any]): [description]
+        set_routing (Collection[Any]): [description]
+        match_id (Union[str,Collection[str]]): [description]
+
+    Returns:
+        Mapping[str,Any]: [description]
+    """
+    match_id = list(existing_routing_df.columns)
+    if match_id != ["N", "stop"]:
+        raise NotImplementedError(f"Expecting match_id ['N','stop']; got {match_id}")
+
+    if list(existing_routing_df.columns) != list(set_routing_df.columns):
+        raise (
+            f"Columns for existing and set don't match.\n\
+            Existing: {existing_routing_df.columns}\n\
+            Set: {set_routing_df.columns}"
+        )
+
+    # for grouping
+    existing_routing_df["NAME"] = "_"
+    set_routing_df["NAME"] = "_"
+
+    existing_list = existing_routing_df.apply(
+        _wrangler_node_format,
+        # properties = properties,
+        axis=1,
+    ).tolist()
+
+    set_list = set_routing_df.apply(
+        _wrangler_node_format,
+        # properties = properties,
+        axis=1,
+    ).tolist()
+
+    WranglerLogger.debug(
+        f"Existing Str: {existing_list}\n\
+        Set Str: {set_list}"
+    )
+
+    shape_change_dict = {
+        "property": "routing",
+        "existing": existing_list,
+        "set": set_list,
+    }
+    return shape_change_dict
+
+
+def _wrangler_node_format(row, properties=[]):
+    _stop_notation = "-" if not row["stop"] else ""
+    _id = row["N"]
+
+    if properties:
+        _properties = "," + ",".join([f"{p}={row.p}" for p in properties])
+    else:
+        _properties = ""
+    s = f"{_stop_notation}{_id}{_properties}"
+    return s

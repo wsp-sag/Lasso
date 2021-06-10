@@ -1,6 +1,86 @@
 import os
+from typing import Collection
 
 from pandas import DataFrame
+
+from lasso.model_roadway import ModelRoadwayNetwork
+from lasso.utils import check_overwrite
+
+
+def write_roadway_as_fixedwidth_with_cube(
+    net: ModelRoadwayNetwork,
+    links_df: DataFrame,
+    nodes_df: DataFrame,
+    node_output_fields: Collection[str] = None,
+    link_output_fields: Collection[str] = None,
+    output_directory: str = None,
+    output_prefix: str = None,
+    output_basename_links: str = None,
+    output_basename_nodes: str = None,
+    overwrite_existing_output: bool = False,
+    build_script: str = True,
+) -> None:
+    """Writes out fixed width files, headers, and build script.
+
+    This function does:
+    1. write out link and node fixed width data files for cube.
+    2. write out header and width correspondence.
+    3. write out build script with header and width specification based
+        on format specified.
+
+    Args:
+        links_df (GeoDataFrame, optional): The links file to be output. If not specified,
+            will default to self.model_links_df.
+        nodes_df (GeoDataFrame, optional): The modes file to be output. If not specified,
+            will default to self.nodes_df.
+        node_output_fields (Collection[str], optional): List of strings for node
+            output variables. Defaults to parameters.roadway_network_ps.output_fields.
+        link_output_fields (Collection[str], optional): List of strings for link
+            output variables. Defaults to parameters.roadway_network_ps.output_fields.
+        output_directory (str, optional): If set, will combine with output_link_shp and
+            output_node_shp to form output directory. Defaults to
+            parameters.file_ps.output_directory, which defaults to "".
+        output_prefix (str, optional): prefix to add to output files. Helpful for
+            identifying a scenario.
+            Defaults to parameters.file_ps.output_prefix, which defaults to "".
+        output_basename_links (str, optional): Combined with the output_director,
+            output_prefix, and the appropriate filetype suffix for the
+            link output filenames. Defaults to parameters.file_ps.output_basename_links,
+            which defaults to  "links_out".
+        output_basename_nodes (str, optional): Combined with the output_director,
+            output_prefix, and
+            the appropriate filetype suffix for the node output filenames.
+            Defaults to parameters.file_ps.output_basename_nodes, which defaults to
+            "links_out".
+        overwrite_existing_output (bool, optional): if True, will not ask about overwriting
+            existing output. Defaults to False.
+        build_script (str, optional): If True, will output a script to the output
+            directory which will rebuild the network as a HWYNET Cube Script.
+            Defaults to True.
+    """
+    _link_header_df, _node_header_df = net.write_roadway_as_fixedwidth(
+        links_df,
+        nodes_df,
+        node_output_fields,
+        link_output_fields,
+        output_directory,
+        output_prefix,
+        output_basename_links,
+        output_basename_nodes,
+        overwrite_existing_output,
+    )
+
+    if build_script:
+        _outfile_build_script = os.path.join(
+            output_directory, output_prefix + "_build_cube_hwynet.s",
+        )
+
+        write_cube_hwy_net_script_network_from_ff_files(
+            _link_header_df,
+            _node_header_df,
+            script_outfile=_outfile_build_script,
+            overwrite=True,
+        )
 
 
 def write_cube_hwy_net_script_network_from_ff_files(
@@ -25,12 +105,7 @@ def write_cube_hwy_net_script_network_from_ff_files(
     """
 
     if not overwrite:
-        if os.path.exists(script_outfile):
-            raise ValueError(
-                "outfile: {} already exists and overwrite set to False.".format(
-                    script_outfile
-                )
-            )
+        check_overwrite(script_outfile)
 
     s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
     s += "FILEI LINKI[1] = %LINK_DATA_PATH%,"

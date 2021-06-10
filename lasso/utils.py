@@ -306,3 +306,26 @@ def df_as_fixed_width(df: DataFrame) -> Collection[Union[DataFrame, dict]]:
         fw_df[c] = fw_df.apply(lambda x: x["pad"] + x[c], axis=1)
 
     return fw_df, max_width_dict
+
+
+def check_overwrite(file: Union(Collection[str], str)):
+    if type(file) is list:
+        for f in file:
+            if not check_overwrite(f):
+                break
+    else:
+        if os.path.exists(file):
+            overwrite = input(
+                f"""File: {file} already exists.
+                Overwrite?
+                    Y = yes,
+                    I = ignore and overwrite all\n"""
+            )
+            if overwrite.lower() == "y":
+                return True
+            if overwrite.lower() == "i":
+                return False
+            else:
+                msg = f"Stopped execution because user input declined to overwrite file:\
+                    {file}"
+                raise ValueError(msg)

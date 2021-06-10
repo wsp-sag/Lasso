@@ -291,40 +291,6 @@ class ModelTransit:
                 _new_route_properties_by_time_df, ignore_index=True
             )
 
-    @staticmethod
-    def fields_from_std_route_name(
-        line_name_s: pd.Series,
-        name_field_list: Collection[str] = [
-            "agency_id",
-            "route_id",
-            "time_period",
-            "direction_id",
-        ],
-        delim: str = "_",
-    ) -> pd.DataFrame:
-        """Unpacks route name into direction, route, agency, and time period info
-
-        Args:
-            line_name_s(pd.Series): series of line names i.e. "0_452-111_pk_1"
-            name_field_list (Collection[str],Optional): list of fields to use for
-                route name in order of use.
-                Defaults to ["agency_id","route_id", "time_period", "direction_id"].
-            delim (str, Optional): delimeter string for creating route name.
-                Defaults to "_".
-
-        Returns: DataFrame with following fields:
-            agency_id (str) : i.e. 0
-            route_id (str): 452-111
-            time_period (str): i.e. pk
-            direction_id (str) : i.e. 1
-
-        """
-        line_name_s.dropna(inplace=True)
-        split_name_df = line_name_s.str.strip('"').split(delim, n=1, expand=True)
-        split_name_df.columns = name_field_list
-
-        return split_name_df[name_field_list]
-
     def _melt_routes_by_time_period(
         self,
         transit_properties_df: DataFrame,
@@ -456,8 +422,20 @@ class ModelToStdAdapter:
     - routes_df: route/trip properties for a time-of-day range
     - nodes_df: node/stop properties
     - shapes_df: shape properties
-
     """
+
+    REQUIRED_STD_ROUTE_ID_PROPERTIES = [
+        "route_id",
+        "agency_id",
+        "direction_id",
+        "start_time_HHMM",
+        "end_time_HHMM",
+    ]
+    DEFAULT_STD_ROUTE_PROPERTIES = {"direction_id": 0, "agency_id": 1}
+
+    STD_NAME_REGEX = r"_.*_.*_[01]"
+    STD_NAME_FIELDS = ["agency_id", "route_id", "time_period", "direction_id"]
+    FIELDS_KEPT_FROM_STD_NAME = ["agency_id", "route_id", "direction_id"]
 
     def __init__(
         self,
@@ -471,14 +449,17 @@ class ModelToStdAdapter:
         self.model_routes_df = modeltransit._route_properties_by_time_df
         self.model_shapes_df = modeltransit.shapes_df
 
+        _ps = modeltransit.parameters
+        _transit_ps = _ps.transit_network_ps
+
+        self.time_period_abbr_to_time = _ps.network_model_ps.time_period_abbr_to_time
+
         self.time_period_abbr_to_time = (
-            modeltransit.parameters.network_model_ps.time_period_abbr_to_time
+            _ps.network_model_parameters.time_period_abbr_to_time
         )
+
         self.transit_to_network_time_periods = (
-            modeltransit.parameters.transit_network_ps.transit_to_network_time_periods
-        )
-        self.time_period_abbr_to_time = (
-            modeltransit.parameters.transit_ps.network_model_parameters.time_period_abbr_to_time
+            _transit_ps.transit_network_model_to_general_network_time_period_abbr
         )
 
         self.model_to_std_prop_map = model_to_std_prop_map
@@ -508,6 +489,79 @@ class ModelToStdAdapter:
         _std_shapes_df = _std_shapes_df.rename(self.model_to_std_prop_map)
 
         return _std_shapes_df
+
+    @staticmethod
+    def calculate_std_identifiers(routes_df: DataFrame,) -> DataFrame:
+        """Adds standard transit route identifiers:
+            route_id
+            agency_id
+            direction_id
+
+        by first seeing if should
+        break apart route "NAME"; And then
+
+        Args:
+            routes_df: [description]
+
+        Returns: routes dataframe with added rows.
+        """
+
+        std_route_name = len(
+            routes_df[
+                routes_df["NAME"].str.match(ModelToStdAdapter.STD_NAME_REGEX) is True
+            ]
+        ) == len(routes_df)
+
+        if std_route_name:
+            routes_df[ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME] = routes_df[
+                "NAME"
+            ].apply(
+                ModelToStdAdapter.fields_from_std_route_name,
+                hame_field_list=ModelToStdAdapter.STD_NAME_FIELDS,
+                output_fields=ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME,
+                axis=1,
+            )
+
+        else:
+            routes_df["route_id"] = routes_df["NAME"]
+            for k, v in ModelToStdAdapter.DEFAULT_STD_ROUTE_PROPERTIES.items():
+                if k not in routes_df.columns:
+                    routes_df[k] = v
+                elif routes_df[k].dropna().empty:
+                    routes_df[k] = v
+
+        return routes_df
+
+    @staticmethod
+    def fields_from_std_route_name(
+        line_name_s: pd.Series,
+        name_field_list: Collection[str],
+        output_fields: Collection[str],
+        delim: str = "_",
+    ) -> pd.DataFrame:
+        """Unpacks route name into direction, route, agency, and time period info
+
+        Args:
+            line_name_s(pd.Series): series of line names i.e. "0_452-111_pk_1"
+            name_field_list (Collection[str],Optional): list of fields to use for
+                route name in order of use.
+                Defaults to ["agency_id","route_id", "time_period", "direction_id"].
+            output_fields: list of fields to output/
+                Defaults to ["agency_id","route_id", "direction_id"].
+            delim (str, Optional): delimeter string for creating route name.
+                Defaults to "_".
+
+        Returns: DataFrame with following fields:
+            agency_id (str) : i.e. 0
+            route_id (str): 452-111
+            direction_id (str) : i.e. 1
+
+        """
+        line_name_s.dropna(inplace=True)
+        split_name_df = line_name_s.str.strip('"').split(delim, n=1, expand=True)
+        split_name_df.columns = name_field_list
+
+        return split_name_df[output_fields]
 
     def calculate_start_end_time_HHMM(self, routes_df: DataFrame) -> DataFrame:
         """Adds fields to dataframe for start and end times based on
@@ -567,14 +621,19 @@ class ModelToStdAdapter:
         ]
 
         for model_prop, standard_prop in _properties_to_transform:
-            _routes_df[standard_prop] = _routes_df[standard_prop].apply(
+            _routes_df[standard_prop] = _routes_df[model_prop].apply(
                 self.model_to_std_prop_trans[(model_prop, standard_prop)]
             )
+            _routes_df = _routes_df.drop(columns=[model_prop])
+
+        _routes_df = self.calculate_start_end_time_HHMM(_routes_df)
+
+        _routes_df = ModelToStdAdapter.calculate_std_identifiers(_routes_df)
 
         return _routes_df
 
 
-def _diff_shape(
+def diff_shape(
     shape_a: DataFrame,
     shape_b: DataFrame,
     match_id: Union[str, Collection[str]],
@@ -691,216 +750,3 @@ def _diff_shape(
     set_df = shape_b.iloc[B_i:B_j][match_id]
 
     return existing_df, set_df
-
-
-def evaluate_route_shape_changes(
-    base_t: ModelTransit,
-    updated_t: ModelTransit,
-    match_id: Union[Collection[str], str] = None,
-    route_list: Collection = None,
-    n_buffer_vals: int = 3,
-) -> Collection[Mapping]:
-    """Compares all the shapes (or the subset specified in `route_list`) for two
-    :py:class:`ModelTransit` objects and outputs a list of project card changes
-    which would turn `base_t.shapes_df` --> `updated_t.shapes_df`.
-
-    Args:
-        base_t (ModelTransit): Updated :py:class:`ModelTransit` with `shapes_df`.
-        updated_t (ModelTransit): Updated :py:class:`ModelTransit` to compare to `base_t`
-        match_id (Union[Collection[str], str], optional): Field name or a collection
-            of field names to use as the match, e.g. ["N","stop"]. Defaults to None.
-            Defaults to [base_t.node_id_prop, "stop"]
-        route_list (Collection, optional): List of routes to compare. If not provided,
-            will evaluate changes between all routes common between `base_t` and `updated_t`.
-        n_buffer_vals (int, optional): Number of values on either side to include in
-            match. Defaults to 3.
-
-    Returns:
-        Collection[Mapping]: [List of shape changes formatted as a
-            project card-change dictionary.
-
-    """
-    base_shapes_df = base_t.shapes_df.copy()
-    updated_shapes_df = updated_t.shapes_df.copy()
-
-    WranglerLogger.debug(
-        f"\nbase_shapes_df: \n{base_shapes_df}\
-        \nupdated_shapes_df: \n {updated_shapes_df}"
-    )
-
-    if not base_t.node_id_prop == updated_t.node_id_prop:
-        msg = f"Base and updated node_id fields not same {base_t.node_id_prop} vs\
-            {updated_t.node_id_prop} can't create comparison."
-        raise ValueError(msg)
-
-    if not base_t.route_id_prop == updated_t.route_id_prop:
-        msg = f"Base and updated route_id fields not same {base_t.route_id_prop} vs\
-            {updated_t.route_id_prop} can't create comparison."
-        raise ValueError(msg)
-
-    # set the fields which match up routes and routing on
-    _route_id_prop = base_t.route_id_prop
-    if not match_id:
-        match_id = [base_t.node_id_prop, "stop"]
-
-    # reduce down routing matching from a list of properties to a single field
-    # make sure the fields exist...
-    if type(match_id) == Collection and len(match_id) == 1:
-        match_id = match_id[0]
-
-    if type(match_id) != str:
-        col_id = "_".join(match_id)
-        base_shapes_df[col_id] = (
-            base_shapes_df[match_id].to_records(index=False).tolist()
-        )
-        updated_shapes_df[col_id] = (
-            updated_shapes_df[match_id].to_records(index=False).tolist()
-        )
-    else:
-        err = f""
-        if match_id not in base_shapes_df.columns:
-            err += f"match_id: {match_id} not in base_shapes_df columns.\
-                Available columns: {base_shapes_df.columns}."
-        if match_id not in updated_shapes_df.columns:
-            err += f"match_id: {match_id} not in updated_shapes_df columns.\
-                Available columns: {updated_shapes_df.columns}."
-        if err:
-            raise ValueError(err)
-
-    # if the routes to compare are not specified in route_list, select all
-    # routes which are common between the transit networks
-    if not route_list:
-        route_list = [i for i in updated_t.routes if i in base_t.routes]
-
-    # Compare route changes for each route in the list
-    shape_change_list = []
-    for i in route_list:
-        existing_r_df, change_r_df = _diff_shape(
-            base_shapes_df[base_shapes_df[_route_id_prop] == i],
-            updated_shapes_df[updated_shapes_df[_route_id_prop] == i],
-            match_id,
-        )
-        rt_change_dict = project.update_route_routing_change_dict(
-            existing_r_df, change_r_df,
-        )
-        WranglerLogger.debug(f"rt_change: {rt_change_dict}")
-        shape_change_list.append(copy.deepcopy(rt_change_dict))
-        WranglerLogger.debug(f"shape_change_list:{shape_change_list}")
-
-    WranglerLogger.info(f"Found {len(shape_change_list)} transit changes.")
-
-    return shape_change_list
-
-
-def evaluate_model_transit_differences(
-    base_transit: ModelTransit,
-    updated_transit: ModelTransit,
-    route_property_update_list: Collection[str] = None,
-    new_route_property_list: Collection[str] = None,
-    absolute: bool = True,
-    include_existing: bool = False,
-    n_buffer_vals: int = 3,
-) -> Collection[Mapping]:
-    """Evaluates differences between :py:class:`ModelTransit` instances
-    `base_transit` and `updated_transit` and outputs a list of project card changes
-    which would turn `base_transit` --> `updated_transit`.
-    1. Identifies what routes need to be updated, deleted, or added
-    2. For routes being added or updated, identify if the time periods
-        have changed or if there are multiples, and make duplicate lines if so
-    3. Create project card dictionaries for each change.
-
-    Args:
-        base_transit (ModelTransit): an :py:class:`ModelTransit` instance for the base condition
-        updated_transit (ModelTransit): an ModelTransit instance for the updated condition
-        route_property_update_list (Collection[str], Optional): list of properties
-            to consider updates for, ignoring others.
-            If not set, will default to all the fields in updated_transit.
-        new_route_property_list (Collection[str], Optional): list of properties to add
-            to new routes. If not set, will default to all the fields in updated_transit.
-        absolute (Bool): indicating if should use the [False case]'existing'+'change' or
-            [True case]'set' notation a project card. Defaults to True.
-        include_existing (Bool): if set to True, will include 'existing' in project card.
-            Defaults to False.
-        n_buffer_vals (int): Number of values on either side to include in
-            match for routes changes. Defaults to 3.
-
-    Returns:
-        A list of dictionaries containing project card changes
-        required to evaluate the differences between the base_transit
-        and updated_transit network instance.
-    """
-
-    lines_to_update = [i for i in updated_transit.lines if i in base_transit.lines]
-
-    project_card_changes = []
-
-    base_route_props_df = base_transit.std_route_properties_df
-    updated_route_props_df = updated_transit.std_route_properties_df
-
-    if not route_property_update_list:
-        route_property_update_list = list(
-            updated_transit.std_route_properties_df.columns
-        )
-
-    if not new_route_property_list:
-        new_route_property_list = list(updated_transit.std_route_properties_df.columns)
-
-    _base_routes = base_route_props_df["name"].tolist()
-    _updated_routes = updated_route_props_df["name"].tolist()
-
-    """
-    Deletions
-    """
-    lines_to_delete = [i for i in _base_routes if i not in _updated_routes]
-    _delete_changes = (
-        base_route_props_df.isin({"NAME": lines_to_delete})
-        .apply(project.delete_route_change_dict, axis=1)
-        .tolist()
-    )
-    project_card_changes += _delete_changes
-
-    """
-    Additions
-    """
-    lines_to_add = [i for i in _updated_routes if i not in _base_routes]
-    _addition_changes = (
-        updated_route_props_df.isin({"NAME": lines_to_add})
-        .apply(
-            project.new_transit_route_change_dict,
-            transit_route_property_list=new_route_property_list,
-            shapes=updated_transit.shapes,
-            axis=1,
-        )
-        .tolist()
-    )
-    project_card_changes += _addition_changes
-
-    """
-    Evaluate Property Updates
-    """
-    _compare_df = base_route_props_df[route_property_update_list].compare(
-        updated_route_props_df[route_property_update_list]
-    )
-    _compare_df[
-        "self", ["name", "start_time_HHMM", "end_time_HHMM"]
-    ] = updated_route_props_df[["name", "start_time_HHMM", "end_time_HHMM"]]
-
-    _updated_properties_changes = _compare_df.apply(
-        project.update_route_prop_change_dict,
-        absolute=absolute,
-        include_existing=include_existing,
-        axis=1,
-    )
-    project_card_changes += _updated_properties_changes
-
-    _updated_shapes_changes = updated_transit.evaluate_route_shape_changes(
-        base_transit,
-        updated_transit,
-        line_list=lines_to_update,
-        n_buffer_vals=n_buffer_vals,
-    )
-
-    WranglerLogger.debug(f"_updated_shapes_changes:{_updated_shapes_changes}")
-    project_card_changes += _updated_shapes_changes
-
-    return project_card_changes
