@@ -23,6 +23,7 @@ for MetCouncil.  It aims to have the following functionality:
    starting
    setup
    running
+   contributing
    autodoc
 
 
