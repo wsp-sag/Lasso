@@ -58,7 +58,7 @@ pip install -e .
 cd ..
 cd Lasso
 pip install -e .
-pre-commit install
+pre-commit install --hook-type commit-msg
 ```
 
 *Note: if you are not part of the project team and want to contribute code back to the project, please fork before you clone and then add the original repository to your upstream origin list per [these directions on github](https://help.github.com/en/articles/fork-a-repo).
