@@ -91,3 +91,16 @@ def test_profiler():
 
         for x in range(10):
             return _mult(x)
+
+
+def test_select_from_df():
+    import pandas as pd
+    from lasso.utils import select_df_from_df
+    from numpy import array_equal
+
+    select_df = pd.DataFrame({"a": list("ABC"), "b": list("CDF")})
+    df = pd.DataFrame({"a": list("ABAC"), "b": list("CFFF")})
+    compare_cols = ["a", "b"]
+    correct_result_df = pd.DataFrame({"a": list("AC"), "b": list("CF")})
+    result_df = select_df_from_df(df, select_df, compare_cols=compare_cols)
+    array_equal(correct_result_df.values, result_df.values)

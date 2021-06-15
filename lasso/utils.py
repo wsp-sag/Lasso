@@ -6,6 +6,7 @@ import os
 
 import geopandas as gpd
 from pandas import DataFrame
+import pandas as pd
 import numpy as np
 
 from .logger import WranglerLogger
@@ -31,6 +32,30 @@ def profile_me(func):
         WranglerLogger.info(stats)
 
     return wrapped_func
+
+
+def select_df_from_df(
+    df: DataFrame, select_df: DataFrame, compare_cols: Collection[str] = None
+) -> DataFrame:
+    """Returns a dataframe which is a selection of dataframe df where compare_cols match
+    the combination values in select_df.
+
+    Modified from Stack Overflow user user3820991's answer in:
+    https://stackoverflow.com/questions/40755349/matching-on-basis-of-a-pair-of-columns-in-pandas
+
+    Args:
+        df: dataframe you want to select from
+        select_df: dataframe with columns you want to match from df
+        compare_cols: [description]. Defaults to all overlapping columns if None.
+    """
+    if not compare_cols:
+        compare_cols = [c for c in df.columns if c in select_df.columns]
+
+    select = pd.Series(list(zip(*[df[c] for c in compare_cols]))).isin(
+        list(zip(*[select_df[c] for c in compare_cols]))
+    )
+
+    return df.loc[select]
 
 
 def get_shared_streets_intersection_hash(lat, lon, osm_node_id=None):
@@ -308,7 +333,7 @@ def df_as_fixed_width(df: DataFrame) -> Collection[Union[DataFrame, dict]]:
     return fw_df, max_width_dict
 
 
-def check_overwrite(file: Union(Collection[str], str)):
+def check_overwrite(file: Union[Collection[str], str]):
     if type(file) is list:
         for f in file:
             if not check_overwrite(f):
