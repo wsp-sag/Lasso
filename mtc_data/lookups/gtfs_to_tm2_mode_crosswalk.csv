@@ -13,7 +13,7 @@ Emeryville_2016_10_26,Emery Go-Round,573,10,3,12,Local bus,1,0,Motor Small Bus
 Fairfield_2015_10_14,Fairfield and Suisun Transit,36,28,3,52,Local bus,14,0,Motor Standard Bus
 Fairfield_2015_10_14,Fairfield and Suisun Transit,36,28,3,92,Express bus,33,1,Motor Standard Bus
 GGFerries_2017_3_18,San Francisco Bay Ferry,SB,20,4,101,Ferry service,36,0,Ferry GGT
-GGTransit_2015_9_3,Golden Gate Transit,,35,2,101,Ferry service,36,0,Ferry GGT
+GGTransit_2015_9_3,Golden Gate Transit,,20,2,101,Ferry service,36,0,Ferry GGT
 GGTransit_2015_9_3,Golden Gate Transit,,35,3,70,Local bus,23,0,Motor Standard Bus
 GGTransit_2015_9_3,Golden Gate Transit,,35,3,87,Express bus,30,1,Motor Standard Bus
 MVGo_2016_10_26,MVgo Mountain View,533,99,3,16,Local bus,0,0,Motor Small Bus
@@ -46,3 +46,4 @@ vacavillecitycoach-2020-ca-us,Vacaville City Coach,869,14,3,56,Local bus,17,0,Mo
 westcat-ca-us_9_17_2015,WestCat (Western Contra Costa),392,37,3,46,Local bus,12,0,Motor Standard Bus
 westcat-ca-us_9_17_2015,WestCat (Western Contra Costa),392,37,3,90,Express bus,31,1,AC Plus Bus
 Wheels_2016_7_13,Wheels Bus,LAVTA,24,3,17,Local bus,7,0,Motor Standard Bus
+commuteDOTorg_GTFSImportExport_20160127_final_mj,Commute.org Shuttle,alliance,17,3,14,Local bus,0,0,Motor Small Bus
