@@ -316,7 +316,7 @@ class Project(object):
             )
             base_roadway_network.split_properties_by_time_period_and_category()
         elif base_roadway_network:
-            pass
+            base_roadway_network.split_properties_by_time_period_and_category()
         else:
             msg = "No base roadway network."
             WranglerLogger.info(msg)
@@ -419,6 +419,9 @@ class Project(object):
         dbf_to_net_df = pd.read_csv(parameters.net_to_dbf_crosswalk)
         dbf_to_net_dict = dict(zip(dbf_to_net_df["dbf"], dbf_to_net_df["net"]))
 
+        for c in roadway_changes.columns:
+            if (c not in log_to_net_df["log"].tolist()) & (c not in ["A", "B"]):
+                roadway_changes.rename(columns={c : c.lower()}, inplace=True)
         roadway_changes.rename(columns=log_to_net_dict, inplace=True)
         roadway_changes.rename(columns=dbf_to_net_dict, inplace=True)
 
@@ -426,7 +429,7 @@ class Project(object):
         # find locations where there isn't a base roadway link
 
         link_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
+            (roadway_changes["object"] == "L") & (roadway_changes["operation"] == "C")
         ]
 
         link_merge_df = pd.merge(
@@ -445,9 +448,8 @@ class Project(object):
 
         # for links "N"  that change "C",
         # find locations where there isn't a base roadway node
-
         node_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
+            (roadway_changes.object == "N") & (roadway_changes["operation"] == "C")
         ]
         node_merge_df = pd.merge(
             node_changes_df[["model_node_id"]],
@@ -512,26 +514,26 @@ class Project(object):
 
         ## if worth it, could also add some functionality  to network wrangler itself.
         node_changes_df = self.roadway_changes[
-            self.roadway_changes.OBJECT == "N"
+            self.roadway_changes.object == "N"
         ].copy()
 
         link_changes_df = self.roadway_changes[
-            self.roadway_changes.OBJECT == "L"
+            self.roadway_changes.object == "L"
         ].copy()
 
         def _final_op(x):
-            if x.OPERATION_history[-1] == "D":
-                if "A" in x.OPERATION_history[:-1]:
+            if x["operation_history"][-1] == "D":
+                if "A" in x["operation_history"][:-1]:
                     return "N"
                 else:
                     return "D"
-            elif x.OPERATION_history[-1] == "A":
-                if "D" in x.OPERATION_history[:-1]:
+            elif x["operation_history"][-1] == "A":
+                if "D" in x["operation_history"][:-1]:
                     return "C"
                 else:
                     return "A"
             else:
-                if "A" in x.OPERATION_history[:-1]:
+                if "A" in x["operation_history"][:-1]:
                     return "A"
                 else:
                     return "C"
@@ -540,7 +542,7 @@ class Project(object):
             """"""
             WranglerLogger.debug("Processing link deletions")
 
-            cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
+            cube_delete_df = link_changes_df[link_changes_df["operation_final"] == "D"]
             if len(cube_delete_df) > 0:
                 links_to_delete = cube_delete_df["model_link_id"].tolist()
                 delete_link_dict = {
@@ -559,7 +561,7 @@ class Project(object):
         ):
             """"""
             WranglerLogger.debug("Processing link additions")
-            cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
+            cube_add_df = link_changes_df[link_changes_df["operation_final"] == "A"]
             if len(cube_add_df) == 0:
                 WranglerLogger.debug("No link additions processed")
                 return {}
@@ -572,9 +574,9 @@ class Project(object):
                 ]
             else:
                 add_col = [
-                    c for c in cube_add_df.columns if c not in ["OPERATION_final"]
+                    c for c in cube_add_df.columns if c not in ["operation_final"]
                 ]
-                # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
+                # can leave out "operation_final" from writing out, is there a reason to write it out?
 
             add_link_properties = cube_add_df[add_col].to_dict("records")
 
@@ -591,7 +593,7 @@ class Project(object):
                 WranglerLogger.debug("No node additions processed")
                 return []
 
-            add_nodes_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
+            add_nodes_dict_list = node_add_df.drop(["operation_final"], axis=1).to_dict(
                 "records"
             )
             WranglerLogger.debug("{} Nodes Added".format(len(add_nodes_dict_list)))
@@ -676,7 +678,7 @@ class Project(object):
                     p_time_period,
                     p_category,
                     managed_lane,
-                ) = column_name_to_parts(c)
+                ) = column_name_to_parts(c, self.parameters)
 
                 _d = {
                     "existing": base_row[c],
@@ -734,7 +736,7 @@ class Project(object):
 
         def _process_link_changes(link_changes_df, changeable_col):
             """"""
-            cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
+            cube_change_df = link_changes_df[link_changes_df["operation_final"] == "C"]
             if not cube_change_df.shape[0]:
                 WranglerLogger.info("No link changes processed")
                 return []
@@ -798,16 +800,16 @@ class Project(object):
                 log_df[x] = log_df[x].astype(base[x].dtype)
 
             action_history_df = (
-                log_df.groupby(key_list)["OPERATION"]
+                log_df.groupby(key_list)["operation"]
                 .agg(lambda x: x.tolist())
-                .rename("OPERATION_history")
+                .rename("operation_history")
                 .reset_index()
             )
 
             log_df = pd.merge(log_df, action_history_df, on=key_list, how="left")
             log_df.drop_duplicates(subset=key_list, keep="last", inplace=True)
-            log_df["OPERATION_final"] = log_df.apply(lambda x: _final_op(x), axis=1)
-            return log_df[changeable_col + ["OPERATION_final"]]
+            log_df["operation_final"] = log_df.apply(lambda x: _final_op(x), axis=1)
+            return log_df[changeable_col + ["operation_final"]]
 
         delete_link_dict = None
         add_link_dict = None
@@ -858,13 +860,13 @@ class Project(object):
 
             # print error message for node change and node deletion
             if (
-                len(node_changes_df[node_changes_df.OPERATION_final.isin(["C", "D"])])
+                len(node_changes_df[node_changes_df["operation_final"].isin(["C", "D"])])
                 > 0
             ):
                 msg = "NODE changes and deletions are not allowed!"
                 WranglerLogger.error(msg)
                 raise ValueError(msg)
-            node_add_df = node_changes_df[node_changes_df.OPERATION_final == "A"]
+            node_add_df = node_changes_df[node_changes_df["operation_final"] == "A"]
 
             if add_link_dict:
                 add_link_dict["nodes"] = _process_node_additions(node_add_df)
