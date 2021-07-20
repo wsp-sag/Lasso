@@ -1084,7 +1084,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ##Why are we doing this?
         # int_col_names.remove("lanes")
 
-        for c in list(set(self.links_df.columns) & set(int_col_names)):	
+        for c in list(set(self.links_df.columns) & set(int_col_names)):
             try:
                 self.links_df[c] = self.links_df[c].replace(np.nan, 0)
                 self.links_df[c] = self.links_df[c].astype(int)
@@ -1270,6 +1270,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_node_shp: str = None,
         output_link_csv: str = None,
         output_node_csv: str = None,
+        export_drive_only: bool = False,
     ):
         """
         Write out dbf/shp for cube.  Write out csv in addition to shp with full length variable names.
@@ -1368,6 +1369,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry = links_dbf_df["geometry"])
+
+        if export_drive_only == True:
+            nodes_dbf_df = nodes_dbf_df[nodes_dbf_df.drive_node == 1].copy()
+            links_dbf_df = links_dbf_df[links_dbf_df.drive == 1].copy()
 
         WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
         nodes_dbf_df.to_file(output_node_shp)
