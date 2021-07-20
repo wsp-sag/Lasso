@@ -1284,6 +1284,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             output_node_shp (str): File path to output node dbf/shp.
             output_link_csv (str): File path to output link csv.
             output_node_csv (str): File path to output node csv.
+            export_drive_only (bool) : True if write out drive links/nodes only.
 
         Returns:
             None
