@@ -1837,6 +1837,9 @@ def _is_express_bus(x):
     if x.agency_name == "Vine (Napa County)":
         if x.route_short_name in ["29"]:
             return 1
+    if x.agency_name == "Tri Delta Transit":
+        if x.route_short_name in ["300"]:
+            return 1
     return 0
 
 def _special_vehicle_type(x):
