@@ -1590,7 +1590,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         # write out cube script
         s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
-        s += "FILEI LINKI[1] = %LINK_DATA_PATH%,"
+        s += 'FILEI LINKI[1] = "{}",'.format(output_link_txt)
         start_pos = 1
         for i in range(len(link_max_width_df)):
             s += " VAR=" + link_max_width_df.header.iloc[i]
@@ -1613,7 +1613,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         s = s[:-1]
         s += "\n"
-        s += "FILEI NODEI[1] = %NODE_DATA_PATH%,"
+        s += 'FILEI NODEI[1] = "{}",'.format(output_node_txt)
         start_pos = 1
         for i in range(len(node_max_width_df)):
             s += " VAR=" + node_max_width_df.header.iloc[i]
@@ -1636,7 +1636,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         s = s[:-1]
         s += "\n"
-        s += 'FILEO NETO = "%SCENARIO_DIR%/complete_network.net" \n\n    ZONES = %zones% \n\n'
+        s += 'FILEO NETO = "complete_network.net" \n\n'
+        s += 'ZONES = {} \n\n'.format(self.parameters.zones)
         s += "ROADWAY = LTRIM(TRIM(ROADWAY)) \n"
         s += "NAME = LTRIM(TRIM(NAME)) \n"
         s += "\n \nENDRUN"

@@ -325,8 +325,9 @@ class Parameters:
             ::
                 r"tests/scratch/make_complete_network_from_fixed_width_file.s
 
-
-
+        zones (int): Number of travel analysis zones in the network. Default:
+            ::
+                3061
     """
 
     def __init__(self, **kwargs):
@@ -737,5 +738,7 @@ class Parameters:
             "access_NT",
             "ROUTE_SYS",
         ]
+
+        self.zones = 3061
 
         self.__dict__.update(kwargs)
