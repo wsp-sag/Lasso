@@ -752,6 +752,7 @@ class Parameters:
 
         self.fare_matrix_output_variables = ["faresystem", "origin_farezone", "destination_farezone", "price"]
 
+        self.zones = 4756
         """
         Create all the possible headway variable combinations based on the cube time periods setting
         """
