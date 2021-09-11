@@ -840,7 +840,6 @@ def calculate_useclass(
 
     return roadway_network
 
-#TODO develop the algorithm to replicate the FAREZONE node values from the old network
 def calculate_farezone(
     roadway_network=None,
     transit_network=None,
@@ -929,19 +928,17 @@ def calculate_farezone(
 
     # get the agency names for each stop
     stops_df = transit_network.feed.stops.copy()
-    stop_times_df = transit_network.feed.stop_times.copy()
 
-    stop_times_df = pd.merge(stop_times_df,
-                             transit_network.feed.trips[["trip_id", "agency_raw_name"]],
-                             how = "left",
-                             on = "trip_id")
+    # get the fare rules table for zonal fare agencies
+    fare_rules_df = transit_network.feed.fare_rules.copy()
+    zonal_fare_df = fare_rules_df[
+        ((fare_rules_df.origin_id.notnull()) | (fare_rules_df.origin_id.notnull())) &
+        (fare_rules_df.origin_id != " ")].copy()
 
-    stops_df = pd.merge(stops_df,
-                        stop_times_df.drop_duplicates(subset = ["stop_id"])[["stop_id", "agency_raw_name"]],
-                        how = "left",
-                        on = ["stop_id"])
-
-    stop_with_zone_id_df = stops_df[stops_df.zone_id.notnull()].copy()
+    stop_with_zone_id_df = stops_df[
+        (stops_df.zone_id.notnull()) &
+        (stops_df.agency_raw_name.isin(zonal_fare_df.agency_raw_name.unique()))
+    ].copy()
 
     model_node_zone_df = stop_with_zone_id_df.groupby(
         ["model_node_id", "agency_raw_name", "zone_id"]
@@ -983,20 +980,29 @@ def calculate_farezone(
             )
         ].copy()
 
-    non_unique_zone_df = non_unique_model_node_zone_df.drop_duplicates(
-        subset=["model_node_id"]
-    ).copy()
+    non_unique_model_node_zone_df["agencies"] = non_unique_model_node_zone_df.groupby(
+        ["model_node_id"]
+    )['agency_raw_name'].transform(lambda x:','.join(x))
 
-    non_unique_zone_df[network_variable] = range(
-        unique_model_node_zone_df[network_variable].max() + 1,
-        unique_model_node_zone_df[network_variable].max() + 1 + len(non_unique_zone_df)
+    non_unique_model_node_zone_df["zone_ids"] = non_unique_model_node_zone_df.groupby(
+        ["model_node_id"]
+    )['zone_id'].transform(lambda x:','.join(x))
+
+    new_zone_combinations_df = non_unique_model_node_zone_df.groupby(
+        ["agencies", "zone_ids"]).count().reset_index()[
+        ["agencies", "zone_ids"]
+    ]
+
+    new_zone_combinations_df['farezone'] = range(
+        unique_model_node_zone_df['farezone'].max() + 1,
+        unique_model_node_zone_df['farezone'].max() + 1 + len(new_zone_combinations_df)
     )
 
     non_unique_model_node_zone_df = pd.merge(
         non_unique_model_node_zone_df,
-        non_unique_zone_df[["model_node_id", network_variable]],
-        how ="left",
-        on = "model_node_id"
+        new_zone_combinations_df,
+        how ='left',
+        on = ['agencies', 'zone_ids']
     )
 
     final_model_node_zone_df = pd.concat(
@@ -1044,8 +1050,7 @@ def write_cube_fare_files(
     outpath: str = None,
 ):
     """
-    create
-
+    create cube transit files
     """
 
     if not outpath:
@@ -1054,8 +1059,8 @@ def write_cube_fare_files(
     # read fare_attributes and fare_rules
     # TODO debug partridge i/o fare as part of transit object
 
-    fare_attributes_df = pd.read_csv(os.path.join(outpath, "fare_attributes.txt"))
-    fare_rules_df = pd.read_csv(os.path.join(outpath, "fare_rules.txt"))
+    fare_attributes_df = transit_network.feed.fare_attributes.copy()
+    fare_rules_df = transit_network.feed.fare_rules.copy()
 
     # deflate 2015 fare to 2010 dollars
     fare_attributes_df["price"] = fare_attributes_df["price"] * parameters.fare_2015_to_2010_deflator
@@ -1067,22 +1072,11 @@ def write_cube_fare_files(
         how = "outer",
         on = ["fare_id", "agency_raw_name"])
 
-    zonal_fare_df = fare_df[((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " ")].copy()
-    flat_fare_df = fare_df[~(((fare_df.origin_id.notnull()) | (fare_df.origin_id.notnull())) & (fare_df.origin_id != " "))].copy()
+    zonal_fare_df = fare_df[((fare_df.origin_id.notnull()) | (fare_df.destination_id.notnull())) & (fare_df.origin_id != " ")].copy()
+    flat_fare_df = fare_df[~(((fare_df.origin_id.notnull()) | (fare_df.destination_id.notnull())) & (fare_df.origin_id != " "))].copy()
 
     # get the agency names for each stop
     stops_df = transit_network.feed.stops.copy()
-    stop_times_df = transit_network.feed.stop_times.copy()
-
-    stop_times_df = pd.merge(stop_times_df,
-                             transit_network.feed.trips[["trip_id", "agency_raw_name"]],
-                             how = "left",
-                             on = "trip_id")
-
-    stops_df = pd.merge(stops_df,
-                        stop_times_df.drop_duplicates(subset = ["stop_id"])[["stop_id", "agency_raw_name"]],
-                        how = "left",
-                        on = ["stop_id"])
 
     stop_with_zone_id_df = stops_df[stops_df.zone_id.notnull()].copy()
 
