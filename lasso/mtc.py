@@ -1637,17 +1637,17 @@ def route_properties_gtfs_to_cube(
 
     trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
 
+    trip_df["LONGNAME"] = trip_df["route_long_name"]
+    trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
+
+    trip_df = pd.merge(trip_df, transit_network.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
+
     # make tri-delta-transit name shorter
     trip_df["agency_id"] = np.where(
         trip_df.agency_id == "tri-delta-transit",
         "tri-delta",
         trip_df.agency_id
     )
-
-    trip_df["LONGNAME"] = trip_df["route_long_name"]
-    trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
-
-    trip_df = pd.merge(trip_df, transit_network.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
 
     # identify express bus
     trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
