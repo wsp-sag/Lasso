@@ -33,6 +33,7 @@ Soltrans_2016_5_20,SolTrans,247,12,3,91,Express bus,13,1,Motor Standard Bus
 SonomaCounty_2015_8_18,Sonoma County Transit,175,19,3,63,Local bus,20,0,Motor Standard Bus
 SonomaCounty_2015_8_18,Cloverdale Transit,183,19,3,63,Local bus,20,0,Motor Standard Bus
 TriDelta-GTFS-2018-05-24_21-43-17,Tri Delta Transit,tri-delta-transit,4,3,44,Local bus,11,0,Motor Standard Bus
+TriDelta-GTFS-2018-05-24_21-43-17,Tri Delta Transit,tri-delta-transit,4,3,95,Express bus,11,1,Motor Standard Bus
 Union_City_Transit_Aug-01-2015 to Jun-30-2017,Union City Transit,UCT,36,3,38,Local bus,8,0,Motor Standard Bus
 VTA_2015_8_27,VTA,VTA,31,0,111,Light rail,40,0,VTA LRT2
 VTA_2015_8_27,VTA,VTA,31,3,28,Local bus,5,0,Motor Standard Bus
