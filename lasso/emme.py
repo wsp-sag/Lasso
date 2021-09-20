@@ -29,7 +29,6 @@ from lasso import StandardTransit
 _join = _os.path.join
 _dir = _os.path.dirname
 
-
 def _norm(path):
     return _os.path.normcase(_os.path.normpath(path))
 
@@ -42,6 +41,10 @@ def create_emme_network(
     nodes_df: Optional[GeoDataFrame]=None,
     name: Optional[str]="",
     path: Optional[str]="",
+    write_taz_drive_network: bool = True,
+    write_maz_drive_network: bool = True,
+    write_maz_active_modes_network: bool = True,
+    write_tap_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
 ):
     """
@@ -102,29 +105,218 @@ def create_emme_network(
     # geometry to wkt geometry
     links_df["geometry_wkt"] = links_df["geometry"].apply(lambda x: x.wkt)
 
-    if include_transit:
-        # gtfs trips
-        trips_df = route_properties_gtfs_to_emme(
+    if write_taz_drive_network:
+        _NAME = "taz_drive_network"
+        include_transit = False
+        model_tables = prepare_table_for_taz_drive_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
+            parameters=parameters
+        )
+
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup.run()
+
+    if write_maz_drive_network:
+        _NAME = "maz_drive_network"
+        include_transit = False
+        model_tables = prepare_table_for_maz_drive_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
+            parameters=parameters
+        )
+
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup.run()
+
+    if write_maz_active_modes_network:
+        _NAME = "maz_active_modes_network"
+        include_transit = False
+        model_tables = prepare_table_for_maz_active_modes_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
+            parameters=parameters
+        )
+
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup.run()
+    
+    if write_tap_transit_network:
+        _NAME = "tap_transit_network"
+        include_transit = True
+        model_tables = prepare_table_for_tap_transit_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
             transit_network=transit_network,
             parameters=parameters
         )
 
-        itinerary_df=pd.DataFrame()
-        for index, row in trips_df.iterrows():
-            trip_itinerary_df = shape_gtfs_to_emme(
-                transit_network=transit_network,
-                trip_row=row
-            )
-            itinerary_df = itinerary_df.append(trip_itinerary_df, sort =False, ignore_index=True)
-        #print(itinerary_df)
-        model_tables["line_table"] = trips_df.to_dict('records')
-        print(trips_df[:2])
-        model_tables['itinerary_table']=itinerary_df.to_dict('records')
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup.run()
 
-    model_tables["centroid_table"] = nodes_df[nodes_df.N.isin(parameters.taz_N_list + parameters.maz_N_list)].to_dict('records')
-    model_tables["node_table"] = nodes_df[~(nodes_df.N.isin(parameters.taz_N_list + parameters.maz_N_list))].to_dict('records')
-    model_tables["connector_table"] = links_df[(links_df.A.isin(parameters.taz_N_list + parameters.maz_N_list)) | (links_df.B.isin(parameters.taz_N_list + parameters.maz_N_list))].to_dict('records')
-    model_tables["link_table"] = links_df[~(links_df.A.isin(parameters.taz_N_list + parameters.maz_N_list)) & ~(links_df.B.isin(parameters.taz_N_list + parameters.maz_N_list))].to_dict('records')
+def prepare_table_for_taz_drive_network(
+    nodes_df,
+    links_df,
+    parameters,
+):
+
+    """
+    prepare model table for taz-scale drive network, in which taz nodes are centroids
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # use taz as centroids, drop maz nodes and connectors
+    model_tables["centroid_table"] = nodes_df[
+        nodes_df.N.isin(parameters.taz_N_list)
+    ].to_dict('records')
+
+    model_tables["node_table"] = nodes_df[
+        ~(nodes_df.N.isin(parameters.taz_N_list + parameters.maz_N_list))
+    ].to_dict('records')
+
+    model_tables["connector_table"] = links_df[
+        (links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list))
+    ].to_dict('records')
+
+    model_tables["link_table"] = links_df[
+        ~(links_df.A.isin(parameters.taz_N_list + parameters.maz_N_list)) & 
+        ~(links_df.B.isin(parameters.taz_N_list + parameters.maz_N_list))
+    ].to_dict('records')
+
+    return model_tables
+
+def prepare_table_for_maz_drive_network(
+    nodes_df,
+    links_df,
+    parameters,
+):
+
+    """
+    prepare model table for maz-scale drive network, in which there are no centroids, drop taz nodes and connectors
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # no centroids, drop taz nodes and connectors
+
+    model_tables["centroid_table"] = []
+
+    model_tables["connector_table"] = []
+
+    model_tables["node_table"] = nodes_df[
+        ~(nodes_df.N.isin(parameters.taz_N_list))
+    ].to_dict('records')
+
+    model_tables["link_table"] = links_df[
+        ~(links_df.A.isin(parameters.taz_N_list)) & 
+        ~(links_df.B.isin(parameters.taz_N_list))
+    ].to_dict('records')
+
+    return model_tables
+
+def prepare_table_for_maz_active_modes_network(
+    nodes_df,
+    links_df,
+    parameters,
+):
+
+    """
+    prepare model table for maz-scale active modes network, in which there are no centroids
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # no centroids
+    
+    model_tables["centroid_table"] = []
+
+    model_tables["connector_table"] = []
+
+    model_tables["node_table"] = nodes_df.to_dict('records')
+
+    model_tables["link_table"] = links_df.to_dict('records')
+
+    return model_tables
+
+def prepare_table_for_tap_transit_network(
+    nodes_df,
+    links_df,
+    transit_network,
+    parameters,
+):
+
+    """
+    prepare model table for tap-scale transit network, in which taps are centroids, drop taz and maz
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+        transit_network -- transit network object
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # taps are centroids, drop taz and maz
+
+    model_tables["centroid_table"] = nodes_df[
+        nodes_df.N.isin(parameters.tap_N_list)
+    ].to_dict('records')
+
+    model_tables["node_table"] = nodes_df[
+        ~(nodes_df.N.isin(parameters.tap_N_list + parameters.taz_N_list + parameters.maz_N_list))
+    ].to_dict('records')
+
+    model_tables["connector_table"] = links_df[
+        (links_df.A.isin(parameters.tap_N_list)) | (links_df.B.isin(parameters.tap_N_list))
+    ].to_dict('records')
+
+    model_tables["link_table"] = links_df[
+        ~(links_df.A.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
+        ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list))
+    ].to_dict('records')
+
+    # gtfs trips
+    trips_df = route_properties_gtfs_to_emme(
+        transit_network=transit_network,
+        parameters=parameters
+        )
+
+    itinerary_df=pd.DataFrame()
+    for index, row in trips_df.iterrows():
+        trip_itinerary_df = shape_gtfs_to_emme(
+            transit_network=transit_network,
+            trip_row=row
+        )
+        itinerary_df = itinerary_df.append(trip_itinerary_df, sort =False, ignore_index=True)
+
+    model_tables["line_table"] = trips_df.to_dict('records')
+
+    model_tables['itinerary_table'] = itinerary_df.to_dict('records')
 
     model_tables["vehicle_table"] = [
         {
@@ -135,8 +327,9 @@ def create_emme_network(
             "auto_equivalent": 2.5
         },
     ]
-    setup = SetupEmme(model_tables, [{"name": "AM", "duration": 4.0, "id": 10000}], out_dir, _NAME, include_transit)
-    setup.run()
+
+    return model_tables
+
 
 def route_properties_gtfs_to_emme(
     transit_network = None,
@@ -391,7 +584,7 @@ def shape_gtfs_to_emme(transit_network, trip_row):
 class SetupEmme(object):
     """Class to run Emme import and data management operations."""
 
-    def __init__(self, model_tables, time_periods, directory, name, include_transit):
+    def __init__(self, model_tables, directory, name, include_transit):
         """
         Initialize Python class to run setup of Emme project.
 
@@ -402,7 +595,6 @@ class SetupEmme(object):
             include_transit -- if True, process transit data from database
         """
         self._model_tables = model_tables
-        self._time_periods = time_periods
         self._directory = directory
         self._NAME = name
         self._include_transit = bool(include_transit)
@@ -512,10 +704,8 @@ class SetupEmme(object):
             NetworkAttribute("TRANSIT_SEGMENT", src_name="node_id"),
             NetworkAttribute("TRANSIT_SEGMENT", src_name="stop_order"),
         ]
-        self._time_attrs = [
-            #NetworkAttribute("LINK", "@capacity", "capacity", "EXTRA"),
-        ]
-        self._attrs = attributes + self._time_attrs
+
+        self._attrs = attributes
         self._networks = []
         self._emmebank = None
         self._app = None
@@ -527,19 +717,17 @@ class SetupEmme(object):
         node_table = self._model_tables["node_table"]
         connector_table = self._model_tables["connector_table"]
         link_table = self._model_tables["link_table"]
-        for period in self._time_periods:
-            for attr in self._time_attrs:
-                attr.cast = lambda x: float(x) * period["duration"]
-            proc = ProcessNetwork(period, self._attrs)
-            proc.process_base_network(
+
+        proc = ProcessNetwork(self._attrs)
+        proc.process_base_network(
                 centroid_table, node_table, connector_table, link_table)
-            if self._include_transit:
-                line_table = self._model_tables["line_table"]
-                itinerary_table = self._model_tables["itinerary_table"]
-                vehicle_table = self._model_tables["vehicle_table"]
-                proc.process_transit_network(
+        if self._include_transit:
+            line_table = self._model_tables["line_table"]
+            itinerary_table = self._model_tables["itinerary_table"]
+            vehicle_table = self._model_tables["vehicle_table"]
+            proc.process_transit_network(
                     line_table, itinerary_table, vehicle_table, walk_speed=3.0)
-            self._networks.append(proc.network)
+        self._networks.append(proc.network)
         self.create_emmebank()
         self.save_networks()
 
@@ -562,7 +750,7 @@ class SetupEmme(object):
 
         If there is an already existing project at this location it will be used instead.
         """
-        dir_path = _dir(self._directory)
+        dir_path = self._directory
         name = self._NAME
         project_path = _norm(_join(dir_path, name, name + ".emp"))
         if not _os.path.exists(project_path):
@@ -604,13 +792,13 @@ class SetupEmme(object):
                 totals["extra_attribute_values"] = calc_extra_attribute_values(network)
 
         num_matrices = 5
-        num_periods = len(self._time_periods)
+
         dimensions = {
             "scalar_matrices": 999,
             "destination_matrices": 999,
             "origin_matrices": 999,
-            "full_matrices": num_matrices * num_periods * 2,
-            "scenarios": num_periods * 2,
+            "full_matrices": num_matrices,
+            "scenarios": 1,
             "centroids": totals["centroids"],
             "regular_nodes": totals["regular_nodes"],
             "links": totals["links"],
@@ -646,21 +834,21 @@ class SetupEmme(object):
 
     def save_networks(self):
         """Save processed networks in Emmebank."""
-        for time, network in zip(self._time_periods, self._networks):
-            scen_id = time["id"]
-            scenario = self._emmebank.scenario(scen_id)
-            if scenario:
-                self._emmebank.delete_scenario(scen_id)
-            scenario = self._emmebank.create_scenario(scen_id)
-            scenario.title = "Time period %s" % time["name"]
-            for attr in self._attrs:
-                if attr.storage_type == "EXTRA":
-                    if scenario.extra_attribute(attr.name) is None:
-                        scenario.create_extra_attribute(attr.network_domain, attr.name)
-                elif attr.storage_type == "NETWORK_FIELD":
-                    if scenario.network_field(attr.network_domain, attr.name) is None:
-                        scenario.create_network_field(attr.network_domain, attr.name, attr.dtype)
-            scenario.publish_network(network)
+
+        scen_id = 1 # needs to be int
+        scenario = self._emmebank.scenario(scen_id)
+        if scenario:
+            self._emmebank.delete_scenario(scen_id)
+        scenario = self._emmebank.create_scenario(scen_id)
+
+        for attr in self._attrs:
+            if attr.storage_type == "EXTRA":
+                if scenario.extra_attribute(attr.name) is None:
+                    scenario.create_extra_attribute(attr.network_domain, attr.name)
+            elif attr.storage_type == "NETWORK_FIELD":
+                if scenario.network_field(attr.network_domain, attr.name) is None:
+                    scenario.create_network_field(attr.network_domain, attr.name, attr.dtype)
+        scenario.publish_network(self._networks[0])
 
     def close(self):
         self._app.close()
@@ -670,7 +858,7 @@ class SetupEmme(object):
 class ProcessNetwork(object):
     """Class to process and import network data from specified tables."""
 
-    def __init__(self, time, attributes):
+    def __init__(self, attributes):
         """
         Initialize Python class to run setup of Emme project.
 
@@ -680,8 +868,7 @@ class ProcessNetwork(object):
             attributes -- list of NetworkAttributes mapping input data fields to Emme data
                 (extra attributes, network fields) with cast details as required
         """
-        self._time = time["name"]
-        self._time_duration = time["duration"]
+
         self._attrs = attributes
         self._network = _network.Network()
         self._ignore_index_errors = True
@@ -745,10 +932,10 @@ class ProcessNetwork(object):
                 attr.set(link, row)
             # Default values for connectors, as these do not exist in the input data
             #link["@capacity"] = 9999.0
-            link["num_lanes"] = 1.0
-            link["volume_delay_func"] = 1
+            #link["lanes"] = 1.0
+            #link["volume_delay_func"] = 1
             #link["@speed"] = 60.0
-            link["length"] = 0.1
+            #link["length"] = 0.1
             links[link["#link_id"]] = link
 
         link_attrs = [attr for attr in self._attrs if attr.domain == "LINK"]
@@ -798,9 +985,9 @@ class ProcessNetwork(object):
                 mode = network.create_mode("TRANSIT", vehicle_data["mode"])
             vehicle = network.create_transit_vehicle(vehicle_data["id"], mode.id)
             if vehicle_data.get("total_capacity"):
-                vehicle.total_capacity = int(vehicle_data["total_capacity"] * self._time_duration)
+                vehicle.total_capacity = int(vehicle_data["total_capacity"])
             if vehicle_data.get("seated_capacity"):
-                vehicle.seated_capacity = int(vehicle_data["seated_capacity"] * self._time_duration)
+                vehicle.seated_capacity = int(vehicle_data["seated_capacity"])
             if vehicle_data.get("auto_equivalent"):
                 vehicle.auto_equivalent = float(vehicle_data["auto_equivalent"])
 
@@ -816,14 +1003,11 @@ class ProcessNetwork(object):
             all_stops[stop["line_id"]][stop["stop_order"]] = stop
 
         for line_data in line_table:
-            # filter for lines from other periods or with invalid headways
-            if line_data["time_period"] != self._time or line_data["headway_minutes"] > 999:
-                continue
 
             mode = network.transit_vehicle(line_data["vehicle_type"]).mode
             # Get the sequence of stops for this line and sort by "stop_order"
             stop_data = all_stops[line_data["line_id"]]
-            print(line_data['line_id'])
+            #print(line_data['line_id'])
             #print(stop_data)
             stop_seq_iter = iter(sorted([(k, node_map[v["node_id"]]) for k, v in stop_data.items()]))
             seq_num, i_node = next(stop_seq_iter)
