@@ -436,6 +436,56 @@ class Parameters:
             'Napa':7,
             'Sonoma':8,
             'Marin':9,
+            'External':10,
+            }
+
+        self.county_centroid_range_dict = {
+            'San Francisco':range(1,100000),
+            'San Mateo':range(100001,200000),
+            'Santa Clara':range(200001,300000),
+            'Alameda':range(300001,400000),
+            'Contra Costa':range(400001,500000),
+            'Solano':range(500001,600000),
+            'Napa':range(600001,700000),
+            'Sonoma':range(700001,800000),
+            'Marin':range(800001,900000),
+            'External':range(900001,1000000)
+            }
+
+        self.county_node_range_dict = {
+            'San Francisco':range(1000000,1500000),
+            'San Mateo':range(1500000,2000000),
+            'Santa Clara':range(2000000,2500000),
+            'Alameda':range(2500000,3000000),
+            'Contra Costa':range(3000000,3500000),
+            'Solano':range(3500000,4000000),
+            'Napa':range(4000000,4500000),
+            'Sonoma':range(4500000,5000000),
+            'Marin':range(5000000,5500000),
+            }
+
+        self.county_hov_node_range_dict = {
+            'San Francisco':range(5500000,6000000),
+            'San Mateo':range(6000000,6500000),
+            'Santa Clara':range(6500000,7000000),
+            'Alameda':range(7000000,7500000),
+            'Contra Costa':range(7500000,8000000),
+            'Solano':range(8000000,8500000),
+            'Napa':range(8500000,9000000),
+            'Sonoma':range(9000000,9500000),
+            'Marin':range(9500000,10000000),
+            }
+
+        self.county_link_range_dict = {
+            'San Francisco':range(1,1000000),
+            'San Mateo':range(1000000,2000000),
+            'Santa Clara':range(2000000,3000000),
+            'Alameda':range(3000000,4000000),
+            'Contra Costa':range(4000000,5000000),
+            'Solano':range(5000000,6000000),
+            'Napa':range(6000000,7000000),
+            'Sonoma':range(7000000,8000000),
+            'Marin':range(8000000,9000000)
             }
 
         #MC

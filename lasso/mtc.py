@@ -1803,7 +1803,7 @@ def vehicle_type_pts_format(row):
 def _is_express_bus(x):
     if x.agency_name == "AC Transit":
         if x.route_short_name[0] not in map(str,range(1,10)):
-            if x.route_short_name != "BSD":
+            if (x.route_short_name != "BSD") & (x.route_short_name != "BSN"):
                 return 1
     if x.agency_name == "County Connection":
         if x.route_short_name[-1] == "X":
@@ -2692,3 +2692,132 @@ def write_fare_matrix(
         header = False,
         sep = " "
     )
+
+def calculate_county(
+        roadway_network=None,
+        parameters=None,
+        network_variable:str="county",
+        overwrite:bool=False,
+    ):
+        """
+        Calculates county variable.
+
+        This uses the centroid of the geometry field to determine which county it should be labeled, when county is missing.
+        For links and nodes that already ID-ed using the county logic, do not use county from geomatching
+        For links and nodes that do not follow county ID logic, use county from geomatching
+        For links and nodes that are externals, use external
+
+
+        Args:
+            roadway_network (RoadwayNetwork): Input Wrangler roadway network
+            parameters (Parameters): Lasso parameters object
+            network_variable (str): Name of lanes variable
+            overwrite (Bool): True if overwriting existing county variable in network.  Default to False.
+
+        Returns:
+            None
+        """
+        if network_variable in roadway_network.links_df:
+            if overwrite:
+                WranglerLogger.info(
+                    "Overwriting existing County Variable '{}' already in network".format(
+                        network_variable
+                    )
+                )
+            else:
+                WranglerLogger.info(
+                    "County Variable '{}' already in network, calculating for missing ones".format(
+                        network_variable
+                    )
+                )
+    
+
+        """
+        Verify inputs
+        """
+
+        county_shape = parameters.county_shape
+
+        county_shape_variable = parameters.county_variable_shp
+
+        county_name_list = list(parameters.county_code_dict.keys())
+
+        inv_county_code_dict = {v: k for k, v in parameters.county_code_dict.items()}
+
+        WranglerLogger.info(
+            "Adding roadway network variable for county using a spatial join with: {}".format(
+                county_shape
+            )
+        )
+
+        """
+        Start actual process
+        """
+
+        link_centroids_gdf = roadway_network.links_df.copy()
+        link_centroids_gdf["geometry"] = link_centroids_gdf["geometry"].centroid
+
+        county_gdf = gpd.read_file(county_shape)
+        county_gdf = county_gdf.to_crs(epsg=roadway_network.crs)
+        joined_gdf = gpd.sjoin(link_centroids_gdf, county_gdf, how="left", op="intersects")
+        joined_gdf[county_shape_variable].fillna('', inplace=True)
+
+        def _calculate_link_county(x):
+            if x.county in county_name_list:
+                return x.county
+            elif x.model_link_id < 10000000:
+                return inv_county_code_dict[x.model_link_id // 1000000 + 1]
+            elif x.A in parameters.county_centroid_range_dict['External']:
+                return 'External'
+            elif x.B in parameters.county_centroid_range_dict['External']:
+                return 'External'
+            elif x[county_shape_variable] != '':
+                return x[county_shape_variable]
+            else:
+                return 'External'
+            
+        joined_gdf[county_shape_variable] = (
+            joined_gdf
+            .apply(lambda x: _calculate_link_county(x),
+            axis = 1)
+        )
+
+        roadway_network.links_df[network_variable] = joined_gdf[county_shape_variable]
+
+        WranglerLogger.info(
+            "Finished Calculating link county variable: {}".format(network_variable)
+        )
+
+        # node county
+        nodes_gdf = roadway_network.nodes_df.copy()
+
+        joined_gdf = gpd.sjoin(nodes_gdf, county_gdf, how="left", op="intersects")
+        joined_gdf[county_shape_variable].fillna('', inplace=True)
+
+        def _calculate_node_county(x):
+            if x.county in county_name_list:
+                return x.county
+            elif x.model_node_id < 1000000: #taz/maz/tap
+                return inv_county_code_dict[x.model_node_id // 100000 + 1]
+            elif x.model_node_id < 5500000: #regular nodes
+                return inv_county_code_dict[(x.model_node_id-1000000) // 500000 + 1]
+            elif x.model_node_id < 10000000: #hov nodes
+                return inv_county_code_dict[(x.model_node_id-5500000) // 500000 + 1]
+            elif x[county_shape_variable] != '':
+                return x[county_shape_variable]
+            else:
+                return 'External'
+            
+        joined_gdf[county_shape_variable] = (
+            joined_gdf
+            .apply(lambda x: _calculate_node_county(x),
+            axis = 1)
+        )
+
+        roadway_network.nodes_df[network_variable] = joined_gdf[county_shape_variable]
+
+        WranglerLogger.info(
+            "Finished Calculating node county variable: {}".format(network_variable)
+        )
+
+        return roadway_network
