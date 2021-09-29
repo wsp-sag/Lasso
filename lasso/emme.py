@@ -11,7 +11,6 @@ import inro.emme.database.emmebank as _eb
 import inro.emme.desktop.app as _app
 import inro.emme.network as _network
 
-import pickle
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import LineString
@@ -148,7 +147,8 @@ def create_emme_network(
             nodes_df=nodes_df,
             links_df=links_df,
             transit_network=transit_network,
-            parameters=parameters
+            parameters=parameters,
+            output_dir=out_dir,
         )
 
         setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
@@ -162,6 +162,7 @@ def prepare_table_for_taz_drive_network(
 
     """
     prepare model table for taz-scale drive network, in which taz nodes are centroids
+    keep links that are drive_access == 1 and assignable
 
     Arguments:
         nodes_df -- node database
@@ -178,18 +179,23 @@ def prepare_table_for_taz_drive_network(
         nodes_df.N.isin(parameters.taz_N_list)
     ].to_dict('records')
 
-    model_tables["node_table"] = nodes_df[
-        ~(nodes_df.N.isin(parameters.taz_N_list + parameters.maz_N_list))
-    ].to_dict('records')
-
     model_tables["connector_table"] = links_df[
         (links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list))
     ].to_dict('records')
 
-    model_tables["link_table"] = links_df[
+    drive_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list + parameters.maz_N_list)) & 
-        ~(links_df.B.isin(parameters.taz_N_list + parameters.maz_N_list))
-    ].to_dict('records')
+        ~(links_df.B.isin(parameters.taz_N_list + parameters.maz_N_list)) &
+        ((links_df.drive_access == 1) & (links_df.assignable == 1))
+    ].copy()
+
+    model_tables["link_table"] = drive_links_df.to_dict('records')
+
+    drive_nodes_df = nodes_df[
+        (nodes_df.N.isin(drive_links_df.A.tolist()) + nodes_df.N.isin(drive_links_df.B.tolist()))
+    ].copy()
+
+    model_tables["node_table"] = drive_nodes_df.to_dict('records')
 
     return model_tables
 
@@ -201,6 +207,7 @@ def prepare_table_for_maz_drive_network(
 
     """
     prepare model table for maz-scale drive network, in which there are no centroids, drop taz nodes and connectors
+    keep links that are drive_access == 1 and assignable == 1
 
     Arguments:
         nodes_df -- node database
@@ -218,14 +225,20 @@ def prepare_table_for_maz_drive_network(
 
     model_tables["connector_table"] = []
 
-    model_tables["node_table"] = nodes_df[
-        ~(nodes_df.N.isin(parameters.taz_N_list))
-    ].to_dict('records')
-
-    model_tables["link_table"] = links_df[
+    drive_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list)) & 
-        ~(links_df.B.isin(parameters.taz_N_list))
-    ].to_dict('records')
+        ~(links_df.B.isin(parameters.taz_N_list)) &
+        ((links_df.drive_access == 1) & (links_df.assignable == 1))
+    ].copy()
+
+    model_tables["link_table"] = drive_links_df.to_dict('records')
+
+    drive_nodes_df = nodes_df[
+        ~(nodes_df.N.isin(parameters.taz_N_list)) &
+        (nodes_df.N.isin(drive_links_df.A.tolist()) + nodes_df.N.isin(drive_links_df.B.tolist()))
+    ].copy()
+
+    model_tables["node_table"] = drive_nodes_df.to_dict('records')
 
     return model_tables
 
@@ -237,6 +250,7 @@ def prepare_table_for_maz_active_modes_network(
 
     """
     prepare model table for maz-scale active modes network, in which there are no centroids
+    keep links that are walk_access == 1 and bike_access == 1
 
     Arguments:
         nodes_df -- node database
@@ -254,9 +268,18 @@ def prepare_table_for_maz_active_modes_network(
 
     model_tables["connector_table"] = []
 
-    model_tables["node_table"] = nodes_df.to_dict('records')
+    activate_mode_links_df = links_df[
+        (links_df.walk_access == 1) | 
+        (links_df.bike_access == 1)
+    ].copy()
 
-    model_tables["link_table"] = links_df.to_dict('records')
+    model_tables["link_table"] = activate_mode_links_df.to_dict('records')
+
+    activate_mode_nodes_df = nodes_df[
+        nodes_df.N.isin(activate_mode_links_df.A.tolist() + activate_mode_links_df.B.tolist())
+    ].copy()
+
+    model_tables["node_table"] = activate_mode_nodes_df.to_dict('records')
 
     return model_tables
 
@@ -265,10 +288,12 @@ def prepare_table_for_tap_transit_network(
     links_df,
     transit_network,
     parameters,
+    output_dir: str,
 ):
 
     """
     prepare model table for tap-scale transit network, in which taps are centroids, drop taz and maz
+    keep links that are drive_access, bus_only, rail_only
 
     Arguments:
         nodes_df -- node database
@@ -287,23 +312,33 @@ def prepare_table_for_tap_transit_network(
         nodes_df.N.isin(parameters.tap_N_list)
     ].to_dict('records')
 
-    model_tables["node_table"] = nodes_df[
-        ~(nodes_df.N.isin(parameters.tap_N_list + parameters.taz_N_list + parameters.maz_N_list))
-    ].to_dict('records')
-
     model_tables["connector_table"] = links_df[
         (links_df.A.isin(parameters.tap_N_list)) | (links_df.B.isin(parameters.tap_N_list))
     ].to_dict('records')
 
-    model_tables["link_table"] = links_df[
+    transit_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
-        ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list))
-    ].to_dict('records')
+        ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
+        ((links_df.drive_access == 1) | (links_df.bus_only == 1) | (links_df.rail_only == 1))
+    ].copy()
+
+    model_tables["link_table"] = transit_links_df.to_dict('records')
+
+    transit_nodes_df = nodes_df[
+        ~(nodes_df.N.isin(parameters.tap_N_list + parameters.taz_N_list + parameters.maz_N_list)) &
+        (nodes_df.N.isin(transit_links_df.A.tolist() + transit_links_df.B.tolist()))
+    ].copy()
+
+    model_tables["node_table"] = transit_nodes_df.to_dict('records')
+
+    # read vehicle type table
+    veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
 
     # gtfs trips
     trips_df = route_properties_gtfs_to_emme(
         transit_network=transit_network,
-        parameters=parameters
+        parameters=parameters,
+        output_dir = output_dir
         )
 
     itinerary_df=pd.DataFrame()
@@ -318,6 +353,7 @@ def prepare_table_for_tap_transit_network(
 
     model_tables['itinerary_table'] = itinerary_df.to_dict('records')
 
+    model_tables["vehicle_table"] = veh_cap_crosswalk.to_dict('records')
     model_tables["vehicle_table"] = [
         {
             "id": 1,
@@ -334,7 +370,7 @@ def prepare_table_for_tap_transit_network(
 def route_properties_gtfs_to_emme(
     transit_network = None,
     parameters = None,
-    outpath: str = None
+    output_dir: str = None
 ):
     """
     Prepare gtfs for cube lin file.
@@ -358,16 +394,26 @@ def route_properties_gtfs_to_emme(
         "Converting GTFS Standard Properties to MTC's Emme Standard"
     )
 
+    if 'faresystem_crosswalk.txt' in _os.listdir(output_dir):
+        faresystem_crosswalk_file = _os.path.join(output_dir, "faresystem_crosswalk.txt")
+    else:
+        faresystem_crosswalk_file = parameters.faresystem_crosswalk_file
+    
+    WranglerLogger.info(
+        "Reading faresystem from {}".format(faresystem_crosswalk_file)
+    )
+
     shape_df = transit_network.feed.shapes.copy()
     trip_df = transit_network.feed.trips.copy()
 
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
-    """
-    faresystem_crosswalk = pd.read_csv(_os.path.join(_os.path.dirname(outpath), "faresystem_crosswalk.txt"),
+
+    faresystem_crosswalk = pd.read_csv(
+        faresystem_crosswalk_file,
         dtype = {"route_id" : "object"}
     )
-    """
+    
     veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
 
     """
@@ -432,7 +478,7 @@ def route_properties_gtfs_to_emme(
     )
 
     trip_df["line_id"] = trip_df["line_id"].str.slice(stop = 28)
-    """
+    
     # faresystem
     zonal_fare_dict = faresystem_crosswalk[
         (faresystem_crosswalk.route_id_original.isnull())
@@ -454,9 +500,9 @@ def route_properties_gtfs_to_emme(
 
     # GTFS fare info is incomplete
     trip_df["faresystem"].fillna(99,inplace = True)
-    """
+    
     # special vehicle types
-    #trip_df["vehicle_type"] = trip_df.apply(lambda x: _special_vehicle_type(x), axis = 1)
+    trip_df["VEHTYPE"] = trip_df.apply(lambda x: _special_vehicle_type(x), axis = 1)
     trip_df["vehicle_type"] = 1
     # get vehicle capacity
     trip_df = pd.merge(trip_df, veh_cap_crosswalk, how = "left", on = "VEHTYPE")
@@ -627,6 +673,8 @@ class SetupEmme(object):
             NetworkAttribute("LINK", "#link_id", "model_link_id", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("LINK", src_name="A"),
             NetworkAttribute("LINK", src_name="B"),
+            NetworkAttribute("LINK", "#a_node", "A", "NETWORK_FIELD", "INTEGER32"),
+            NetworkAttribute("LINK", "#b_node", "B", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("LINK", "@assignable", "assignable", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@bike_link", "bike_access", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@drive_link", "drive_access", "EXTRA", "INTEGER32"),
@@ -643,7 +691,6 @@ class SetupEmme(object):
             NetworkAttribute("LINK", "@tollseg", "tollseg", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@transit", "transit", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "#cntype", "cntype", "NETWORK_FIELD", "STRING"),
-            #NetworkAttribute("LINK", "@speed", "posted_speed", "EXTRA"),
             NetworkAttribute("LINK", "@lanes_ea", "lanes_EA", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@lanes_am", "lanes_AM", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@lanes_md", "lanes_MD", "EXTRA", "INTEGER32"),
@@ -654,12 +701,12 @@ class SetupEmme(object):
             NetworkAttribute("LINK", "@useclass_md", "useclass_MD", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@useclass_pm", "useclass_PM", "EXTRA", "INTEGER32"),
             NetworkAttribute("LINK", "@useclass_ev", "useclass_EV", "EXTRA", "INTEGER32"),
-            #NetworkAttribute("LINK", "length", "length", cast=lambda x: int(x) / 1000.0),
-            #NetworkAttribute("LINK", "volume_delay_func", "vdf_id", "STANDARD", cast=int),
             NetworkAttribute("LINK", "_vertices", "geometry_wkt", storage_type="STANDARD", dtype="WKT_GEOMETRY"),
             NetworkAttribute("CONNECTOR", "#link_id", "model_link_id", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("CONNECTOR", src_name="A"),
             NetworkAttribute("CONNECTOR", src_name="B"),
+            NetworkAttribute("CONNECTOR", "#a_node", "A", "NETWORK_FIELD", "INTEGER32"),
+            NetworkAttribute("CONNECTOR", "#b_node", "B", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("CONNECTOR", "@assignable", "assignable", "EXTRA", "INTEGER32"),
             NetworkAttribute("CONNECTOR", "@bike_link", "bike_access", "EXTRA", "INTEGER32"),
             NetworkAttribute("CONNECTOR", "@drive_link", "drive_access", "EXTRA", "INTEGER32"),
@@ -687,18 +734,17 @@ class SetupEmme(object):
             NetworkAttribute("CONNECTOR", "@useclass_pm", "useclass_PM", "EXTRA", "INTEGER32"),
             NetworkAttribute("CONNECTOR", "@useclass_ev", "useclass_EV", "EXTRA", "INTEGER32"),
             NetworkAttribute("CONNECTOR", "_vertices", "geometry_wkt", storage_type="STANDARD", dtype="WKT_GEOMETRY"),
-            NetworkAttribute("TRANSIT_LINE", "description", "route_long_name", dtype="STRING"),
+            NetworkAttribute("TRANSIT_LINE", "#description", "route_long_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", "#short_name", "route_short_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", "headway", "headway_minutes"),
-            NetworkAttribute("TRANSIT_LINE", src_name="time_period"),
+            NetworkAttribute("TRANSIT_LINE", "#time_period", "time_period", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", src_name="line_id"),
-            NetworkAttribute("TRANSIT_LINE", src_name="mode"),
-            NetworkAttribute("TRANSIT_LINE", src_name="vehicle_type"),
+            NetworkAttribute("TRANSIT_LINE", "#mode", "TM2_mode","NETWORK_FIELD","INTEGER32"),
+            NetworkAttribute("TRANSIT_LINE", "#vehtype", "vehtype_num","NETWORK_FIELD","INTEGER32"),
+            NetworkAttribute("TRANSIT_LINE", "#faresystem", "faresystem","NETWORK_FIELD","INTEGER32"),
             NetworkAttribute("TRANSIT_SEGMENT", "allow_alightings", "allow_alightings", dtype="BOOLEAN"),
             NetworkAttribute("TRANSIT_SEGMENT", "allow_boardings", "allow_boardings", dtype="BOOLEAN"),
-            NetworkAttribute("TRANSIT_SEGMENT", "data1", "time_minutes"),
-            #NetworkAttribute("TRANSIT_SEGMENT", "dwell_time", "dwell_time_minutes"),
-            #NetworkAttribute("TRANSIT_SEGMENT", "transit_time_func", "transit_time_function", dtype="INTEGER32"),
+            NetworkAttribute("TRANSIT_SEGMENT", "@nntime", "time_minutes","EXTRA", "REAL"),
             NetworkAttribute("TRANSIT_SEGMENT", "#stop_name", "stop_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_SEGMENT", src_name="line_id"),
             NetworkAttribute("TRANSIT_SEGMENT", src_name="node_id"),
@@ -985,7 +1031,7 @@ class ProcessNetwork(object):
                 mode = network.create_mode("TRANSIT", vehicle_data["mode"])
             vehicle = network.create_transit_vehicle(vehicle_data["id"], mode.id)
             if vehicle_data.get("total_capacity"):
-                vehicle.total_capacity = int(vehicle_data["total_capacity"])
+                vehicle.total_capacity = int(vehicle_data['total_capacity'])
             if vehicle_data.get("seated_capacity"):
                 vehicle.seated_capacity = int(vehicle_data["seated_capacity"])
             if vehicle_data.get("auto_equivalent"):

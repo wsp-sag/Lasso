@@ -15,7 +15,7 @@ union_city_nodes_df = pickle.load(open(os.path.join(test_dir, "union_city_nodes.
 
 params = Parameters()
 
-transit_dir = r"D:\github\lfs-cleaning\travel-model-two-networks\data\processed\version_11"
+transit_dir = test_dir
 
 transit_net = TransitNetwork.read(feed_path = transit_dir)
 
@@ -90,7 +90,7 @@ def test_write_emme_all_five_networks(request):
         nodes_df=union_city_nodes_df,
         transit_network=model_transit_net,
         name="test lasso",
-        path="D:/MTC/emme",
+        path="D:/github/lfs-cleaning/travel-model-two-networks/data/processed/version_12",
         write_taz_drive_network = True,
         write_maz_drive_network = True,
         write_maz_active_modes_network = True,

@@ -701,6 +701,10 @@ class Parameters:
             self.data_file_location, "lookups", "transitSeatCap.csv"
         )
 
+        self.faresystem_crosswalk_file = os.path.join(
+            self.data_file_location, "lookups", "faresystem_crosswalk.txt"
+        )
+
         # https://app.asana.com/0/12291104512575/1200287255197808/f
         self.fare_2015_to_2010_deflator = 0.927
         ####
