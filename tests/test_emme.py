@@ -91,9 +91,8 @@ def test_write_emme_all_five_networks(request):
         transit_network=model_transit_net,
         name="test lasso",
         path="Z:/Data/Users/Sijia/MTC/github/Lasso/tests/scratch",
-        write_taz_drive_network = False,
-        write_maz_drive_network = False,
+        write_drive_network = True,
         write_maz_active_modes_network = True,
-        write_tap_transit_network = False,
+        write_tap_transit_network = True,
         parameters=params
     )

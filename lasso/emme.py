@@ -40,8 +40,9 @@ def create_emme_network(
     nodes_df: Optional[GeoDataFrame]=None,
     name: Optional[str]="",
     path: Optional[str]="",
-    write_taz_drive_network: bool = True,
-    write_maz_drive_network: bool = True,
+    write_drive_network: bool = True,
+    write_taz_drive_network: bool = False,
+    write_maz_drive_network: bool = False,
     write_maz_active_modes_network: bool = True,
     write_tap_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
@@ -108,6 +109,54 @@ def create_emme_network(
     WranglerLogger.info("Converting geometry into wkt geometry")
     # geometry to wkt geometry
     links_df["geometry_wkt"] = links_df["geometry"].apply(lambda x: x.wkt)
+
+    # create taz_zone_id field
+    nodes_df['taz_zone_id'] = np.where(
+        nodes_df['N'].isin(parameters.taz_N_list),
+        nodes_df['N'],
+        0
+    )
+
+    # create maz_zone_id field
+    nodes_df['maz_zone_id'] = np.where(
+        nodes_df['N'].isin(parameters.maz_N_list),
+        nodes_df['N'],
+        0
+    )
+
+    # create tap_zone_id field
+    nodes_df['tap_zone_id'] = np.where(
+        nodes_df['N'].isin(parameters.tap_N_list),
+        nodes_df['N'],
+        0
+    )
+
+    # create node_type field
+    nodes_df['node_type'] = np.where(
+        nodes_df['N'].isin(parameters.taz_N_list),
+        'taz',
+        np.where(
+            nodes_df['N'].isin(parameters.maz_N_list),
+            'maz',
+            np.where(
+                nodes_df['N'].isin(parameters.tap_N_list),
+                'tap',
+                'network'
+            )
+        )
+    )
+
+    if write_drive_network:
+        _NAME = "emme_drive_network"
+        include_transit = False
+        model_tables = prepare_table_for_drive_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
+            parameters=parameters
+        )
+
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup.run()
 
     if write_taz_drive_network:
         _NAME = "emme_taz_drive_network"
@@ -210,6 +259,57 @@ def prepare_table_for_taz_drive_network(
 
     return model_tables
 
+def prepare_table_for_drive_network(
+    nodes_df,
+    links_df,
+    parameters,
+):
+
+    """
+    prepare model table for drive network, in which taz nodes are centroids
+    maz and tap nodes are included, but not as centroids
+    keep links that are drive_access == 1 and assignable == 1
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # use taz as centroids
+    model_tables["centroid_table"] = nodes_df[
+        nodes_df.N.isin(parameters.taz_N_list)
+    ].to_dict('records')
+
+    # taz connectors as centroid connectors
+    model_tables["connector_table"] = links_df[
+        (links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list))
+    ].to_dict('records')
+
+    # links: not taz connectors, has to be drive, assignable, or tap links
+    drive_links_df = links_df[
+        ~(links_df.A.isin(parameters.taz_N_list)) & 
+        ~(links_df.B.isin(parameters.taz_N_list)) &
+        (
+            ((links_df.drive_access == 1) & (links_df.assignable == 1)) | 
+            ((links_df.A.isin(parameters.tap_N_list)) | (links_df.B.isin(parameters.tap_N_list)))
+        )
+    ].copy()
+
+    model_tables["link_table"] = drive_links_df.to_dict('records')
+
+    drive_nodes_df = nodes_df[
+        (nodes_df.N.isin(drive_links_df.A.tolist()) + nodes_df.N.isin(drive_links_df.B.tolist()))
+    ].copy()
+
+    model_tables["node_table"] = drive_nodes_df.to_dict('records')
+
+    return model_tables
+
 def prepare_table_for_maz_drive_network(
     nodes_df,
     links_df,
@@ -264,6 +364,8 @@ def prepare_table_for_maz_active_modes_network(
     """
     prepare model table for maz-scale active modes network, in which there are no centroids
     keep links that are walk_access == 1 and bike_access == 1
+    tap links are walk_access == 1
+    need to keep taz links as well
 
     Arguments:
         nodes_df -- node database
@@ -276,7 +378,8 @@ def prepare_table_for_maz_active_modes_network(
     # activate mode links
     activate_mode_links_df = links_df[
         (links_df.walk_access == 1) | 
-        (links_df.bike_access == 1)
+        (links_df.bike_access == 1) | 
+        ((links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list)))
     ].copy()
 
     # divide active mode links and nodes into subnetworks
@@ -719,7 +822,11 @@ class SetupEmme(object):
             NetworkAttribute("NODE", "#osm_node_id", "osm_node_id", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("NODE", "@rail_node", "rail_only", "EXTRA", "INTEGER32"),
             NetworkAttribute("NODE", "@farezone", "farezone", "EXTRA", "INTEGER32"),
-            NetworkAttribute("NODE", "@tap_id", "tap_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("NODE", "@stop_tap_id", "tap_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("NODE", "@taz_id", "taz_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("NODE", "@maz_id", "maz_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("NODE", "@tap_id", "tap_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("NODE", "#node_type", "node_type", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("CENTROID", "#zone_id", "N", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("CENTROID", "#node_id", "N", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("CENTROID", "x", "X"),
@@ -731,7 +838,11 @@ class SetupEmme(object):
             NetworkAttribute("CENTROID", "#osm_node_id", "osm_node_id", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("CENTROID", "@rail_node", "rail_only", "EXTRA", "INTEGER32"),
             NetworkAttribute("CENTROID", "@farezone", "farezone", "EXTRA", "INTEGER32"),
-            NetworkAttribute("CENTROID", "@tap_id", "tap_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("CENTROID", "@stop_tap_id", "tap_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("CENTROID", "@taz_id", "taz_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("CENTROID", "@maz_id", "maz_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("CENTROID", "@tap_id", "tap_zone_id", "EXTRA", "INTEGER32"),
+            NetworkAttribute("CENTROID", "#node_type", "node_type", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("LINK", "#link_id", "model_link_id", "NETWORK_FIELD", "INTEGER32"),
             NetworkAttribute("LINK", src_name="A"),
             NetworkAttribute("LINK", src_name="B"),
@@ -802,6 +913,7 @@ class SetupEmme(object):
             NetworkAttribute("TRANSIT_LINE", "#time_period", "tod_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", src_name="line_id"),
             NetworkAttribute("TRANSIT_LINE", "#mode", "TM2_mode","NETWORK_FIELD","INTEGER32"),
+            NetworkAttribute("TRANSIT_LINE", "#line_haul_name", "TM2_line_haul_name","NETWORK_FIELD","STRING"),
             NetworkAttribute("TRANSIT_LINE", "#vehtype", "vehtype_num","NETWORK_FIELD","INTEGER32"),
             NetworkAttribute("TRANSIT_LINE", "#faresystem", "faresystem","NETWORK_FIELD","INTEGER32"),
             NetworkAttribute("TRANSIT_SEGMENT", "allow_alightings", "allow_alightings", dtype="BOOLEAN"),
