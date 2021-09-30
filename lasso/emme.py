@@ -45,6 +45,8 @@ def create_emme_network(
     write_maz_active_modes_network: bool = True,
     write_tap_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
+    subregion_boundary_file: Optional[str] = None,
+    subregion_boundary_id_variable: Optional[str] = None
 ):
     """
     method that calls emme to write out EMME network from Lasso network
@@ -75,12 +77,14 @@ def create_emme_network(
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
+    WranglerLogger.info("Converting CRS of input network to epsg 4326")
     links_df = links_df.to_crs(epsg = 4326)
     nodes_df = nodes_df.to_crs(epsg = 4326)
 
     nodes_df["X"] = nodes_df["geometry"].apply(lambda g: g.x)
     nodes_df["Y"] = nodes_df["geometry"].apply(lambda g: g.y)
 
+    WranglerLogger.info("Creating shapes for backward directions on two-way links")
     # create reverse shapes
     links_df = pd.merge(
         links_df,
@@ -101,11 +105,12 @@ def create_emme_network(
         axis = 1
     )
 
+    WranglerLogger.info("Converting geometry into wkt geometry")
     # geometry to wkt geometry
     links_df["geometry_wkt"] = links_df["geometry"].apply(lambda x: x.wkt)
 
     if write_taz_drive_network:
-        _NAME = "taz_drive_network"
+        _NAME = "emme_taz_drive_network"
         include_transit = False
         model_tables = prepare_table_for_taz_drive_network(
             nodes_df=nodes_df,
@@ -117,7 +122,7 @@ def create_emme_network(
         setup.run()
 
     if write_maz_drive_network:
-        _NAME = "maz_drive_network"
+        _NAME = "emme_maz_drive_network"
         include_transit = False
         model_tables = prepare_table_for_maz_drive_network(
             nodes_df=nodes_df,
@@ -129,19 +134,25 @@ def create_emme_network(
         setup.run()
 
     if write_maz_active_modes_network:
-        _NAME = "maz_active_modes_network"
         include_transit = False
         model_tables = prepare_table_for_maz_active_modes_network(
             nodes_df=nodes_df,
             links_df=links_df,
-            parameters=parameters
+            parameters=parameters,
+            subregion_boundary_file = subregion_boundary_file,
+            subregion_boundary_id_variable = subregion_boundary_id_variable
         )
 
-        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
-        setup.run()
+        for key, value in model_tables.items():
+            _NAME = "emme_maz_active_modes_network"
+            _NAME = _NAME + '_' + key
+            _model_tables = value
+
+            setup = SetupEmme(_model_tables, out_dir, _NAME, include_transit)
+            setup.run()
     
     if write_tap_transit_network:
-        _NAME = "tap_transit_network"
+        _NAME = "emme_tap_transit_network"
         include_transit = True
         model_tables = prepare_table_for_tap_transit_network(
             nodes_df=nodes_df,
@@ -246,6 +257,8 @@ def prepare_table_for_maz_active_modes_network(
     nodes_df,
     links_df,
     parameters,
+    subregion_boundary_file: Optional[str] = None,
+    subregion_boundary_id_variable: Optional[str] = None
 ):
 
     """
@@ -260,28 +273,66 @@ def prepare_table_for_maz_active_modes_network(
         dictionary of model network settings
     """
 
-    model_tables = dict()
-
-    # no centroids
-    
-    model_tables["centroid_table"] = []
-
-    model_tables["connector_table"] = []
-
+    # activate mode links
     activate_mode_links_df = links_df[
         (links_df.walk_access == 1) | 
         (links_df.bike_access == 1)
     ].copy()
 
-    model_tables["link_table"] = activate_mode_links_df.to_dict('records')
+    # divide active mode links and nodes into subnetworks
+    # due to the emme limitations on network #link and #node
 
-    activate_mode_nodes_df = nodes_df[
-        nodes_df.N.isin(activate_mode_links_df.A.tolist() + activate_mode_links_df.B.tolist())
-    ].copy()
+    if subregion_boundary_file:
+        subregion_boundary_for_active_modes_file = subregion_boundary_file
+        subregion_boundary_id_variable = subregion_boundary_id_variable
+    else:
+        subregion_boundary_for_active_modes_file = parameters.subregion_boundary_file
+        subregion_boundary_id_variable = parameters.subregion_boundary_id_variable
 
-    model_tables["node_table"] = activate_mode_nodes_df.to_dict('records')
+    WranglerLogger.info("Spliting activate mode network into subnetworks using {}".format(subregion_boundary_for_active_modes_file))
+    subregion_boundary_gdf = gpd.read_file(subregion_boundary_for_active_modes_file)
 
-    return model_tables
+    # sjoin activate links with subregion polygon
+    activate_mode_links_df = gpd.sjoin(
+        activate_mode_links_df,
+        subregion_boundary_gdf,
+        how = 'left',
+        op = 'intersects'
+    )
+
+    # fill na for links outside of the polygon
+    activate_mode_links_df[subregion_boundary_id_variable].fillna(0, inplace = True)
+
+    model_tables_dict = dict()
+
+    for i in activate_mode_links_df[subregion_boundary_id_variable].unique():
+        
+        # no centroids
+
+        model_tables = dict()
+    
+        model_tables["centroid_table"] = []
+
+        model_tables["connector_table"] = []
+
+        subregion_links_df = activate_mode_links_df[
+            activate_mode_links_df[subregion_boundary_id_variable] == i
+        ].copy()
+
+        model_tables["link_table"] = subregion_links_df.to_dict('records')
+
+        subregion_nodes_df = nodes_df[
+            nodes_df.N.isin(subregion_links_df.A.tolist() + subregion_links_df.B.tolist())
+        ].copy()
+
+        model_tables["node_table"] = subregion_nodes_df.to_dict('records')
+
+        if type(i) == 'str':
+            model_tables_dict['subregion_'+i] = model_tables
+        else:
+            model_tables_dict['subregion_'+str(i)] = model_tables
+
+    return model_tables_dict
 
 def prepare_table_for_tap_transit_network(
     nodes_df,
@@ -342,12 +393,15 @@ def prepare_table_for_tap_transit_network(
         )
 
     itinerary_df=pd.DataFrame()
+    WranglerLogger.info("Creating itinerary table for each transit trip")
     for index, row in trips_df.iterrows():
+        #WranglerLogger.info("Creating itinerary table for trip {}".format(row.line_id))
         trip_itinerary_df = shape_gtfs_to_emme(
             transit_network=transit_network,
             trip_row=row
         )
         itinerary_df = itinerary_df.append(trip_itinerary_df, sort =False, ignore_index=True)
+    WranglerLogger.info("Finished creating itinerary table for each transit trip")
 
     model_tables["line_table"] = trips_df.to_dict('records')
 
@@ -406,12 +460,20 @@ def route_properties_gtfs_to_emme(
     shape_df = transit_network.feed.shapes.copy()
     trip_df = transit_network.feed.trips.copy()
 
+    WranglerLogger.info(
+        "Reading mode crosswalk from {}".format(parameters.mode_crosswalk_file)
+    )
+
     mode_crosswalk = pd.read_csv(parameters.mode_crosswalk_file)
     mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
 
     faresystem_crosswalk = pd.read_csv(
         faresystem_crosswalk_file,
         dtype = {"route_id" : "object"}
+    )
+
+    WranglerLogger.info(
+        "Reading vehicle capacity table from {}".format(parameters.veh_cap_crosswalk_file)
     )
     
     veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
@@ -424,7 +486,7 @@ def route_properties_gtfs_to_emme(
     trip_df = pd.merge(trip_df, transit_network.feed.frequencies, how="left", on="trip_id")
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
-    trip_df["time_period"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period)
+    trip_df["tod_name"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period)
 
     # add shape_id to name when N most common pattern is used for routes*tod*direction
     trip_df["shp_id"] = trip_df.groupby(["route_id", "tod", "direction_id"]).cumcount()
@@ -468,7 +530,7 @@ def route_properties_gtfs_to_emme(
         + "_"
         + str(x.route_id)
         + "_"
-        + x.time_period
+        + x.tod_name
         + "_"
         + "d"
         + str(int(x.direction_id))
@@ -737,7 +799,7 @@ class SetupEmme(object):
             NetworkAttribute("TRANSIT_LINE", "#description", "route_long_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", "#short_name", "route_short_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", "headway", "headway_minutes"),
-            NetworkAttribute("TRANSIT_LINE", "#time_period", "time_period", "NETWORK_FIELD", "STRING"),
+            NetworkAttribute("TRANSIT_LINE", "#time_period", "tod_name", "NETWORK_FIELD", "STRING"),
             NetworkAttribute("TRANSIT_LINE", src_name="line_id"),
             NetworkAttribute("TRANSIT_LINE", "#mode", "TM2_mode","NETWORK_FIELD","INTEGER32"),
             NetworkAttribute("TRANSIT_LINE", "#vehtype", "vehtype_num","NETWORK_FIELD","INTEGER32"),

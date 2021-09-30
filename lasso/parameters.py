@@ -718,6 +718,12 @@ class Parameters:
         self.log_to_net_crosswalk = os.path.join(
             self.settings_location, "log_to_net.csv"
         )
+
+        self.subregion_boundary_file = os.path.join(
+            self.data_file_location, 'emme', 'subregion_boundary_for_active_modes.shp'
+        )
+
+        self.subregion_boundary_id_variable = 'subregion'
         ####
 
         self.output_variables = [
