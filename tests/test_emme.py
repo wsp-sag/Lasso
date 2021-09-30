@@ -90,10 +90,10 @@ def test_write_emme_all_five_networks(request):
         nodes_df=union_city_nodes_df,
         transit_network=model_transit_net,
         name="test lasso",
-        path="D:/github/lfs-cleaning/travel-model-two-networks/data/processed/version_12",
-        write_taz_drive_network = True,
-        write_maz_drive_network = True,
+        path="Z:/Data/Users/Sijia/MTC/github/Lasso/tests/scratch",
+        write_taz_drive_network = False,
+        write_maz_drive_network = False,
         write_maz_active_modes_network = True,
-        write_tap_transit_network = True,
+        write_tap_transit_network = False,
         parameters=params
     )
