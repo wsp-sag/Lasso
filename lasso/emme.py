@@ -6,6 +6,7 @@ from copy import deepcopy as _copy
 
 from geopandas.geodataframe import GeoDataFrame
 from osgeo import ogr as _ogr
+from osgeo import osr as _osr
 
 import inro.emme.database.emmebank as _eb
 import inro.emme.desktop.app as _app
@@ -46,11 +47,34 @@ def create_emme_network(
     write_maz_active_modes_network: bool = True,
     write_tap_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
-    subregion_boundary_file: Optional[str] = None,
-    subregion_boundary_id_variable: Optional[str] = None
+    polygon_file_to_split_active_modes_network: Optional[str] = None,
+    polygon_variable_to_split_active_modes_network: Optional[str] = None
 ):
     """
     method that calls emme to write out EMME network from Lasso network
+
+    Arguments:
+        roadway_network: lasso roadway network object, which has the model network for writting out.
+                        if roadway_network is not given, then use links_df and nodes_df
+        transit_network: lasso transit network object, which has the model network for writting out.
+        include_transit: should the emme network include transit, default to False
+        links_df: model links database for writting out, if not given, use roadway_network
+        nodes_df: model nodes database for writting out, if not given, use roadway_network
+        name: scenario name prefix
+        path: output dir for emme
+        write_drive_network: boolean, True if writing out drive network
+        write_taz_drive_network: boolean, True if writing out TAZ scale drive network, without MAZ
+        write_maz_drive_network: boolean, True if writing out MAZ scale drive network, without TAZ
+        write_maz_active_modes_network: boolean, True if writing out MAZ scale walk and bike network
+        write_tap_transit_network: boolean, True if writing out TAP sclae transit network
+        parameters: lasso parameters
+        polygon_file_to_split_active_modes_network: polygon file for dividing the active modes network into subareas
+                                due to emme's limitation on number of links and nodes
+        polygon_variable_to_split_active_modes_network: unqiue key for each active modes subarea polygon, 
+                                will be used to name the emme file
+
+    Return:
+        None. Write out emme networks to the output dir
     """
 
     _NAME = name
@@ -77,13 +101,6 @@ def create_emme_network(
             msg = "Missing transit network to write to emme, please specify transit_network."
             WranglerLogger.error(msg)
             raise ValueError(msg)
-
-    WranglerLogger.info("Converting CRS of input network to epsg 4326")
-    links_df = links_df.to_crs(epsg = 4326)
-    nodes_df = nodes_df.to_crs(epsg = 4326)
-
-    nodes_df["X"] = nodes_df["geometry"].apply(lambda g: g.x)
-    nodes_df["Y"] = nodes_df["geometry"].apply(lambda g: g.y)
 
     WranglerLogger.info("Creating shapes for backward directions on two-way links")
     # create reverse shapes
@@ -155,7 +172,7 @@ def create_emme_network(
             parameters=parameters
         )
 
-        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
         setup.run()
 
     if write_taz_drive_network:
@@ -167,7 +184,7 @@ def create_emme_network(
             parameters=parameters
         )
 
-        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
         setup.run()
 
     if write_maz_drive_network:
@@ -179,7 +196,7 @@ def create_emme_network(
             parameters=parameters
         )
 
-        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
         setup.run()
 
     if write_maz_active_modes_network:
@@ -188,8 +205,8 @@ def create_emme_network(
             nodes_df=nodes_df,
             links_df=links_df,
             parameters=parameters,
-            subregion_boundary_file = subregion_boundary_file,
-            subregion_boundary_id_variable = subregion_boundary_id_variable
+            subregion_boundary_file = polygon_file_to_split_active_modes_network,
+            subregion_boundary_id_variable = polygon_variable_to_split_active_modes_network
         )
 
         for key, value in model_tables.items():
@@ -197,7 +214,7 @@ def create_emme_network(
             _NAME = _NAME + '_' + key
             _model_tables = value
 
-            setup = SetupEmme(_model_tables, out_dir, _NAME, include_transit)
+            setup = SetupEmme(_model_tables, out_dir, _NAME, include_transit, parameters)
             setup.run()
     
     if write_tap_transit_network:
@@ -211,7 +228,7 @@ def create_emme_network(
             output_dir=out_dir,
         )
 
-        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit)
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
         setup.run()
 
 def prepare_table_for_taz_drive_network(
@@ -723,10 +740,6 @@ def shape_gtfs_to_emme(transit_network, trip_row):
         allow_alightings=[]
         allow_boardings=[]
         stop_names=[]
-        #print(trip_row.trip_id)
-        #print(trip_row.line_id)
-        #print(trip_node_list)
-        #print(stop_node_id_list)
 
         if trip_row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail", "Ferry service"]:
             add_nntime = True
@@ -734,14 +747,11 @@ def shape_gtfs_to_emme(transit_network, trip_row):
             add_nntime = False
 
         for nodeIdx in range(len(trip_node_list)):
-            #print(nodeIdx)
-            #print(trip_node_list[nodeIdx])
+            
             if trip_node_list[nodeIdx] in stop_node_id_list:
                 # in case a route stops at a stop more than once, e.g. circular route
                 stop_seq += 1
-                #print("stop seq {}".format(stop_seq))
-                #print(trip_stop_times_df[
-                #        trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]])
+                
                 if (add_nntime) & (stop_seq > 1):
                     if len(trip_stop_times_df[
                         trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]]) > 1:
@@ -795,7 +805,7 @@ def shape_gtfs_to_emme(transit_network, trip_row):
 class SetupEmme(object):
     """Class to run Emme import and data management operations."""
 
-    def __init__(self, model_tables, directory, name, include_transit):
+    def __init__(self, model_tables, directory, name, include_transit, parameters):
         """
         Initialize Python class to run setup of Emme project.
 
@@ -809,6 +819,7 @@ class SetupEmme(object):
         self._directory = directory
         self._NAME = name
         self._include_transit = bool(include_transit)
+        self._parameters = parameters
 
         # TODO: do not hard code this section
         attributes = [
@@ -960,6 +971,23 @@ class SetupEmme(object):
             db = self._app.data_explorer().add_database(expected_path)
         db.open()
         self._app.refresh_data()
+
+        # set project coordinate system
+        dir_path = self._directory
+        name = self._NAME
+        spatial_reference_file = _norm(_join(dir_path, name, name + ".emp.prj"))
+        
+        spatial_ref = _osr.SpatialReference()
+        prjfile = self._parameters.prj_file
+        prj_file = open(prjfile, 'r')
+        prj_txt = prj_file.read()
+        spatial_ref.ImportFromESRI([prj_txt])
+
+        spatial_ref.MorphToESRI()
+        with open( spatial_reference_file , "w") as f:
+            f.write(spatial_ref.ExportToWkt())
+
+        self._app.project.spatial_reference_file = spatial_reference_file
         self._app.project.save()
 
         return self._emmebank

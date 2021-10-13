@@ -805,6 +805,8 @@ class Parameters:
         )
         self.output_dir = os.path.join(self.scratch_location)
         self.output_proj = CRS("ESRI:102646")
+        self.output_proj4 = '+proj=lcc +lat_1=32.78333333333333 +lat_2=33.88333333333333 +lat_0=32.16666666666666 +lon_0=-116.25 +x_0=2000000 +y_0=500000.0000000002 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs'
+        self.prj_file = os.path.join(self.data_file_location, 'projection', '102646.prj')
 
         self.fare_matrix_output_variables = ["faresystem", "origin_farezone", "destination_farezone", "price"]
 
