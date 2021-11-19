@@ -3,6 +3,7 @@ import pyproj
 from shapely.ops import transform
 from shapely.geometry import Point, Polygon
 import re
+from unidecode import unidecode
 
 def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
     """
@@ -131,12 +132,18 @@ def column_name_to_parts(c, parameters=None):
     return base_name, time_period, category, managed
 
 def shorten_name(name):
-    name_list = name.split(',')
+    if type(name) == str:
+        name_list = name.split(',')
+    else:
+        name_list = name
     name_list = [re.sub(r'\W+', ' ', c).replace('nan', '').strip(' ') for c in name_list]
-    
+
     name_list = list(set(name_list))
     #name_list.remove('')
-    
+
     name_new = ' '.join(name_list).strip(' ')
-    
+
+    # convert non english character to english
+    name_new = unidecode(name_new)
+
     return name_new
