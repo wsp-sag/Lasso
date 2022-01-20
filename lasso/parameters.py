@@ -682,6 +682,10 @@ class Parameters:
 
         ###MTC
         self.log_to_net_crosswalk = os.path.join(self.settings_location, "log_to_net.csv")
+
+        self.emme_name_crosswalk_file = os.path.join(
+            self.data_file_location, "lookups", "emme_attribute_names.csv"
+        )
         ####
         #MC
         self.mndot_count_variable_shp = "AADT_mn"
@@ -807,6 +811,7 @@ class Parameters:
         self.output_proj = CRS("ESRI:102646")
         self.output_proj4 = '+proj=lcc +lat_1=32.78333333333333 +lat_2=33.88333333333333 +lat_0=32.16666666666666 +lon_0=-116.25 +x_0=2000000 +y_0=500000.0000000002 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs'
         self.prj_file = os.path.join(self.data_file_location, 'projection', '102646.prj')
+        self.wkt_projection = 'PROJCS["NAD_1983_StatePlane_California_VI_FIPS_0406_Feet",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Lambert_Conformal_Conic_2SP"],PARAMETER["False_Easting",6561666.666666666],PARAMETER["False_Northing",1640416.666666667],PARAMETER["Central_Meridian",-116.25],PARAMETER["Standard_Parallel_1",32.78333333333333],PARAMETER["Standard_Parallel_2",33.88333333333333],PARAMETER["Latitude_Of_Origin",32.16666666666666],UNIT["Foot_US",0.30480060960121924],AUTHORITY["EPSG","102646"]]'
 
         self.fare_matrix_output_variables = ["faresystem", "origin_farezone", "destination_farezone", "price"]
 
@@ -874,6 +879,7 @@ class Parameters:
             "managed",
             "bus_only",
             "rail_only",
+            "transit",
             ##MTC
             "ft",
             "assignable",

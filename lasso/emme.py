@@ -4,6 +4,8 @@ import os as _os
 from collections import defaultdict as _defaultdict
 from copy import deepcopy as _copy
 
+from pandas.core.frame import DataFrame
+
 from geopandas.geodataframe import GeoDataFrame
 from osgeo import ogr as _ogr
 from osgeo import osr as _osr
@@ -14,17 +16,22 @@ import inro.emme.network as _network
 
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 from typing import Optional, Union
 import numpy as np
 import math
 
+from scipy.spatial import cKDTree
+from pyproj import CRS
+
 from .roadway import ModelRoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger
-from .mtc import _is_express_bus, _special_vehicle_type
+from .mtc import _is_express_bus, _special_vehicle_type, create_consecutive_internal_id
 
 from lasso import StandardTransit
+
+from lasso import mtc
 
 _join = _os.path.join
 _dir = _os.path.dirname
@@ -46,6 +53,7 @@ def create_emme_network(
     write_maz_drive_network: bool = False,
     write_maz_active_modes_network: bool = True,
     write_tap_transit_network: bool = True,
+    write_taz_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
     polygon_file_to_split_active_modes_network: Optional[str] = None,
     polygon_variable_to_split_active_modes_network: Optional[str] = None
@@ -122,6 +130,13 @@ def create_emme_network(
         lambda g: LineString(list(g["geometry"].coords)[::-1]) if list(g["geometry"].coords)[0][0] == g["B_X"] else g["geometry"],
         axis = 1
     )
+
+    WranglerLogger.info("Make sure the CRS of input network is correct")
+    links_df = links_df.to_crs(parameters.output_proj)
+    nodes_df = nodes_df.to_crs(parameters.output_proj)
+
+    nodes_df["X"] = nodes_df["geometry"].apply(lambda g: g.x)
+    nodes_df["Y"] = nodes_df["geometry"].apply(lambda g: g.y)
 
     WranglerLogger.info("Converting geometry into wkt geometry")
     # geometry to wkt geometry
@@ -231,6 +246,20 @@ def create_emme_network(
         setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
         setup.run()
 
+    if write_taz_transit_network:
+        _NAME = "emme_taz_transit_network"
+        include_transit = True
+        model_tables = prepare_table_for_taz_transit_network(
+            nodes_df=nodes_df,
+            links_df=links_df,
+            transit_network=transit_network,
+            parameters=parameters,
+            output_dir=out_dir,
+        )
+
+        setup = SetupEmme(model_tables, out_dir, _NAME, include_transit, parameters)
+        setup.run()
+
 def prepare_table_for_taz_drive_network(
     nodes_df,
     links_df,
@@ -307,22 +336,22 @@ def prepare_table_for_drive_network(
         (links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list))
     ].to_dict('records')
 
-    # links: not taz connectors, has to be drive, assignable, or tap links
+    # links: not taz connectors, has to be drive, assignable, or maz links
+    # maz drive connectors are assignable
+    # tap connectors are non-drive, not assignable
     drive_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list)) & 
         ~(links_df.B.isin(parameters.taz_N_list)) &
         (
-            ((links_df.drive_access == 1) & (links_df.assignable == 1)) | 
-            ((links_df.A.isin(parameters.tap_N_list)) | (links_df.B.isin(parameters.tap_N_list)))
+            (links_df.drive_access == 1) & (links_df.assignable == 1)
         )
     ].copy()
-
-    model_tables["link_table"] = drive_links_df.to_dict('records')
-
+ 
     drive_nodes_df = nodes_df[
         (nodes_df.N.isin(drive_links_df.A.tolist()) + nodes_df.N.isin(drive_links_df.B.tolist()))
     ].copy()
 
+    model_tables["link_table"] = drive_links_df.to_dict('records')
     model_tables["node_table"] = drive_nodes_df.to_dict('records')
 
     return model_tables
@@ -392,12 +421,17 @@ def prepare_table_for_maz_active_modes_network(
         dictionary of model network settings
     """
 
-    # activate mode links
-    activate_mode_links_df = links_df[
+    # active mode links
+    active_mode_links_df = links_df[
         (links_df.walk_access == 1) | 
         (links_df.bike_access == 1) | 
         ((links_df.A.isin(parameters.taz_N_list)) | (links_df.B.isin(parameters.taz_N_list)))
     ].copy()
+
+    # TODO: remove TAP links in the TAZ approach
+
+    # add the reverse direction links for one-way streets
+    active_mode_links_df = add_reverse_direction_for_one_way_streets(active_mode_links_df)
 
     # divide active mode links and nodes into subnetworks
     # due to the emme limitations on network #link and #node
@@ -412,9 +446,11 @@ def prepare_table_for_maz_active_modes_network(
     WranglerLogger.info("Spliting activate mode network into subnetworks using {}".format(subregion_boundary_for_active_modes_file))
     subregion_boundary_gdf = gpd.read_file(subregion_boundary_for_active_modes_file)
 
+    subregion_boundary_gdf = subregion_boundary_gdf.to_crs(active_mode_links_df.crs)
+
     # sjoin activate links with subregion polygon
     activate_mode_links_df = gpd.sjoin(
-        activate_mode_links_df,
+        active_mode_links_df,
         subregion_boundary_gdf,
         how = 'left',
         op = 'intersects'
@@ -453,6 +489,67 @@ def prepare_table_for_maz_active_modes_network(
             model_tables_dict['subregion_'+str(i)] = model_tables
 
     return model_tables_dict
+
+def add_reverse_direction_for_one_way_streets(
+    active_modes_network_links_df
+):
+    """
+    for active modes network, need to make sure one-way streets have connections 
+    in both directions JUST FOR WALK, if missing one direction, duplicate the link and reverse it
+
+    Arguments:
+        active_modes_network_links_df -- active modes links in the base network
+
+    Return:
+        updated_active_modes_network_links_df
+    """
+    # create 'A-B' string field by 'min(A,B)-max(A,B)'
+    updated_active_modes_network_links_df = active_modes_network_links_df.copy()
+
+    updated_active_modes_network_links_df['A-B'] = updated_active_modes_network_links_df.apply(
+        lambda x: '{}-{}'.format(min(x['A'], x['B']), max(x['A'], x['B'])),
+        axis = 1
+    )
+
+    # group the input links by 'A-B'
+    # count the number of records
+    count_connections_df =  updated_active_modes_network_links_df.groupby(
+        ['A-B']
+    )['A'].count().reset_index()
+
+    # get 'A-B' rows that has only 1 record
+    # duplicate such rows, switch the A and B value
+    # append new rows to input
+    one_way_connections_AB_list = count_connections_df[
+        count_connections_df['A'] == 1
+    ]['A-B'].tolist()
+
+    one_way_active_modes_network_links_df = updated_active_modes_network_links_df[
+        updated_active_modes_network_links_df['A-B'].isin(
+            one_way_connections_AB_list
+        )
+    ].copy()
+
+    one_way_active_modes_network_links_df.rename(
+        columns = {
+            'A' : 'B',
+            'B' : 'A'
+        },
+        inplace = True
+    )
+    
+    # reverse the geometry
+    one_way_active_modes_network_links_df["geometry"] = one_way_active_modes_network_links_df["geometry"].apply(
+        lambda g: LineString(list(g.coords)[::-1])
+    )
+    
+    updated_active_modes_network_links_df = updated_active_modes_network_links_df.append(
+        one_way_active_modes_network_links_df,
+        sort = False,
+        ignore_index = True
+    )
+
+    return updated_active_modes_network_links_df
 
 def prepare_table_for_tap_transit_network(
     nodes_df,
@@ -540,6 +637,217 @@ def prepare_table_for_tap_transit_network(
 
     return model_tables
 
+def prepare_table_for_taz_transit_network(
+    nodes_df,
+    links_df,
+    transit_network,
+    parameters,
+    output_dir: str,
+):
+
+    """
+    prepare model table for taz-scale transit network, in which tazs are centroids, drop tap and maz
+    keep links that are drive_access, bus_only, rail_only
+
+    Arguments:
+        nodes_df -- node database
+        links_df -- link database
+        transit_network -- transit network object
+    
+    Return:
+        dictionary of model network settings
+    """
+
+    model_tables = dict()
+
+    # taps are centroids, drop taz and maz
+
+    model_tables["centroid_table"] = nodes_df[
+        nodes_df.N.isin(parameters.taz_N_list)
+    ].to_dict('records')
+
+    model_tables["connector_table"] = []
+
+    # need to grab walk access links from street walk node to rail stop nodes
+    # those links have walk_access == 1
+    # maybe also make them drive_access == 1?
+
+    # rail/ferry routes, non-bus routes
+    rail_routes_df = transit_network.feed.routes[
+        transit_network.feed.routes.route_type != 3
+    ].copy()
+
+    rail_trips_df = transit_network.feed.trips[
+        transit_network.feed.trips.route_id.isin(rail_routes_df.route_id.tolist())
+    ].copy()
+
+    rail_stops_df = transit_network.feed.stop_times[
+        transit_network.feed.stop_times.trip_id.isin(rail_trips_df.trip_id.tolist())
+    ].copy()
+
+    rail_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(rail_stops_df.stop_id.tolist())
+    ]['model_node_id'].astype(int).tolist()
+
+    ###############
+    # temporary fix
+    
+    # walk links with just one of a/b nodes as rail_stop_nodes, make drive_access == 1
+    links_df.loc[
+        (
+            (links_df['A'].isin(rail_nodes_id_list)) | 
+            (links_df['B'].isin(rail_nodes_id_list))
+        ) &
+        (links_df['rail_only'] == 0),
+        "drive_access"
+    ] = 1
+
+    # add links between rail stops and the closest drive node
+    rail_nodes_df = nodes_df[nodes_df.N.isin(rail_nodes_id_list)].copy()
+
+    drive_nodes_df = nodes_df[
+        (nodes_df.drive_access == 1) & 
+        ~(nodes_df.N.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) &
+        ~(nodes_df.N.isin(rail_nodes_id_list))
+    ].copy()
+
+    drive_nodes_df = drive_nodes_df.to_crs(CRS('epsg:26915'))
+    drive_nodes_df['X'] = drive_nodes_df.geometry.map(lambda g:g.x)
+    drive_nodes_df['Y'] = drive_nodes_df.geometry.map(lambda g:g.y)
+    inventory_node_ref = drive_nodes_df[['X', 'Y']].values
+    tree = cKDTree(inventory_node_ref)
+
+    rail_nodes_df = rail_nodes_df.to_crs(CRS('epsg:26915'))
+    rail_nodes_df['X'] = rail_nodes_df['geometry'].apply(lambda p: p.x)
+    rail_nodes_df['Y'] = rail_nodes_df['geometry'].apply(lambda p: p.y)
+
+    for i in range(len(rail_nodes_df)):
+        point = rail_nodes_df.iloc[i][['X', 'Y']].values
+        dd, ii = tree.query(point, k = 1)
+        add_snap_gdf = gpd.GeoDataFrame(drive_nodes_df.iloc[ii]).transpose().reset_index(drop = True)
+        add_snap_gdf['A'] = rail_nodes_df.iloc[i]['N']
+        if i == 0:
+            new_link_gdf = add_snap_gdf.copy()
+        else:
+            new_link_gdf = new_link_gdf.append(add_snap_gdf, ignore_index=True, sort=False)
+
+    new_link_gdf = new_link_gdf[['A', 'N']].copy()
+    new_link_gdf.rename(columns = {'N' : 'B'}, inplace = True)
+
+    # add the opposite direction
+    new_link_gdf = pd.concat(
+        [
+            new_link_gdf,
+            new_link_gdf.rename(columns = {'A' : 'B', 'B' : 'A'})
+        ],
+        sort = False, 
+        ignore_index = True
+    )
+
+    # create shapes
+    new_link_gdf = pd.merge(
+        new_link_gdf,
+        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "A", "X": "A_X", "Y" : "A_Y"}),
+        how = "left",
+        on = "A"
+    )
+
+    new_link_gdf = pd.merge(
+        new_link_gdf,
+        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "B", "X": "B_X", "Y" : "B_Y"}),
+        how = "left",
+        on = "B"
+    )
+
+    new_link_gdf["geometry"] = new_link_gdf.apply(
+        lambda g: LineString([Point(g.A_X, g.A_Y), Point(g.B_X, g.B_Y)]),
+        axis = 1
+    )
+
+    new_link_gdf = gpd.GeoDataFrame(
+        new_link_gdf,
+        geometry = new_link_gdf['geometry'],
+        crs = links_df.crs
+    )
+
+    for c in links_df.columns:
+        if c not in new_link_gdf.columns:
+            if c not in ['county', 'shstGeometryId', 'cntype']:
+                new_link_gdf[c] = 0
+            else:
+                new_link_gdf[c] = ''
+    new_link_gdf['drive_access'] = 1
+    new_link_gdf['walk_access'] = 1
+    new_link_gdf['bike_access'] = 1
+    new_link_gdf['ft'] = 99
+
+    length_gdf = new_link_gdf.copy()
+    length_gdf = length_gdf.to_crs(epsg=26915)
+    length_gdf['distance'] = length_gdf.geometry.length / 1609.34
+
+    new_link_gdf['distance'] = length_gdf['distance']
+
+    new_link_gdf["geometry_wkt"] = new_link_gdf["geometry"].apply(lambda x: x.wkt)
+    
+    links_df = pd.concat([links_df, new_link_gdf], sort = False, ignore_index = True)
+    
+    links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+    
+    # /temporary fix
+    ###############
+
+    transit_links_df = links_df[
+        ~(links_df.A.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
+        ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
+        ((links_df.drive_access == 1) | (links_df.bus_only == 1) | (links_df.rail_only == 1))
+    ].copy()
+
+    model_tables["link_table"] = transit_links_df.to_dict('records')
+
+    transit_nodes_df = nodes_df[
+        ~(nodes_df.N.isin(parameters.tap_N_list + parameters.taz_N_list + parameters.maz_N_list)) &
+        (nodes_df.N.isin(transit_links_df.A.tolist() + transit_links_df.B.tolist()))
+    ].copy()
+
+    model_tables["node_table"] = transit_nodes_df.to_dict('records')
+
+    # read vehicle type table
+    veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
+
+    # gtfs trips
+    trips_df = route_properties_gtfs_to_emme(
+        transit_network=transit_network,
+        parameters=parameters,
+        output_dir = output_dir
+        )
+
+    itinerary_df=pd.DataFrame()
+    WranglerLogger.info("Creating itinerary table for each transit trip")
+    for index, row in trips_df.iterrows():
+        #WranglerLogger.info("Creating itinerary table for trip {}".format(row.line_id))
+        trip_itinerary_df = shape_gtfs_to_emme(
+            transit_network=transit_network,
+            trip_row=row
+        )
+        itinerary_df = itinerary_df.append(trip_itinerary_df, sort =False, ignore_index=True)
+    WranglerLogger.info("Finished creating itinerary table for each transit trip")
+
+    model_tables["line_table"] = trips_df.to_dict('records')
+
+    model_tables['itinerary_table'] = itinerary_df.to_dict('records')
+
+    model_tables["vehicle_table"] = veh_cap_crosswalk.to_dict('records')
+    model_tables["vehicle_table"] = [
+        {
+            "id": 1,
+            "mode": "b",
+            "total_capacity": 70,
+            "seated_capacity": 35,
+            "auto_equivalent": 2.5
+        },
+    ]
+
+    return model_tables
 
 def route_properties_gtfs_to_emme(
     transit_network = None,
@@ -662,10 +970,11 @@ def route_properties_gtfs_to_emme(
     trip_df["line_id"] = trip_df["line_id"].str.slice(stop = 28)
     
     # faresystem
-    zonal_fare_dict = faresystem_crosswalk[
-        (faresystem_crosswalk.route_id_original.isnull())
+    agency_fare_dict = faresystem_crosswalk[
+        (faresystem_crosswalk.route_id.isnull()) |
+        (faresystem_crosswalk.route_id==0)
     ].copy()
-    zonal_fare_dict = dict(zip(zonal_fare_dict.agency_raw_name, zonal_fare_dict.faresystem))
+    agency_fare_dict = dict(zip(agency_fare_dict.agency_raw_name, agency_fare_dict.faresystem))
 
     trip_df = pd.merge(
         trip_df,
@@ -676,7 +985,7 @@ def route_properties_gtfs_to_emme(
 
     trip_df["faresystem"] = np.where(
         trip_df["faresystem"].isnull(),
-        trip_df["agency_raw_name"].map(zonal_fare_dict),
+        trip_df["agency_raw_name"].map(agency_fare_dict),
         trip_df["faresystem"]
     )
 
@@ -962,6 +1271,17 @@ class SetupEmme(object):
         self.create_emmebank()
         self.save_networks()
 
+        # write out emme node ID - wrangler node ID correspondence
+        proc.node_id_correspondence_df.to_csv(
+            _os.path.join(
+                self._directory, 
+                self._NAME, 
+                'Database', 
+                self._NAME + '_node_id_crosswalk.csv'
+            ),
+            index = False
+        )
+
         # Add database to Emme desktop project (if not already added)
         expected_path = _norm(self._emmebank.path)
         valid_db = [db for db in self._app.data_explorer().databases() if _norm(db.path) == expected_path]
@@ -976,18 +1296,20 @@ class SetupEmme(object):
         dir_path = self._directory
         name = self._NAME
         spatial_reference_file = _norm(_join(dir_path, name, name + ".emp.prj"))
-        
-        spatial_ref = _osr.SpatialReference()
-        prjfile = self._parameters.prj_file
-        prj_file = open(prjfile, 'r')
-        prj_txt = prj_file.read()
-        spatial_ref.ImportFromESRI([prj_txt])
+        #spatial_reference_file_temp = _norm(_join(dir_path, name, name + ".emp.prj.temp"))
 
-        spatial_ref.MorphToESRI()
+        #spatial_ref = _osr.SpatialReference()
+        #prjfile = self._parameters.prj_file
+        #prj_file = open(prjfile, 'r')
+        #prj_txt = prj_file.read()
+        #spatial_ref.ImportFromESRI([prj_txt])
+
+        #spatial_ref.MorphToESRI()
         with open( spatial_reference_file , "w") as f:
-            f.write(spatial_ref.ExportToWkt())
-
+            f.write(self._parameters.wkt_projection)
+        
         self._app.project.spatial_reference_file = spatial_reference_file
+        #self._app.project.spatial_reference_file = self._parameters.prj_file
         self._app.project.save()
 
         return self._emmebank
@@ -1067,7 +1389,7 @@ class SetupEmme(object):
         if not _os.path.exists(db_root):
             _os.mkdir(db_root)
         emmebank_path = _norm(_join(project_root, "Database", "emmebank"))
-        print(emmebank_path)
+        
         if _os.path.exists(emmebank_path):
             _os.remove(emmebank_path)
         emmebank = _eb.create(emmebank_path, dimensions)
@@ -1120,6 +1442,7 @@ class ProcessNetwork(object):
         self._attrs = attributes
         self._network = _network.Network()
         self._ignore_index_errors = True
+        self.node_id_correspondence_df = DataFrame()
 
     @property
     def network(self):
@@ -1141,19 +1464,39 @@ class ProcessNetwork(object):
         # Process nodes from model_nodes and centroids from model_centroids tables
         nodes = {}
         centroid_attrs = [attr for attr in self._attrs if attr.domain == "CENTROID"]
+        # make centroid node ID start from 1
+        id_generator = IDGenerator(1, network)
         for row in centroid_table:
-            node = network.create_centroid(int(row[zone_id_name]))
+            node = network.create_centroid(next(id_generator))
             for attr in centroid_attrs:
                 attr.set(node, row)
             nodes[node["#node_id"]] = node
-        # assumes centroid IDs are in the range 1-10000
-        id_generator = IDGenerator(10001, network)
+        # start should be the centroid node id end + 1
+        #centroid_id_max = max(list(nodes.keys())) if len(nodes) > 0 else 0
+        centroid_id_max = len(nodes)
+        WranglerLogger.info('max centroid node id: {}'.format(centroid_id_max))
+        id_generator = IDGenerator(centroid_id_max + 1, network)
         node_attrs = [attr for attr in self._attrs if attr.domain == "NODE"]
         for row in node_table:
             node = network.create_regular_node(next(id_generator))
             for attr in node_attrs:
                 attr.set(node, row)
             nodes[node["#node_id"]] = node
+
+        # create node ID correspondence
+        # emme ID - network wrangler ID
+        emme_id = []
+        wrangler_id = []
+        for node_key, node_value in nodes.items():
+            emme_id.append(node_value.number)
+            wrangler_id.append(node_value['#node_id'])
+
+        self.node_id_correspondence_df = pd.DataFrame(
+            data = {
+                'emme_node_id' : emme_id,
+                'model_node_id' : wrangler_id
+            }
+        )
 
         # Process links from model_links and connectors from model_connectors tables
         # No network restrictions, all same mode
@@ -1255,8 +1598,7 @@ class ProcessNetwork(object):
             mode = network.transit_vehicle(line_data["vehicle_type"]).mode
             # Get the sequence of stops for this line and sort by "stop_order"
             stop_data = all_stops[line_data["line_id"]]
-            #print(line_data['line_id'])
-            #print(stop_data)
+            
             stop_seq_iter = iter(sorted([(k, node_map[v["node_id"]]) for k, v in stop_data.items()]))
             seq_num, i_node = next(stop_seq_iter)
             node_seq = []
