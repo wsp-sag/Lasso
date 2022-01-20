@@ -19,11 +19,13 @@ from pandas import DataFrame
 
 import pandas as pd
 import partridge as ptg
+import numpy as np
 
 from network_wrangler import TransitNetwork
 
 from .logger import WranglerLogger
 from .parameters import Parameters
+from .mtc import _is_express_bus
 
 class CubeTransit(object):
     """Class for storing information about transit defined in Cube line
@@ -93,7 +95,7 @@ class CubeTransit(object):
 
         self.diff_dict = Dict[str, Any]
 
-    def add_cube(self, transit_source: str) -> None:
+    def add_cube(self, transit_source: str):
         """Reads a .lin file and adds it to existing TransitNetwork instance.
 
         Args:
@@ -267,8 +269,8 @@ class CubeTransit(object):
                 base_transit.line_properties[line],
                 base_cube_time_period_number,
             )
-            updated_shapes = self.evaluate_route_shape_changes(
-                self.shapes[line], base_transit.shapes[line]
+            updated_shapes = CubeTransit.evaluate_route_shape_changes(
+                self.shapes[line].node, base_transit.shapes[line].node
             )
             if updated_properties:
                 update_prop_card_dict = self.create_update_route_card_dict(
@@ -314,7 +316,7 @@ class CubeTransit(object):
 
     def add_additional_time_periods(
         self, new_time_period_number: int, orig_line_name: str
-    ) -> str:
+    ):
         """
         Copies a route to another cube time period with appropriate
         values for time-period-specific properties.
@@ -538,7 +540,7 @@ class CubeTransit(object):
         time_period: str = "",
         agency_id: str = 0,
         direction_id: str = 1,
-    ) -> str:
+    ):
         """
         Create a route name by contatenating route, time period, agency, and direction
 
@@ -647,7 +649,7 @@ class CubeTransit(object):
         return start_time_str, end_time_str
 
     @staticmethod
-    def cube_properties_to_standard_properties(cube_properties_dict: dict) -> list:
+    def cube_properties_to_standard_properties(cube_properties_dict: dict):
         """
         Converts cube style properties to standard properties.
 
@@ -758,8 +760,9 @@ class CubeTransit(object):
         )
         return properties_list
 
+    @staticmethod
     def evaluate_route_shape_changes(
-        self, shape_build: DataFrame, shape_base: DataFrame
+        shape_build: DataFrame, shape_base: DataFrame
     ):
         """
         Compares two route shapes and constructs returns list of changes
@@ -774,13 +777,13 @@ class CubeTransit(object):
 
         """
 
-        if shape_build.node.equals(shape_base.node):
+        if shape_build.equals(shape_base):
             return None
 
         shape_change_list = []
 
-        base_node_list = shape_base.node.tolist()
-        build_node_list = shape_build.node.tolist()
+        base_node_list = shape_base.tolist()
+        build_node_list = shape_build.tolist()
 
         sort_len = max(len(base_node_list), len(build_node_list))
 
@@ -996,7 +999,7 @@ class StandardTransit(object):
 
         return trip_df
 
-    def calculate_cube_mode(self, row) -> int:
+    def calculate_cube_mode(self, row):
         """
         Assigns a cube mode number by following logic.
         #MC
@@ -1135,9 +1138,17 @@ class StandardTransit(object):
         trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
         trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
-        trip_stop_times_df = pd.merge(
-            trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
-        )
+        if 'trip_id' in self.feed.stops.columns:
+            trip_stop_times_df = pd.merge(
+                trip_stop_times_df, self.feed.stops, how="left", on=['trip_id', "stop_id"]
+            )
+        else:
+            trip_stop_times_df = pd.merge(
+                trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
+            )
+
+        trip_stop_times_df["model_node_id"] = pd.to_numeric(trip_stop_times_df["model_node_id"]).astype(int)
+        trip_node_df["shape_model_node_id"] = pd.to_numeric(trip_node_df["shape_model_node_id"]).astype(int)
 
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
@@ -1236,6 +1247,328 @@ class StandardTransit(object):
 
         return s
 
+    def shape_gtfs_to_emme(self, trip_row):
+        """
+        Creates transit segment for the trips in appropriate
+        emme format.
+
+        Args:
+            row: DataFrame row with both shape_id and trip_id
+
+        Returns: a dataframe representation of the transit segment
+            for a trip in emme format.
+
+        """
+        trip_stop_times_df = self.feed.stop_times.copy()
+        trip_stop_times_df = trip_stop_times_df[
+            trip_stop_times_df.trip_id == trip_row.trip_id
+        ]
+
+        trip_node_df = self.feed.shapes.copy()
+        trip_node_df = trip_node_df[trip_node_df.shape_id == trip_row.shape_id]
+        trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
+
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
+        )
+
+        stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
+        trip_node_list = trip_node_df["shape_model_node_id"].tolist()
+
+        trip_stop_times_df.sort_values(by = ["stop_sequence"], inplace = True)
+        # sometimes GTFS `stop_sequence` does not start with 1, e.g. SFMTA light rails
+        trip_stop_times_df["internal_stop_sequence"] = range(1, 1+len(trip_stop_times_df))
+        # sometimes GTFS `departure_time` is not recorded for every stop, e.g. VTA light rails
+        trip_stop_times_df["departure_time"].fillna(method = "ffill", inplace = True)
+        trip_stop_times_df["departure_time"].fillna(0, inplace = True)
+        trip_stop_times_df["NNTIME"] = trip_stop_times_df["departure_time"].diff() / 60
+        # CUBE NNTIME takes 2 decimals
+        trip_stop_times_df["NNTIME"] = trip_stop_times_df["NNTIME"].round(2)
+        trip_stop_times_df["NNTIME"].fillna(-1, inplace = True)
+
+        # node list
+        stop_seq = 0
+        nntimes = []
+        allow_alightings=[]
+        allow_boardings=[]
+        stop_names=[]
+
+        if trip_row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail", "Ferry service"]:
+            add_nntime = True
+        else:
+            add_nntime = False
+
+        for nodeIdx in range(len(trip_node_list)):
+            
+            if trip_node_list[nodeIdx] in stop_node_id_list:
+                # in case a route stops at a stop more than once, e.g. circular route
+                stop_seq += 1
+                
+                if (add_nntime) & (stop_seq > 1):
+                    if len(trip_stop_times_df[
+                        trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]]) > 1:
+                    
+                        nntime_v = trip_stop_times_df.loc[
+                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]) &
+                            (trip_stop_times_df["internal_stop_sequence"] == stop_seq),
+                            "NNTIME"].iloc[0]
+                    else:
+                        nntime_v = trip_stop_times_df.loc[
+                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"NNTIME"].iloc[0]
+
+                    nntimes.append(nntime_v)
+                else:
+                    nntimes.append(0)
+
+                pickup_type = trip_stop_times_df.loc[
+                    (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"pickup_type"].iloc[0]
+                if pickup_type in [1, "1"]:
+                    allow_alightings.append(0)
+                else:
+                    allow_alightings.append(1)
+
+                drop_off_type = trip_stop_times_df.loc[
+                    (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"drop_off_type"].iloc[0]
+                if drop_off_type in [1, "1"]:
+                    allow_boardings.append(0)
+                else:
+                    allow_boardings.append(1)
+
+                stop_name = trip_stop_times_df.loc[
+                    (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"stop_name"].iloc[0]
+                stop_names.append(stop_name)
+                
+            else:
+                nntimes.append(0)
+                allow_alightings.append(0)
+                allow_boardings.append(0)
+                stop_names.append("")
+
+        trip_node_df['time_minutes'] = nntimes
+        trip_node_df['allow_alightings'] = allow_alightings
+        trip_node_df['allow_boardings'] = allow_boardings
+        trip_node_df['stop_name'] = stop_names
+        trip_node_df['line_id'] = trip_row['line_id']
+        trip_node_df['node_id'] = trip_node_df['shape_model_node_id'].astype(int)
+        trip_node_df['stop_order'] = trip_node_df['shape_pt_sequence']
+
+        return trip_node_df
+
+    def evaluate_differences(self, transit_changes):
+        """
+        Compare changes from the transit_changes dataframe with the standard transit network
+        returns the project card changes in dictionary format
+        """
+
+        # simple properties change
+        trip_df = self.feed.trips.copy()
+
+        mode_crosswalk = pd.read_csv(self.parameters.mode_crosswalk_file)
+        mode_crosswalk.drop_duplicates(subset = ["agency_raw_name", "route_type", "is_express_bus"], inplace = True)
+
+        trip_df = pd.merge(trip_df, self.feed.routes.drop("agency_raw_name", axis = 1), how="left", on="route_id")
+
+        trip_df = pd.merge(trip_df, self.feed.frequencies, how="left", on="trip_id")
+
+        trip_df["tod"] = trip_df.start_time.apply(self.time_to_cube_time_period, as_str = False)
+        trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
+
+        trip_df["headway_minutes"] = (trip_df["headway_secs"] / 60).astype(int)
+
+        trip_df = pd.merge(trip_df, self.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
+
+        # identify express bus
+        trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
+        trip_df.drop("agency_name", axis = 1 , inplace = True)
+
+        trip_df = pd.merge(
+            trip_df,
+            mode_crosswalk.drop("agency_id", axis = 1),
+            how = "left",
+            on = ["agency_raw_name", "route_type", "is_express_bus"]
+        )
+
+        trip_df["line_id"] = trip_df.apply(
+            lambda x: str(x.TM2_operator)
+            + "_"
+            + str(x.route_id)
+            + "_"
+            + x.tod_name
+            + "_"
+            + "d"
+            + str(int(x.direction_id))
+            + "_s"
+            + x.shape_id,
+            axis=1,
+        )
+
+        trip_df["line_id"] = trip_df["line_id"].str.slice(stop = 28)
+
+        project_card_changes = []
+
+        # lines updated
+        transit_changes['line_id'] = transit_changes.apply(
+            lambda x: '-'.join(x['element_id'].split('-')[:-3]) if 
+            x['object'] == 'TRANSIT_STOP' else
+            x['element_id'],
+            axis = 1
+        )
+
+        lines_updated_df = transit_changes[
+            (transit_changes['operation'] == 'C') &
+            (transit_changes['line_id'].isin(trip_df['line_id'].tolist()))
+        ].copy()
+
+        #########################
+        # simple property changes
+        #########################
+
+        property_changes_df = lines_updated_df[
+            lines_updated_df.object == 'TRANSIT_LINE'
+        ].copy()
+
+        property_attribute_list = ['headway_secs']
+
+        for index, row in property_changes_df.iterrows():
+            line_id = row['line_id']
+            properties_list = []
+            change_item = {}
+            for c in property_attribute_list:
+                existing_value = int(trip_df[
+                    trip_df['line_id'] == line_id
+                ][c].iloc[0])
+                
+                change_item["existing"] = existing_value
+                
+                if c == 'headway_secs':
+                    change_item["set"] = row['headway'] * 60
+                else:
+                    change_item["set"] = row[c]
+                
+                change_item["property"] = c
+
+                properties_list.append(change_item)
+
+            base_start_time_str = self.parameters.time_period_to_time.get(
+                line_id.split("_")[2]
+            )[0]
+
+            base_end_time_str = self.parameters.time_period_to_time.get(
+                line_id.split("_")[2]
+            )[1]
+
+            update_card_dict = {
+                "category": "Transit Service Property Change",
+                "facility": {
+                    "route_id": line_id.split("_")[1],
+                    "direction_id": int(line_id.split("_")[-2].strip("d\"")),
+                    "shape_id": line_id.split("_")[-1].strip("s\""),
+                    "start_time": base_start_time_str,
+                    "end_time": base_end_time_str,
+                },
+                "properties": properties_list,
+            }
+
+            project_card_changes.append(update_card_dict)
+        
+        ###############
+        # shape changes
+        ###############
+
+        shape_changes_df = lines_updated_df[
+            lines_updated_df.object.isin(['TRANSIT_SHAPE'])
+        ].copy()
+
+        for index, row in shape_changes_df.iterrows():
+            line_id = row.line_id
+            
+            # get base shape 
+            trip_row = trip_df[trip_df.line_id == line_id].copy().squeeze()
+            
+            base_shape = self.shape_gtfs_to_emme(
+                trip_row=trip_row
+            )
+            base_shape['shape_model_node_id'] = base_shape['shape_model_node_id'].astype(int)
+
+            # get build shape
+            build_shape = row.new_itinerary
+
+            updated_shapes = CubeTransit.evaluate_route_shape_changes(
+                shape_base = base_shape.shape_model_node_id, 
+                shape_build = pd.Series(row.new_itinerary)
+            )
+            updated_shapes[0]['property'] = 'shapes'
+
+            base_start_time_str = self.parameters.time_period_to_time.get(
+                    line_id.split("_")[2]
+                )[0]
+
+            base_end_time_str = self.parameters.time_period_to_time.get(
+                line_id.split("_")[2]
+            )[1]
+
+            update_card_dict = {
+                "category": "Transit Service Property Change",
+                "facility": {
+                    "route_id": line_id.split("_")[1],
+                    "direction_id": int(line_id.split("_")[-2].strip("d\"")),
+                    "shape_id": line_id.split("_")[-1].strip("s\""),
+                    "start_time": base_start_time_str,
+                    "end_time": base_end_time_str,
+                },
+                "properties": updated_shapes,
+            }
+            
+            project_card_changes.append(update_card_dict)
+
+        ##############
+        # stop changes
+        ##############
+        stop_changes_df = lines_updated_df[
+            lines_updated_df.object.isin(['TRANSIT_STOP'])
+        ].copy()
+
+
+        stop_attribute_list = ['allow_alightings', 'allow_boardings']
+
+        for index, row in stop_changes_df.iterrows():
+            line_id = row['line_id']
+            node_id = row['i_node']
+            properties_list = []
+            change_item = {}
+            for c in stop_attribute_list:
+                
+                if row[c] is np.nan:
+                    continue
+                change_item["property"] = c
+                change_item["set"] = row[c]
+                
+                properties_list.append(change_item)
+                
+            base_start_time_str = self.parameters.time_period_to_time.get(
+                line_id.split("_")[2]
+            )[0]
+
+            base_end_time_str = self.parameters.time_period_to_time.get(
+                line_id.split("_")[2]
+            )[1]
+
+            update_card_dict = {
+                "category": "Transit Service Property Change",
+                "facility": {
+                    "route_id": line_id.split("_")[1],
+                    "direction_id": int(line_id.split("_")[-2].strip("d\"")),
+                    "shape_id": line_id.split("_")[-1].strip("s\""),
+                    "start_time": base_start_time_str,
+                    "end_time": base_end_time_str,
+                    'node_id' : node_id
+                },
+                "properties": properties_list,
+            }
+            
+            project_card_changes.append(update_card_dict)
+
+        return project_card_changes
 
 class CubeTransformer(Transformer):
     """A lark-parsing Transformer which transforms the parse-tree to
@@ -1382,3 +1715,21 @@ opmode_attr_name  : "number" | "name" | "longname"
 %ignore WS
 
 """
+
+class EMMETransit(object):
+    """
+    Class for storing information about transit defined in the emme network build files.
+
+    Has the capability to:
+
+    1 - Parse emme network build files for transit
+    2 - 
+    """
+
+    def __init__(
+        self, 
+        standard_transit, 
+        parameters: Union[Parameters, dict] = {}
+    ):
+
+        return 
