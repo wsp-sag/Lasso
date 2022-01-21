@@ -1052,9 +1052,12 @@ def write_cube_fare_files(
     transit_network=None,
     parameters=None,
     outpath: str = None,
+    transfer_fare_df=None
 ):
     """
     create cube transit files
+
+    # Todo: add documentation for this method, especially around transfer_fare_df
     """
 
     if not outpath:
@@ -1171,11 +1174,10 @@ def write_cube_fare_files(
         flat_fare_df.drop_duplicates(["route_id", "agency_raw_name"], inplace = True)
         flat_fare_df["route_id"] = flat_fare_df["route_id"].fillna(0).astype(int).astype(str)
 
-    transfer_df = pd.read_csv(os.path.join(outpath, "transfer.csv"))
-    transfer_df.drop_duplicates(inplace = True)
+    transfer_fare_df.drop_duplicates(inplace = True)
     # write out fare system file
     fare_file = os.path.join(outpath, "fares.far")
-    far = cube_fare_format(zonal_fare_system_df, flat_fare_system_df, transfer_df)
+    far = cube_fare_format(zonal_fare_system_df, flat_fare_system_df, transfer_fare_df)
     with open(fare_file, "w") as f:
         f.write(far)
 
