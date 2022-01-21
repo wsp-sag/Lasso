@@ -1822,3 +1822,23 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         with open(output_cube_network_script, "w") as f:
             f.write(s)
+ 
+        # run the cube script to create the cube network
+        import subprocess
+        env = copy.copy(os.environ)
+        cube_cmd = "runtpp.exe {}".format(output_cube_network_script)
+        working_dir = os.path.split(output_link_txt)[0]
+        try:
+            WranglerLogger.info("Running [{}] in wd=[{}]".format(cube_cmd, working_dir))
+            ret = subprocess.run(cube_cmd, cwd=working_dir, capture_output=True, check=True)
+
+            WranglerLogger.info("return code: {}".format(ret.returncode))
+
+            for line in ret.stdout.decode('utf-8').split('\r\n'):
+                if len(line) > 0: WranglerLogger.info("stdout: {}".format(line))
+
+            for line in ret.stderr.decode('utf-8').split('\r\n'):
+                if len(line) > 0: WranglerLogger.info("stderr: {}".format(line))
+        
+        except e:
+            WranglerLogger.error(e)
