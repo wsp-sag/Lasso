@@ -30,7 +30,7 @@ def _read_stpaul_net():
     return net
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 def test_parameter_read(request):
     """
     Tests that parameters are read
@@ -42,7 +42,7 @@ def test_parameter_read(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 def test_network_split_variables_by_time(request):
     """
     Tests that parameters are read
@@ -57,7 +57,7 @@ def test_network_split_variables_by_time(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 def test_calculate_count(request):
     """
     Tests that parameters are read
@@ -72,7 +72,7 @@ def test_calculate_count(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 def test_write_cube_roadway_as_ff(request):
     """
     Tests that parameters are read
@@ -85,7 +85,7 @@ def test_write_cube_roadway_as_ff(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 def test_write_roadway_as_shape(request):
     """"""
     print("\n--Starting:", request.node.name)
