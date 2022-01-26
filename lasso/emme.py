@@ -27,7 +27,7 @@ from pyproj import CRS
 from .roadway import ModelRoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger
-from .mtc import _is_express_bus, _special_vehicle_type, create_consecutive_internal_id
+from .mtc import _is_express_bus, _special_vehicle_type
 
 from lasso import StandardTransit
 
