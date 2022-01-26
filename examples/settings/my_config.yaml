@@ -12,7 +12,6 @@ scenario:
     glob_search: "*simple*.yml"
     tags: []
 
-
 output:
     format: 'geojson' # geojson or shp
     directory: ''

@@ -72,7 +72,8 @@ def write_roadway_as_fixedwidth_with_cube(
 
     if build_script:
         _outfile_build_script = os.path.join(
-            output_directory, output_prefix + "_build_cube_hwynet.s",
+            output_directory,
+            output_prefix + "_build_cube_hwynet.s",
         )
 
         write_cube_hwy_net_script_network_from_ff_files(
