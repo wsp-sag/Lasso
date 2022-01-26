@@ -17,7 +17,7 @@ from ..utils import column_name_to_parts
 from .cube_model_transit import CubeTransit, evaluate_model_transit_differences
 
 
-class CubeProject(object):
+class CubeProject:
     """A single or set of changes to the roadway or transit system.
 
     Compares a base and a build transit network or a base and build
@@ -42,8 +42,7 @@ class CubeProject(object):
         STATIC_VALUES: a class-level constant which defines values that
             are not evaluated when assessing changes.
         card_data (dict):  {"project": <project_name>, "changes": <list of change dicts>}
-        roadway_changes (DataFrame):  pandas dataframe of CUBE roadway changes.
-        transit_changes (ModelTransit):
+        roadway_changes_df (DataFrame):  pandas dataframe of CUBE roadway changes.
         base_roadway_network (RoadwayNetwork):
         base_transit_network (ModelTransit):
         build_transit_network (ModelTransit):
@@ -64,12 +63,13 @@ class CubeProject(object):
 
     def __init__(
         self,
-        roadway_changes: Optional[DataFrame] = None,
-        transit_changes: Optional[CubeTransit] = None,
+        roadway_changes_df: Optional[DataFrame] = None,
         base_roadway_network: Optional[ModelRoadwayNetwork] = None,
         base_transit_network: Optional[CubeTransit] = None,
         build_transit_network: Optional[CubeTransit] = None,
-        project_name: Optional[str] = "",
+        project: Optional[str] = "",
+        tags: Optional[Union[str, Collection[str]]] = "",
+        dependencies: Optional[Union[str, Mapping[str, Any]]] = "",
         evaluate: Optional[bool] = False,
         parameters: Parameters = None,
         parameters_dict: dict = {},
@@ -79,31 +79,34 @@ class CubeProject(object):
         ProjectCard constructor.
 
         args:
-            roadway_changes: dataframe of roadway changes read from a log file
-            transit_changes:
+            roadway_changes_df: dataframe of roadway changes read from a log file
             base_roadway_network: ModelRoadwayNetwork instance for base case
             base_transit_network: CubeTransit instance for base transit network
             build_transit_network: CubeTransit instance for build transit network
-            project_name: name of the project
+            project: name of the project
+            tags: lists of tags for project
+            dependencies: lists of dependencies
             evaluate: defaults to false, but if true, will create card data
             parameters: dictionary of parameter settings (see Parameters class) or
                 an instance of Parameters. If not specified, will use default parameters.
 
         returns: instance of ProjectCard
         """
-        self.card_data = Dict[str, Dict[str, Any]]
 
         self.roadway_changes = (
-            roadway_changes if roadway_changes is not None else pd.DataFrame([])
+            roadway_changes_df if roadway_changes_df is not None else pd.DataFrame([])
         )
 
         self.base_roadway_network = base_roadway_network
         self.base_transit_network = base_transit_network
         self.build_transit_network = build_transit_network
-        self.transit_changes = transit_changes
-        self.project_name = (
-            project_name if project_name else CubeProject.DEFAULT_PROJECT_NAME
-        )
+        self.tags = tags
+        self.dependencies = dependencies
+        self.project = project if project else CubeProject.DEFAULT_PROJECT_NAME
+        self.changes = []
+
+        print(f"SELF.PROJECT: {self.project}")
+        print(f"PROJECT: {project}")
 
         if parameters:
             WranglerLogger.debug(
@@ -128,6 +131,15 @@ class CubeProject(object):
         if evaluate:
             self.evaluate_changes()
 
+    @property
+    def card_data(self):
+        return {
+            "project": self.project,
+            "tags": self.tags,
+            "dependencies": self.dependencies,
+            "changes": self.changes,
+        }
+
     def write_project_card(self, filename: str = None):
         """
         Writes project cards.
@@ -138,6 +150,7 @@ class CubeProject(object):
         Returns:
             None
         """
+
         ProjectCard(self.card_data).write(out_filename=filename)
 
     @staticmethod
@@ -149,10 +162,9 @@ class CubeProject(object):
         roadway_log_file: Union[str, List[str], None] = None,
         roadway_shp_file: Optional[str] = None,
         roadway_csv_file: Optional[str] = None,
-        roadway_changes: Optional[DataFrame] = None,
+        roadway_changes_df: Optional[DataFrame] = None,
         build_transit_source: Optional[str] = None,
         build_transit_network: Optional[CubeTransit] = None,
-        transit_changes: Optional[DataFrame] = None,
         project_name: Optional[str] = None,
         recalculate_calculated_variables: Optional[bool] = False,
         recalculate_distance: Optional[bool] = False,
@@ -176,13 +188,12 @@ class CubeProject(object):
                 shape file for roadway changes. Defaults to None.
             roadway_csv_file (optional): [description].  File path to consuming
                 csv file for roadway changes. Defaults to None.
-            roadway_changes (optional): pandas dataframe of CUBE roadway changes.
+            roadway_changes_df (optional): pandas dataframe of CUBE roadway changes.
                  Defaults to None.
             build_transit_source (optional): Folder path to build transit
                 network or cube line file string. Defaults to None.
             build_transit_network (optional): Build transit network object.
                 Defaults to None.
-            transit_changes (optional): build transit changes. Defaults to None.
             project_name (optional): If not provided, will try and find from logfile
                 names (if provided). Defaults to None.
             recalculate_calculated_variables (optional): if reading in a base network,
@@ -441,19 +452,15 @@ class CubeProject(object):
             Not evaluating deletions."""
         )
 
-        # CUBE log file saves all variable names in upper cases, need to convert them to
-        # be same as network
-        log_to_net_df = pd.read_csv(parameters.log_to_net_crosswalk)
-        log_to_net_dict = dict(zip(log_to_net_df["log"], log_to_net_df["net"]))
-
-        dbf_to_net_df = pd.read_csv(parameters.net_to_dbf_crosswalk)
-        dbf_to_net_dict = dict(zip(dbf_to_net_df["dbf"], dbf_to_net_df["net"]))
+        # Convert logfile name to network names
+        log_to_net_dict = pd.read_csv(
+            parameters.roadway_field_mappings["log_to_net"]
+        ).field_mapping
 
         roadway_changes.rename(columns=log_to_net_dict, inplace=True)
-        roadway_changes.rename(columns=dbf_to_net_dict, inplace=True)
 
-        # for links "L"  that change "C",
-        # find locations where there isn't a base roadway link
+        # For links (OBJECT = "L") that change (OPERATON = "C"),
+        # Check that there is a base roadway link
 
         link_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
@@ -473,8 +480,8 @@ class CubeProject(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
-        # for links "N"  that change "C",
-        # find locations where there isn't a base roadway node
+        # For nodes (OBJECT = "N") that change (OPERATON = "C"),
+        # Check that there is a base roadway node
 
         node_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
@@ -502,18 +509,13 @@ class CubeProject(object):
         WranglerLogger.info("Evaluating project changes.")
 
         if not self.roadway_changes.empty:
-            highway_change_list = self.add_highway_changes()
+            self.changes += self.add_highway_changes()
 
-        if (self.transit_changes is not None) or (
+        if (
             self.base_transit_network is not None
             and self.build_transit_network is not None
         ):
-            transit_change_list = self.add_transit_changes()
-
-        self.card_data = {
-            "project": self.project_name,
-            "changes": transit_change_list + highway_change_list,
-        }
+            self.changes += self.add_transit_changes()
 
     def add_transit_changes(self):
         """
@@ -522,7 +524,8 @@ class CubeProject(object):
         """
 
         transit_change_list = evaluate_model_transit_differences(
-            self.base_transit_network, self.build_transit_network,
+            self.base_transit_network,
+            self.build_transit_network,
         )
 
         return transit_change_list
