@@ -56,7 +56,7 @@ class ModelTransit:
         parameters: Parameters = None,
         parameters_dict: dict = None,
         model_type: str = None,
-        tp_property: str = None,
+        tp_prop: str = None,
         node_id_prop: str = "node_id",
         route_id_prop: str = "route",
     ):
@@ -259,7 +259,8 @@ class ModelTransit:
                 self.route_properties_by_time_df[self.route_id_prop].isin(routes)
             ]
             self.route_properties_df = self.route_properties_df.append(
-                new_route_props_df, ignore_index=True,
+                new_route_props_df,
+                ignore_index=True,
             )
 
     def add_route_props_by_time_from_unmelted(self, routes: Collection[str]) -> None:
@@ -270,7 +271,7 @@ class ModelTransit:
             routes (Collection[str]):  List of route names which need to be added to
                 self.route_properties_by_time_df from self.route_properties_df.
         """
-        msg = f"Adding {len(routes)}routes \
+        msg = f"Adding {len(routes)} routes \
                 to self.route_properties_by_time_df: \
                 {routes}"
         WranglerLogger.debug(msg)
@@ -287,15 +288,17 @@ class ModelTransit:
             WranglerLogger.debug(
                 "Adding to existing: self._route_properties_by_time_df"
             )
-            self._route_properties_by_time_df = self._route_properties_by_time_df.append(
-                _new_route_properties_by_time_df, ignore_index=True
+            self._route_properties_by_time_df = (
+                self._route_properties_by_time_df.append(
+                    _new_route_properties_by_time_df, ignore_index=True
+                )
             )
 
     def _melt_routes_by_time_period(
         self,
         transit_properties_df: DataFrame,
         df_key: str = "NAME",
-        tp_property: str = "HEADWAY",
+        tp_prop: str = "HEADWAY",
     ) -> DataFrame:
         """Go from wide to long DataFrame with additional rows for transit routes which
         span multiple time periods, noted by additional column `model_time_period_number`.
@@ -305,21 +308,21 @@ class ModelTransit:
         Args:
             transit_properties_df (DataFrame): Dataframe in "wide" format.
             df_key (str, optional): Key of the route dataframe. Defaults to "NAME".
-            tp_property (str, optional): Field name for property which specifies which
+            tp_prop (str, optional): Field name for property which specifies which
                 time period a route is active for. Defaults to "HEADWAY".
 
         Returns:
             DataFrame: With additional rows for transit routes which span multiple time periods,
                 noted by additional column `model_time_period_number`
         """
-
+        # WranglerLogger.debug(f"transit_properties_df\n: {transit_properties_df}")
+        # WranglerLogger.debug(f"tp_prop\n: {tp_prop}")
         _time_period_fields = [
             p
             for p in transit_properties_df.columns
-            if self.base_prop_from_time_varying_prop(p) == tp_property
+            if self.base_prop_from_time_varying_prop(p) == tp_prop
         ]
         # WranglerLogger.debug(f"_time_period_fields: {_time_period_fields}")
-        # WranglerLogger.debug(f"transit_properties_df:\n {transit_properties_df}")
         melted_properties_df = transit_properties_df.melt(
             id_vars=[df_key], value_vars=_time_period_fields
         )
@@ -424,24 +427,36 @@ class ModelToStdAdapter:
     - shapes_df: shape properties
     """
 
-    REQUIRED_STD_ROUTE_ID_PROPERTIES = [
+    MODEL_ROUTE_ID_PROPS = ["NAME", "tp_num"]
+
+    STD_ROUTE_ID_PROPS = [
+        "route_id",
+        "start_time",
+        "end_time",
+    ]
+
+    DEFAULT_STD_ROUTE_PROPS = {"direction_id": 0, "agency_id": 1}
+
+    STD_NAME_REGEX = r"_.*_.*_[01]"
+    STD_NAME_PROPS = ["agency_id", "route_id", "time_period", "direction_id"]
+    FIELDS_KEPT_FROM_STD_NAME = ["agency_id", "route_id", "direction_id"]
+
+    PROJ_REQ_FACILITY_FIELDS = ["route_id", "start_time", "end_time"]
+    PROJ_FACILITY_FIELDS = [
         "route_id",
         "agency_id",
         "direction_id",
-        "start_time_HHMM",
-        "end_time_HHMM",
+        "trip_id",
+        "start_time",
+        "end_time",
     ]
-    DEFAULT_STD_ROUTE_PROPERTIES = {"direction_id": 0, "agency_id": 1}
-
-    STD_NAME_REGEX = r"_.*_.*_[01]"
-    STD_NAME_FIELDS = ["agency_id", "route_id", "time_period", "direction_id"]
-    FIELDS_KEPT_FROM_STD_NAME = ["agency_id", "route_id", "direction_id"]
 
     def __init__(
         self,
         modeltransit: ModelTransit,
-        model_to_std_prop_map: Mapping[str, str] = None,
         model_to_std_prop_trans: Mapping[Collection[str], Any] = None,
+        model_route_id_props: Collection[str] = MODEL_ROUTE_ID_PROPS,
+        std_route_id_props: Collection[str] = STD_ROUTE_ID_PROPS,
     ) -> None:
 
         self.__modeltransit = modeltransit
@@ -454,15 +469,12 @@ class ModelToStdAdapter:
 
         self.time_period_abbr_to_time = _ps.network_model_ps.time_period_abbr_to_time
 
-        self.time_period_abbr_to_time = (
-            _ps.network_model_parameters.time_period_abbr_to_time
-        )
+        self.time_period_abbr_to_time = _ps.network_model_ps.time_period_abbr_to_time
 
         self.transit_to_network_time_periods = (
             _transit_ps.transit_network_model_to_general_network_time_period_abbr
         )
 
-        self.model_to_std_prop_map = model_to_std_prop_map
         self.model_to_std_prop_trans = model_to_std_prop_trans
 
     def transform(self) -> Collection[DataFrame]:
@@ -490,8 +502,10 @@ class ModelToStdAdapter:
 
         return _std_shapes_df
 
-    @staticmethod
-    def calculate_std_identifiers(routes_df: DataFrame,) -> DataFrame:
+    def get_std_ids_from_name(
+        self,
+        routes_df: DataFrame,
+    ) -> DataFrame:
         """Adds standard transit route identifiers:
             route_id
             agency_id
@@ -508,27 +522,28 @@ class ModelToStdAdapter:
 
         std_route_name = len(
             routes_df[
-                routes_df["NAME"].str.match(ModelToStdAdapter.STD_NAME_REGEX) is True
+                routes_df[self.model_to_std_prop_map["route_id"]].str.match(
+                    ModelToStdAdapter.STD_NAME_REGEX
+                )
+                is True
             ]
         ) == len(routes_df)
 
-        if std_route_name:
-            routes_df[ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME] = routes_df[
-                "NAME"
-            ].apply(
-                ModelToStdAdapter.fields_from_std_route_name,
-                hame_field_list=ModelToStdAdapter.STD_NAME_FIELDS,
-                output_fields=ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME,
-                axis=1,
+        if not std_route_name:
+            raise ValueError(
+                f"Can't calculate standard route identifiers from\
+                MODEL_ROUTE_ID_PROP: {self.model_to_std_prop_map['route_id']}\
+                because it doens't fit the right pattern."
             )
 
-        else:
-            routes_df["route_id"] = routes_df["NAME"]
-            for k, v in ModelToStdAdapter.DEFAULT_STD_ROUTE_PROPERTIES.items():
-                if k not in routes_df.columns:
-                    routes_df[k] = v
-                elif routes_df[k].dropna().empty:
-                    routes_df[k] = v
+        routes_df[ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME] = routes_df[
+            self.model_to_std_prop_map["route_id"]
+        ].apply(
+            ModelToStdAdapter.fields_from_std_route_name,
+            name_field_list=ModelToStdAdapter.STD_NAME_PROPS,
+            output_fields=ModelToStdAdapter.FIELDS_KEPT_FROM_STD_NAME,
+            axis=1,
+        )
 
         return routes_df
 
@@ -571,10 +586,10 @@ class ModelToStdAdapter:
             routes_df (DataFrame): Routes dataframe with "tp_abbr".
 
         Returns:
-            DataFrame: DataFrame with new fields "start_time_HHMM" and "end_time_HHMM"
+            DataFrame: DataFrame with new fields "start_time" and "end_time"
         """
         _start_end_df = routes_df["tp_abbr"].map(self.time_period_abbr_to_time)
-        routes_df[["start_time_HHMM", "end_time_HHMM"]] = _start_end_df.apply(pd.Series)
+        routes_df[["start_time", "end_time"]] = _start_end_df.apply(pd.Series)
         return routes_df
 
     def get_timespan_from_transit_network_model_time_period(
@@ -603,32 +618,36 @@ class ModelToStdAdapter:
 
         return start_time, end_time
 
-    def transform_routes(self) -> DataFrame:
+    def transform_routes(self, std_ids: bool = True) -> DataFrame:
         """
         Converts model style properties in :py:`self.model_transit_routes_df` to
         standard properties.
+
+        Args:
+            std_ids: if True, will split name into route_id, direction_id, agency_id
 
         Returns:
             An updated dataframe with standard network property names and units.
 
         """
-        _routes_df = self.model_routes_df.rename(self.model_to_std_prop_map)
 
-        _properties_to_transform = [
-            k
-            for k, v in self.model_to_std_prop_trans.items()
-            if k[0] in self.model_routes_df.columns
-        ]
+        _routes_df = self.model_routes_df
 
-        for model_prop, standard_prop in _properties_to_transform:
-            _routes_df[standard_prop] = _routes_df[model_prop].apply(
-                self.model_to_std_prop_trans[(model_prop, standard_prop)]
-            )
-            _routes_df = _routes_df.drop(columns=[model_prop])
+        for (m_prop, s_prop), trans in self.model_to_std_prop_trans.items():
+            if m_prop not in _routes_df.columns:
+                continue
+            _routes_df[s_prop] = _routes_df[m_prop].apply(trans)
+            _routes_df = _routes_df.drop(columns=[m_prop])
 
         _routes_df = self.calculate_start_end_time_HHMM(_routes_df)
 
-        _routes_df = ModelToStdAdapter.calculate_std_identifiers(_routes_df)
+        if std_ids:
+            _routes_df = ModelToStdAdapter.get_std_ids_from_name(_routes_df)
+            for k, v in ModelToStdAdapter.DEFAULT_STD_ROUTE_PROPS.items():
+                if k not in _routes_df.columns:
+                    _routes_df[k] = v
+                elif _routes_df[k].dropna().empty:
+                    _routes_df[k] = v
 
         return _routes_df
 
@@ -671,7 +690,9 @@ def diff_shape(
     WranglerLogger.debug(f"[shape_b]: \n {shape_b}")
 
     blocks = difflib.SequenceMatcher(
-        a=shape_a[id_field], b=shape_b[id_field], autojunk=False,
+        a=shape_a[id_field],
+        b=shape_b[id_field],
+        autojunk=False,
     ).get_matching_blocks()
     """
     diff_df
@@ -702,7 +723,9 @@ def diff_shape(
         _first_change_b: {_first_change_b}\n"
     )
     """
+    print("SHAPE_A\n", shape_a)
 
+    print("SHAPE_B\n", shape_b)
     _last_change_a = len(shape_a) - 1
     _last_change_b = len(shape_b) - 1
     _last_overlap_a = diff_df.iloc[-2]["a"] + diff_df.iloc[-2]["n"]

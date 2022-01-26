@@ -30,7 +30,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
     @classmethod
     def convert_from_model_roadway_net(
-        cls, model_roadway_network: ModelRoadwayNetwork,
+        cls,
+        model_roadway_network: ModelRoadwayNetwork,
     ) -> None:
         """Static method for converting from a model roadway network
         to a MetCouncil flavor. Doesn't do anything other than change
@@ -508,7 +509,8 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
             "HOV": 0,
         }
 
-        links_df = fill_df_cols(links_df, mc_variables_init_dict,)
+        links_df = fill_df_cols(
+            links_df,
 
         return links_df
 
@@ -528,7 +530,6 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
         roadway_ps = self.parameters.roadway_network_ps
 
         links_df = self.add_polygon_overlay_to_links(
-            links_df, roadway_ps.roadway_overlays["area_type"], method="link centroid",
         )
 
         links_df = self.add_polygon_overlay_to_links(
@@ -603,7 +604,7 @@ class MetCouncilRoadwayNetwork(ModelRoadwayNetwork):
 
         self.model_links_df = super().calculate_centroid_connectors(self.model_links_df)
         self.model_links_df = super().update_distance(
-            self.model_links_df, use_shapes=True, inplace=False,
+            self.model_links_df,
         )
 
         self.model_links_df = self.add_met_council_calculated_roadway_variables(

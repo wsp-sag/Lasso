@@ -13,7 +13,7 @@ install:
   - tar -xzvf master.tar.gz
   - pip install network_wrangler-master/.
 script:
-  - pytest -m travis
+  - pytest -m ci
 
 after_success:
   - cd docs; make html

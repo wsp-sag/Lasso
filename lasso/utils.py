@@ -35,7 +35,7 @@ def profile_me(func):
     return wrapped_func
 
 
-def select_df_from_df(
+def select_df_from_matched_df(
     df: DataFrame, select_df: DataFrame, compare_cols: Collection[str] = None
 ) -> DataFrame:
     """Returns a dataframe which is a selection of dataframe df where compare_cols match
@@ -57,6 +57,151 @@ def select_df_from_df(
     )
 
     return df.loc[select]
+
+
+def intersect_dfs(
+    df1: DataFrame,
+    df2: DataFrame,
+    id_col: str,
+    how_cols_join: str = "inner",
+    how_rows_join: str = "inner",
+    select_cols=[],
+) -> Collection:
+    """Aligns two dataframes to be ready for comparison (a pd.DataFrame.compare() operation including
+    indices and row and column order.
+
+    Based on one of:
+    - inner: columns contained in both dfs
+    - outer: all columns across both dfs
+    - right/left: columns from one df or another (most useful for finding updates changes)
+
+    Args:
+        df1 (DataFrame): "left" DataFrame
+        df2 (DataFrame): "left" DataFrame
+        id_col (str): column which must exist in both df1 and df2 on which records are compared across
+        how_cols_join (str, optional): Can be one of ["inner","outer","right","left"] and is defined
+            similar to a pd.DataFrame.merge() operation in how it returns the resulting dataframe columns. Defaults to "inner".
+        how_rows_join (str, optional): Can be one of ["inner"] and is defined
+            similar to a pd.DataFrame.merge() operation in how it returns the resulting dataframe rows.  Defaults to "inner".
+        select_cols (list, optional): Identifies a subset of columns to return in order to compare (in addition to id_col). Defaults to [].
+
+    Raises:
+        ValueError: If `how_cols_join` isn't one of ["inner","outer","right","left"]
+        ValueError: if `how_rows_join` isn't one of ["inner"]
+
+    Returns:
+        Collection: Returns a tuple of the left and right dataframes which have been "intersected".
+    """
+    join_types = ["inner", "outer", "right", "left"]
+
+    WranglerLogger.debug(f"intersect_dfs.df1:\n{df1}")
+    WranglerLogger.debug(f"intersect_dfs.df2:\n{df2}")
+
+    df1 = df1.set_index(id_col)
+    df2 = df2.set_index(id_col)
+
+    # select_cols
+    if how_cols_join == "inner":
+        _keep_cols = [c for c in df1.columns if c in df2.columns]
+    elif how_cols_join == "outer":
+        _keep_cols = list(set(list(df1.columns) + list(df2.columns)))
+    elif how_cols_join == "left":
+        _keep_cols = list(df1.columns)
+    elif how_cols_join == "right":
+        _keep_cols = list(df2.columns)
+    else:
+        msg = f"""how_cols_join should be one of {join_types}\n
+            Found:\n  how_cols_join: {how_cols_join}"""
+        raise ValueError(msg)
+    WranglerLogger.debug(f"_keep_cols: {_keep_cols}")
+    WranglerLogger.debug(f"select_cols: {select_cols}")
+    if select_cols:
+        keep_cols = [c for c in _keep_cols if c in select_cols]
+    else:
+        keep_cols = _keep_cols
+
+    keep_cols.sort()
+    WranglerLogger.debug(f"keep_cols: {keep_cols}")
+
+    # will fill missing values with NaN
+    df1_cols = df1.reindex(columns=keep_cols)
+    df2_cols = df2.reindex(columns=keep_cols)
+
+    # select_rows
+
+    if how_rows_join == "inner":
+        select_rows = df1.index.intersection(df2.index)
+
+    else:
+        msg = f"""how_rows_join should be "inner"\n
+            Found:\n  how_rows_join: {how_rows_join}"""
+        raise ValueError(msg)
+
+    select_df1 = df1_cols.reindex(index=select_rows)
+    select_df2 = df2_cols.reindex(index=select_rows)
+
+    return_df1 = select_df1.reset_index()
+    return_df2 = select_df2.reset_index()
+
+    WranglerLogger.debug(f"intersect_dfs.return_df1:\n{return_df1}")
+    WranglerLogger.debug(f"intersect_dfs.return_df2:\n{return_df2}")
+
+    return return_df1, return_df2
+
+
+def find_df_changes(
+    base_df: DataFrame,
+    updated_df: DataFrame,
+    id_col: str,
+    select_records: str = "updated",
+    select_compare_cols=[],
+    keep_cols=[],
+) -> pd.DataFrame:
+    """[summary]
+
+    Args:
+        base_df (DataFrame): [description]
+        updated_df (DataFrame): [description]
+        id_col (str): [column which must exist in both df1 and df2 on which records are compared across
+        select_records (str, optional): One of ["updated","all"]. Defaults to "updated".
+        select_compare_cols (list, optional): Identifies a subset of columns to return in order to compare (in addition to id_col). Defaults to [].
+        keep_cols(list,optional): Identifies additional columns that you want to keep (in addition to id_col) even though they might be the same across dataframes.
+
+    Returns:
+        pd.DataFrame: [description]
+    """
+
+    select_records_options = ["updated", "all"]
+
+    if select_records not in select_records_options:
+        msg = f"select_records must be one of {select_records_options}. Found: {select_records}."
+        raise ValueError(msg)
+
+    _base_df, _updated_df = intersect_dfs(
+        base_df,
+        updated_df,
+        how_cols_join="right",
+        select_cols=select_compare_cols,
+        id_col=id_col,
+    )
+
+    _compare_df = _base_df.compare(
+        _updated_df,
+        keep_shape=True,
+    )
+
+    # Re-add "keep" fields since df.compare drops fields which aren't different,
+
+    _keep_cols = list(set(keep_cols + [id_col]))
+
+    _compare_df[[(i, "self") for i in _keep_cols]] = _updated_df[_keep_cols]
+
+    if select_records_options == "updated":
+        # drop columns where there aren't any differences
+        _compare_df = _compare_df.dropna(axis=1, how="all")
+
+    WranglerLogger.debug(f"find_df_changes._compare_df:\n {_compare_df}")
+    return _compare_df
 
 
 def get_shared_streets_intersection_hash(lat, lon, osm_node_id=None):
@@ -283,7 +428,9 @@ def write_df_to_fixed_width(
 
 
 def fill_df_cols(
-    df: DataFrame, fill_dict: Mapping[str, Any], overwrite: bool = False,
+    df: DataFrame,
+    fill_dict: Mapping[str, Any],
+    overwrite: bool = False,
 ) -> DataFrame:
     """Fills any number of columns (keys) with the mapped values.  Overwrites existing
     data and columns unless overwrite = False.
@@ -355,3 +502,16 @@ def check_overwrite(file: Union[Collection[str], str]):
                 msg = f"Stopped execution because user input declined to overwrite file:\
                     {file}"
                 raise ValueError(msg)
+
+
+def ordered(obj: Any) -> Any:
+    """Orders an object so it can be compared with another for the same "data".
+    Source: https://stackoverflow.com/questions/25851183/how-to-compare-two-json-objects-with-the-same-elements-in-a-different-order-equa
+
+    """
+    if isinstance(obj, dict):
+        return sorted((k, ordered(v)) for k, v in obj.items())
+    if isinstance(obj, list):
+        return sorted(ordered(x) for x in obj)
+    else:
+        return obj

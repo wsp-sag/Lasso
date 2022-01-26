@@ -1,6 +1,7 @@
 import copy
 import os
 import glob
+import math
 from typing import Collection, Any, Mapping, Union
 
 import pandas as pd
@@ -17,75 +18,57 @@ from ..model_transit import (
 )
 from ..parameters import Parameters
 
-MODEL_TO_STD_PROP_MAP = {
-    "LONGNAME": "route_long_name",
-    "NAME": "trip_id",
-    "N": "shape_model_node_id",
-}
+from ..utils import select_df_from_matched_df, intersect_dfs
 
-STD_TO_MODEL_PROP_MAP = {
-    "route_long_name": "LONGNAME",
-    "shape_model_node_id": "N",
-    "shape_pt_sequence": "order",
-}
 
 MODEL_TO_STD_PROP_TRANS = {
-    ("FREQ", "headway_secs"): lambda x: x * 60,
-    ("HEADWAY", "headway_secs"): lambda x: x * 60,
+    ("HEADWAY", "headway_secs"): lambda x: int(x * 60),
+    ("LONGNAME", "route_long_name"): lambda x: x,
+    ("NAME", "route_id"): lambda x: x,
+    ("N", "shape_model_node_id"): lambda x: x,
 }
+
+MODEL_TO_STD_PROP_MAP = {k: v for k, v in MODEL_TO_STD_PROP_TRANS.keys()}
 
 STD_TO_MODEL_PROP_TRANS = {
-    ("headway_secs", "FREQ"): lambda x: int(x / 60),
     ("headway_secs", "HEADWAY"): lambda x: int(x / 60),
+    ("route_long_name", "LONGNAME"): lambda x: x,
+    ("shape_model_node_id", "N"): lambda x: x,
+    ("shape_pt_sequence", "order"): lambda x: x,
 }
 
-TRNBUILD_ROUTE_PROPERTIES = [
-    "NAME",
+STD_TO_MODEL_PROP_MAP = {k: v for k, v in STD_TO_MODEL_PROP_TRANS.keys()}
+
+MODEL_ROUTE_ID_PROP = "NAME"
+MODEL_NODE_ID_PROP = "N"
+
+MODEL_REQUIRED_ROUTE_PROPS = ["HEADWAY", "MODE"]
+PROJ_REQUIRED_ROUTE_PROPS = [
+    MODEL_TO_STD_PROP_MAP.get(p, p) for p in MODEL_REQUIRED_ROUTE_PROPS
+]
+
+MODEL_ROUTE_PROPS = [
     "LONGNAME",
     "HEADWAY",
     "MODE",
     "ONEWAY",
-    "NODES",
-]
-
-PT_ROUTE_PROPERTIES = [
-    "NAME",
-    "LONGNAME",
-    "FREQ",
-    "MODE",
-    "ONEWAY",
     "OPERATOR",
-    "NODES",
+]
+PROJ_ROUTE_PROPS = [MODEL_TO_STD_PROP_MAP.get(p, p) for p in MODEL_ROUTE_PROPS]
+
+MODEL_NODE_PROPS = ["NNTIME"]
+PROJ_NODE_PROPS = [MODEL_TO_STD_PROP_MAP.get(p, p) for p in MODEL_NODE_PROPS]
+
+MODEL_REQUIRED_NODE_PROPS = []
+PROJ_REQUIRED_NODE_PROPS = [
+    MODEL_TO_STD_PROP_MAP.get(p, p) for p in MODEL_REQUIRED_NODE_PROPS
 ]
 
-REQUIRED_ROUTE_PROPERTIES = {
-    "TRNBUILD": ["HEADWAY", "NAME", "MODE", "NODES"],
-    "PT": ["FREQ", "NAME", "MODE", "NODES"],
-}
-
-MODEL_ROUTE_PROPERTIES = {
-    "TRNBUILD": TRNBUILD_ROUTE_PROPERTIES,
-    "PT": PT_ROUTE_PROPERTIES,
-}
-
-REQUIRED_NODE_PROPERTIES = {
-    "TRNBUILD": [],
-    "PT": [],
-}
-
-MODEL_NODE_PROPERTIES = ["NNTIME"]
 
 # Property used for defining which time period exists for each route
-TP_PROPERTY = {
-    "TRNBUILD": "HEADWAY",
-    "PT": "FREQ",
-}
-
-ROUTE_ID_PROP = "NAME"
-NODE_ID_PROP = "N"
-
+MODEL_TP_PROP = "HEADWAY"
 # Properties which vary by time period
-TIME_VARYING_TRANSIT_PROPERTIES = {"HEADWAY", "FREQ"}
+MODEL_TIME_VARYING_TRANSIT_PROPS = ["HEADWAY"]
 
 DEFAULT_CUBE_TRANSIT_PROGRAM = "TRNBUILD"
 
@@ -128,11 +111,11 @@ class CubeTransit(ModelTransit):
         cube_transit_program: str = DEFAULT_CUBE_TRANSIT_PROGRAM,
         parameters: Parameters = None,
         parameters_dict: Mapping[str, Any] = {},
-        tp_property: str = None,
-        route_properties: Collection[str] = None,
-        node_properties: Collection[str] = None,
-        required_route_properties: Collection[str] = None,
-        required_node_properties: Collection[str] = None,
+        tp_prop: str = MODEL_TP_PROP,
+        route_props: Collection[str] = MODEL_ROUTE_PROPS,
+        node_props: Collection[str] = MODEL_NODE_PROPS,
+        required_route_props: Collection[str] = MODEL_REQUIRED_ROUTE_PROPS,
+        required_node_props: Collection[str] = MODEL_REQUIRED_NODE_PROPS,
         **kwargs,
     ):
         """Constructor for CubeModelTransit class.
@@ -151,49 +134,37 @@ class CubeTransit(ModelTransit):
             parameters_dict (Mapping[str, Any], optional): Dictionary which can add additional
                 paramteters to the Parameters instance or to overwrite what is there.
                 Defaults to {}.
-            tp_property (str, optional): Transit route property which defines which time
-                periods the route exists in. Defaults to `TP_PROPERTY`[cube_transit_program].
-            route_properties (Collection[str], optional): Properties which are
+            tp_prop (str, optional): Transit route property which defines which time
+                periods the route exists in. Defaults to `MODEL_TP_PROP`.
+            route_props (Collection[str], optional): Properties which are
                 calculated and saved for route-level properties.
-                Defaults to `MODEL_ROUTE_PROPERTIES`[cube_transit_program].
-            node_properties (Collection[str], optional):  Properties which are
+                Defaults to `MODEL_ROUTE_PROPS`.
+            node_props (Collection[str], optional):  Properties which are
                 calculated and saved for route nodes/shapes.
-                Defaults to `MODEL_NODE_PROPERTIES`[cube_transit_program].
-            required_route_properties (Collection[str], optional): Properties which are required
+                Defaults to `MODEL_NODE_PROPS`.
+            required_route_props (Collection[str], optional): Properties which are required
                 for the route-level properties and will be always written out.
-                Defaults to `REQUIRED_ROUTE_PROPERTIES`[cube_transit_program].
-            required_node_properties (Collection[str], optional): Properties which are required
+                Defaults to `MODEL_REQUIRED_ROUTE_PROPS`.
+            required_node_props (Collection[str], optional): Properties which are required
                 for the route nodes/shapes and will be always written out.
-                Defaults to `REQUIRED_NODE_PROPERTIES`[cube_transit_program].
+                Defaults to `MODEL_REQUIRED_NODE_PROPS`.
         """
 
         self.cube_transit_program = cube_transit_program
 
-        self.tp_property = TP_PROPERTY[cube_transit_program]
-        if tp_property:
-            self.tp_property = tp_property
+        self.tp_prop = tp_prop
 
-        self.route_properties = MODEL_ROUTE_PROPERTIES[cube_transit_program]
-        if route_properties:
-            self.route_properties = route_properties
+        self.route_props = route_props
+        self.node_props = node_props
 
-        self.node_properties = MODEL_NODE_PROPERTIES
-        if node_properties:
-            self.node_properties = node_properties
-
-        self.required_route_properties = REQUIRED_ROUTE_PROPERTIES[cube_transit_program]
-        if required_route_properties:
-            self.required_route_properties = required_route_properties
-
-        self.required_node_properties = REQUIRED_NODE_PROPERTIES[cube_transit_program]
-        if required_node_properties:
-            self.required_node_properties = required_node_properties
+        self.required_route_props = required_route_props
+        self.required_node_props = required_node_props
 
         super().__init__(
             route_properties_df=None,
             shapes_df=None,
-            route_id_prop=ROUTE_ID_PROP,
-            node_id_prop=NODE_ID_PROP,
+            route_id_prop=MODEL_ROUTE_ID_PROP,
+            node_id_prop=MODEL_NODE_ID_PROP,
             model_type="cube",
             parameters=parameters,
             parameters_dict=parameters_dict,
@@ -267,9 +238,9 @@ class CubeTransit(ModelTransit):
         cube_transit_program: str = None,
         std_to_model_prop_map: Mapping[str, str] = None,
         std_to_model_prop_trans: Mapping[Collection[str], Any] = None,
-        tp_property: str = None,
-        node_properties: Collection[str] = None,
-        route_properties: Collection[str] = None,
+        tp_prop: str = None,
+        node_props: Collection[str] = None,
+        route_props: Collection[str] = None,
         parameters: Parameters = None,
     ):
         """Adds standard transit networks to CubeModelTransit object using
@@ -287,13 +258,13 @@ class CubeTransit(ModelTransit):
             std_to_model_prop_trans (Mapping[Collection[str], Any], optional): Maps a tuple of
                 (standard property, model property) to a transformation function that turns the
                 standard property into the model property. Defaults to None.
-            tp_property (str, optional): Property which specifies whether a transit route
-                exists in various time periods.  Defaults to self.tp_property
+            tp_prop (str, optional): Property which specifies whether a transit route
+                exists in various time periods.  Defaults to self.tp_prop
                 which defaults to "FREQ" for PT or "HEADWAY" for TRNBUILD.
-            node_properties (Collection[str], optional): Specifies the model properties for nodes.
-                Defaults to self.node_properties which defaults to [].
-            route_properties (Collection[str], optional): Specifies the model properties for
-                routes. Defaults to self.route_properties which defaults to ["NAME","LONGNAME",
+            node_props (Collection[str], optional): Specifies the model properties for nodes.
+                Defaults to self.node_props which defaults to [].
+            route_props (Collection[str], optional): Specifies the model properties for
+                routes. Defaults to self.route_props which defaults to ["NAME","LONGNAME",
                 "MODE","ONEWAY","NODES"] for either PT or TRNBUILD and then ["FREQ" and "OPERATOR"]
                 for PT and ["HEADWAY"] for TRNBUILD.
             parameters (Parameters, optional): parameters object, which is used in the
@@ -301,12 +272,12 @@ class CubeTransit(ModelTransit):
         """
         if cube_transit_program is None:
             cube_transit_program = self.cube_transit_program
-        if tp_property is None:
-            tp_property = self.tp_property
-        if node_properties is None:
-            node_properties = self.node_properties
-        if route_properties is None:
-            route_properties = self.route_properties
+        if tp_prop is None:
+            tp_prop = self.tp_prop
+        if node_props is None:
+            node_prop = self.node_props
+        if route_props is None:
+            route_properties = self.route_props
         if parameters is None:
             parameters = self.parameters
 
@@ -318,9 +289,9 @@ class CubeTransit(ModelTransit):
             cube_transit_program=cube_transit_program,
             std_to_model_prop_map=std_to_model_prop_map,
             std_to_model_prop_trans=std_to_model_prop_trans,
-            tp_property=tp_property,
-            node_properties=node_properties,
-            route_properties=route_properties,
+            tp_prop=tp_prop,
+            node_props=node_props,
+            route_props=route_props,
             parameters=parameters,
         )
 
@@ -409,7 +380,8 @@ class CubeTransit(ModelTransit):
         WranglerLogger.info(f"Wrote to {outfilename}")
 
     def _melt_routes_by_time_period(
-        self, transit_properties_df: DataFrame,
+        self,
+        transit_properties_df: DataFrame,
     ) -> DataFrame:
         """Translates a wide dataframe with fields for time-dependent route properties
         for each time period, to a long dataframe with a row for every route/time period
@@ -419,7 +391,7 @@ class CubeTransit(ModelTransit):
 
         Uses:
             df_key = self.route_id_prop
-            tp_property = self.tp_property
+            tp_prop= self.tp_prop
 
         Args:
             transit_properties_df (DataFrame): dataframe with a row for each route and
@@ -432,7 +404,7 @@ class CubeTransit(ModelTransit):
         df = super()._melt_routes_by_time_period(
             transit_properties_df,
             df_key=self.route_id_prop,
-            tp_property=self.tp_property,
+            tp_prop=self.tp_prop,
         )
 
         return df
@@ -445,7 +417,7 @@ class CubeTransit(ModelTransit):
         Example:  HEADWAY[1] ---> HEADWAY
 
         Args:
-            property (str): Field name with time period embedded, i.e. FREQ[2]
+            prop (str): Field name with time period embedded, i.e. FREQ[2]
 
         Returns:
             str: Base field name without time period id.
@@ -453,18 +425,18 @@ class CubeTransit(ModelTransit):
         return prop.split("[")[0]
 
     @classmethod
-    def get_tp_nums_from_model_properties(cls, properties_list: list):
+    def get_tp_nums_from_model_props(cls, props_list: list):
         """
         Finds properties that are associated with time periods and the
         returns the numbers in them.
 
         Args:
-            properties_list (list): list of all properties.
+            props_list (list): list of all properties.
 
         Returns:
             list of strings of the time period numbers found
         """
-        time_props = cls.time_varying_props_filter(properties_list)
+        time_props = cls.time_varying_props_filter(props_list)
         tp_num_list = list(
             set([cls.tp_num_from_time_varying_prop(p) for p in time_props])
         )
@@ -478,7 +450,7 @@ class CubeTransit(ModelTransit):
         Example:  HEADWAY[1] ---> 1
 
         Args:
-            property (str): Field name with time period embedded, i.e. FREQ[2]
+            prop (str): Field name with time period embedded, i.e. FREQ[2]
 
         Returns:
             int: Transit time period ID.
@@ -486,20 +458,20 @@ class CubeTransit(ModelTransit):
         return prop.split("[")[1][0]
 
     @staticmethod
-    def time_varying_props_filter(properties_list: Collection) -> Collection:
+    def time_varying_props_filter(props_list: Collection) -> Collection:
         """Filters a collection of route properties into a collection of time-varying
         route properties.
 
         Args:
-            properties_list (Collection): List of route properties, e.g. ["NAME",
+            props_list (Collection): List of route properties, e.g. ["NAME",
                 "HEADWAY[1]","HEADWAY[2]"]
 
         Returns:
             Collection: List of route properties which vary by time,
                 e.g. ["HEADWAY[1]","HEADWAY[2]"]
         """
-        time_properties = [p for p in properties_list if ("[" in p) and ("]" in p)]
-        return time_properties
+        time_props = [p for p in props_list if ("[" in p) and ("]" in p)]
+        return time_props
 
     @staticmethod
     def model_prop_from_base_prop_tp_num(basename: str, tp_num: int) -> str:
@@ -535,13 +507,13 @@ class StdToCubeAdapter(StdToModelAdapter):
             std_to_model_prop_trans={
                  ("HEADWAY", "headway_secs"): lambda x: x * 60,
             },
-            tp_property="HEADWAY",
-            node_properties=[],
-            route_properties=["HEADWAY","NAME","OPERATOR"],
+            tp_prop="HEADWAY",
+            node_props=[],
+            route_props=["HEADWAY","NAME","OPERATOR"],
             parameters=parameters,
         )
 
-        model_route_properties_by_time_df, model_nodes_df = _adapter.transform()
+        model_route_props_by_time_df, model_nodes_df = _adapter.transform()
     """
 
     def __init__(
@@ -549,11 +521,12 @@ class StdToCubeAdapter(StdToModelAdapter):
         standardtransit: TransitNetwork,
         cube_transit_program: str = DEFAULT_CUBE_TRANSIT_PROGRAM,
         parameters: Parameters = None,
-        std_to_model_prop_map: Mapping[str, str] = None,
-        std_to_model_prop_trans: Mapping[Collection[str], Any] = None,
-        tp_property: str = None,
-        node_properties: Collection[str] = None,
-        route_properties: Collection[str] = None,
+        std_to_model_prop_trans: Mapping[
+            Collection[str], Any
+        ] = STD_TO_MODEL_PROP_TRANS,
+        tp_prop: str = MODEL_TP_PROP,
+        node_props: Collection[str] = MODEL_NODE_PROPS,
+        route_props: Collection[str] = MODEL_ROUTE_PROPS,
         **kwargs,
     ):
         """Constructor method for StdToCubeAdapter.
@@ -564,53 +537,32 @@ class StdToCubeAdapter(StdToModelAdapter):
                 DEFAULT_CUBE_TRANSIT_PROGRAM.
             parameters (py:class:`Parameters`): Parameters instance for doing translations
                 between time periods. Defaults to none and then default parameters.
-            std_to_model_prop_map (Mapping[str, str], optional): Dictionary mapping
-                standard transit property to cube model property which just need to be renamed
-                without any translation.
-                Example:
-                    {
-                        "route_long_name": "LONGNAME",
-                        "shape_model_node_id": "N",
-                        "shape_pt_sequence": "order",
-                    }.Defaults to :py:`STD_TO_MODEL_PROP_MAP`.
             std_to_model_prop_trans (Mapping[Collection[str], Any], optional): Maps a tuple of
                 (standard property,model property) to a transformation function that turns the
                 standard/gtfs property into the cube model property.
                 Defaults to :py:`std_to_model_prop_trans`.
                 Example: {} ("HEADWAY", "headway_secs"): lambda x: x * 60}
-            tp_property (str, optional): transit route property which defines which time
-                periods the route exists in. Defaults to :py:`TP_PROPERTY`[cube_transit_program].
-            node_properties (Collection[str], optional):  Properties which are
+            tp_prop (str, optional): transit route property which defines which time
+                periods the route exists in. Defaults to :py:`MODEL_TP_PROP`.
+            node_props (Collection[str], optional):  Properties which are
                 calculated and saved for route nodes/shapes.
-                Defaults to `MODEL_NODE_PROPERTIES`[cube_transit_program].
-            route_properties (Collection[str], optional): Properties which are
+                Defaults to `MODEL_NODE_PROPS`.
+            route_propes (Collection[str], optional): Properties which are
                 calculated and saved for route-level properties.
-                Defaults to `MODEL_ROUTE_PROPERTIES`[cube_transit_program].
+                Defaults to `MODEL_ROUTE_PROPS`.
         """
         self.__standardtransit = standardtransit
         self.feed = self.__standardtransit.feed
         self.cube_transit_program = cube_transit_program
 
         ###PARAMETERS
-        self.std_to_model_prop_map = STD_TO_MODEL_PROP_MAP
-        if std_to_model_prop_map:
-            self.std_to_model_prop_map = std_to_model_prop_map
 
-        self.std_to_model_prop_trans = STD_TO_MODEL_PROP_TRANS
-        if std_to_model_prop_trans:
-            self.std_to_model_prop_trans = std_to_model_prop_trans
+        self.std_to_model_prop_trans = std_to_model_prop_trans
 
-        self.tp_property = TP_PROPERTY[cube_transit_program]
-        if tp_property:
-            self.tp_property = tp_property
+        self.tp_prop = tp_prop
 
-        self.node_properties = MODEL_NODE_PROPERTIES
-        if node_properties:
-            self.node_properties = node_properties
-
-        self.route_properties = MODEL_ROUTE_PROPERTIES[cube_transit_program]
-        if route_properties:
-            self.route_properties = route_properties
+        self.node_props = node_props
+        self.route_props = route_props
 
         if not Parameters:
             parameters = Parameters()
@@ -874,9 +826,6 @@ class CubeToStdAdapter(ModelToStdAdapter):
     instance and standard GTFS data in a :py:class:`TransitNetwork`.
     Subclass of :py:class:`ModelToStdAdapter` with cube-specific methods.
 
-    WIP. INCOMPLETE.
-
-
     Args:
         ModelToStdAdapter ([type]): [description]
 
@@ -890,8 +839,10 @@ class CubeToStdAdapter(ModelToStdAdapter):
         self,
         modeltransit: ModelTransit,
         cube_transit_program=None,
-        model_to_std_prop_map: Mapping[str, str] = None,
-        model_to_std_prop_trans: Mapping[Collection[str], Any] = None,
+        model_to_std_prop_trans: Mapping[
+            Collection[str], Any
+        ] = MODEL_TO_STD_PROP_TRANS,
+        model_route_id_props=["NAME", "tp_num"],
     ) -> None:
         """Constructor method for object to translate between a :py:class:`ModelTransit` instance
          and standard GTFS data in a :py:class:`TransitNetwork`. WIP. INCOMPLETE.
@@ -900,22 +851,13 @@ class CubeToStdAdapter(ModelToStdAdapter):
             modeltransit (ModelTransit): Instance to be transformed.
             cube_transit_program ([type], optional): TRNBUILD or PT.
                 Defaults to None.
-            model_to_std_prop_map (Mapping[str, str], optional): Specifies key:values
-                relating  model transit properties to standard transit properties/gtfs which
-                don't need to be transformed...just renamed.  Defaults to None.
             model_to_std_prop_trans (Mapping[Collection[str], Any], optional):Maps a tuple of
                 (model property,standard property) to a transformation function that turns the
                 model property into the standard/gtfs property. Defaults to None.
         """
 
-        if not model_to_std_prop_map:
-            model_to_std_prop_map = MODEL_TO_STD_PROP_MAP
-        if not model_to_std_prop_trans:
-            model_to_std_prop_trans = MODEL_TO_STD_PROP_TRANS
-
         super().__init__(
             modeltransit,
-            model_to_std_prop_map=model_to_std_prop_map,
             model_to_std_prop_trans=model_to_std_prop_trans,
         )
 
@@ -947,7 +889,9 @@ class CubeTransitReader:
     """
 
     def __init__(
-        self, cube_transit_program: str, route_id_prop: str = "NAME",
+        self,
+        cube_transit_program: str,
+        route_id_prop: str = "NAME",
     ):
         self.program = cube_transit_program
         self.route_id_prop = route_id_prop
@@ -1023,18 +967,26 @@ class CubeTransitReader:
 
         _line_data = transformed_tree_data["lines"]
 
-        # WranglerLogger.debug(f"CubeToStdAdapter.read._line_data : {_line_data}")
+        WranglerLogger.debug(f"CubeToStdAdapter.read._line_data : {_line_data}")
 
         route_properties_df = DataFrame(
             [v["line_properties"] for k, v in _line_data.items()]
         )
+
+        # Need to convert numpy (default) to pandas data types which support missing values as NA
+        print("BEFORE TYPES", route_properties_df.dtypes)
+        print(route_properties_df)
+        route_properties_df = route_properties_df.convert_dtypes(convert_string=False)
+        print("AFTER TYPES", route_properties_df.dtypes)
+        print(route_properties_df)
         msg = f"CubeToStdAdapter.read.route_properties_df: {route_properties_df[0:5]}"
-        # WranglerLogger.debug(msg)
+        WranglerLogger.debug(msg)
 
         msg = "Validating Routes."
         WranglerLogger.info(msg)
         _reader = CubeTransitReader(
-            cube_transit_program=cube_transit_program, route_id_prop=route_id_prop,
+            cube_transit_program=cube_transit_program,
+            route_id_prop=route_id_prop,
         )
         _reader.validate_routes(route_properties_df)
 
@@ -1083,8 +1035,8 @@ class CubeTransitWriter:
         cls,
         route_properties_df: DataFrame,
         nodes_df: DataFrame,
-        node_properties: Collection[str] = None,
-        route_properties: Collection[str] = None,
+        node_props: Collection[str] = MODEL_NODE_PROPS,
+        route_props: Collection[str] = MODEL_ROUTE_PROPS,
         cube_transit_program: str = DEFAULT_CUBE_TRANSIT_PROGRAM,
         outpath: str = "outtransit.lin",
     ) -> None:
@@ -1096,12 +1048,12 @@ class CubeTransitWriter:
                 each cube transit line which will be written. For now, new cube transit
                 lines are written for each route/time period combination.
             nodes_df (DataFrame): Shape nodes dataframe with fields NAME, N, stop
-            node_properties (Collection[str], optional): Node properties which will
+            node_props (Collection[str], optional): Node properties which will
                 be written out in addition to required. Defaults to None.
-            route_properties (Collection[str], optional): Route properties which will
+            route_props (Collection[str], optional): Route properties which will
                 be written out in addition to required. Defaults to None.
             cube_transit_program (str, optional): [description]. Defaults to
-                `DEFAULT_CUBE_TRANSIT_PROGRAM`.
+                `CUBE_TRANSIT_PROGRAM`.
             outpath (str, optional): File location for output cube line file.
                 Defaults to "outtransit.lin".
 
@@ -1110,25 +1062,20 @@ class CubeTransitWriter:
         """
 
         WranglerLogger.debug(f"nodes_df: \n{nodes_df}")
-        if not node_properties:
-            node_properties = REQUIRED_NODE_PROPERTIES[cube_transit_program]
+        if not node_props:
+            node_properties = MODEL_REQUIRED_NODE_PROPS
 
         nodes_str_df = cls._nodes_df_to_cube_node_strings(
-            nodes_df, properties=node_properties,
+            nodes_df,
+            properties=node_properties,
         )
-
-        if not route_properties:
-            route_properties = REQUIRED_ROUTE_PROPERTIES[cube_transit_program]
-
-        route_properties = list(
-            set(REQUIRED_ROUTE_PROPERTIES[cube_transit_program] + route_properties)
-        )
+        route_props = list(set(MODEL_REQUIRED_ROUTE_PROPS + route_props))
 
         routes_s = route_properties_df.apply(
             cls._route_to_cube_str,
             cube_node_string_df=nodes_str_df,
             cube_transit_program=cube_transit_program,
-            route_properties=route_properties,
+            route_props=route_props,
             axis=1,
         )
 
@@ -1185,9 +1132,9 @@ class CubeTransitWriter:
     def _route_to_cube_str(
         row: pd.Series,
         cube_node_string_df: DataFrame,
-        route_properties: Collection[str],
+        route_props: Collection[str],
         cube_transit_program: str,
-        time_varying_properties: Collection = TIME_VARYING_TRANSIT_PROPERTIES,
+        time_varying_props: Collection = MODEL_TIME_VARYING_TRANSIT_PROPS,
     ) -> str:
         """Creates a string representing the route in cube line file notation.
 
@@ -1197,10 +1144,10 @@ class CubeTransitWriter:
                 MODE, ONEWAY, OPERATOR
             cube_node_string_df (DataFrame): dataframe with cube node shape
                 representations keyed by NAME
-            route_properties (Collection[str]): List of route-level properties to
+            route_props (Collection[str]): List of route-level properties to
                 be written out
             cube_transit_program (str): TRNBUILD or PT
-            time_varying_properties (Collection, optional): List of properties which
+            time_varying_props (Collection, optional): List of properties which
                 need to be keyed by transit time period number, e.g. "HEADWAY".
                 Defaults to TIME_VARYING_TRANSIT_PROPERTIES.
 
@@ -1208,15 +1155,17 @@ class CubeTransitWriter:
             [str]: string representation of route in cube line file notation
         """
         USE_QUOTES = ["NAME", "LONGNAME"]
-        FIRST_PROP = "NAME"
-        LAST_PROP = "NODES"
-        route_properties.remove(FIRST_PROP)
-        route_properties.insert(0, FIRST_PROP)
-        route_properties.remove(LAST_PROP)
-        route_properties.append(LAST_PROP)
+        FIRST_PROPS = ["NAME"]
+        LAST_PROPS = ["NODES"]
+
+        ordered_route_props = [p for p in FIRST_PROPS if p in route_props]
+        ordered_route_props += [
+            p for p in route_props if p not in list(set(FIRST_PROPS + LAST_PROPS))
+        ]
+        ordered_route_props += [p for p in LAST_PROPS if p in route_props]
 
         s = "\nLINE "
-        for p in route_properties:
+        for p in ordered_route_props:
             if p == "NODES":
                 # msg = f"{cube_node_string_df[row.trip_id].squeeze()}"
                 # WranglerLogger.warning(msg)
@@ -1229,7 +1178,7 @@ class CubeTransitWriter:
                 s += f"NODES={cube_node_string_df.loc[row['NAME']]}\n"
             elif pd.isna(row.get(p)):
                 continue
-            elif p in time_varying_properties:
+            elif p in time_varying_props:
                 s += f"{p}[{row.tp_num}]={row[p]},\n"
             elif p in USE_QUOTES:
                 s += f'{p}="{row[p]}",\n'
@@ -1253,6 +1202,11 @@ class CubeTransformer(Transformer):
             a route shape
         lines_list (list): a list of the line names
     """
+
+    SIGNED_INT = int
+    STRING = str
+    BOOLEAN = str
+    TIME_DEPENDENT_PROPERTIES = ["USERA", "FREQ", "HEADWAY"]
 
     def __init__(self):
         self.line_order = 0
@@ -1292,21 +1246,24 @@ class CubeTransformer(Transformer):
 
     @v_args(inline=True)
     def lin_attr(self, lin_attr_name, attr_value, SEMICOLON_COMMENT=None):
-        # WranglerLogger.debug("lin_attr {}:  {}".format(lin_attr_name, attr_value))
+        # WranglerLogger.debug(f"lin_attr {lin_attr_name}:  {attr_value}")
+        # WranglerLogger.debug(f"lin_attr type {lin_attr_name}:  {attr_value} - {type(attr_value)}")
         return lin_attr_name, attr_value
 
     def lin_attr_name(self, args):
-        attr_name = args[0].value.upper()
-        # WranglerLogger.debug(".......args {}".format(args))
-        if attr_name in ["USERA", "FREQ", "HEADWAY"]:
+        attr_name = args[0].upper()
+        # WranglerLogger.debug("attr_name.......args {}".format(args))
+        if attr_name in CubeTransformer.TIME_DEPENDENT_PROPERTIES:
             attr_name = attr_name + "[" + str(args[2]) + "]"
         return attr_name
 
-    def attr_value(self, attr_value):
-        try:
-            return int(attr_value[0].value)
-        except ValueError:
-            return attr_value[0].value
+    def attr_value(self, values):
+        value = values[0]
+        if type(value) == str:
+            value = value.strip('"')
+        # WranglerLogger.debug(f"attr_value: {value} type:{type(value)}")
+
+        return value
 
     def nodes(self, lin_node):
         lin_node = DataFrame(lin_node)
@@ -1329,7 +1286,7 @@ start             : program_type_line? lines
 WHITESPACE        : /[ \t\r\n]/+
 STRING            : /("(?!"").*?(?<!\\)(\\\\)*?"|'(?!'').*?(?<!\\)(\\\\)*?')/i
 SEMICOLON_COMMENT : /;[^\n]*/
-BOOLEAN           : "T"i | "F"i
+BOOLEAN           : "T"|"F"
 program_type_line : ";;<<" PROGRAM_TYPE ">><<LINE>>;;" WHITESPACE?
 PROGRAM_TYPE      : "PT" | "TRNBUILD"
 
@@ -1359,7 +1316,7 @@ TIME_PERIOD       : "1".."5"
                     | "operator"i
                     | "faresystem"i
 
-attr_value        : BOOLEAN | STRING | SIGNED_INT | SIGNED_NUMBER
+attr_value        : STRING | SIGNED_INT | BOOLEAN
 
 nodes             : lin_node+
 lin_node          : ("N" | "NODES")? "="? NODE_NUM ","? SEMICOLON_COMMENT? lin_nodeattr*
@@ -1390,7 +1347,6 @@ def evaluate_route_shape_changes(
     base_t: ModelTransit,
     updated_t: ModelTransit,
     match_id: Union[Collection[str], str] = None,
-    route_list: Collection = None,
     n_buffer_vals: int = 3,
 ) -> Mapping[str, Mapping]:
     """Compares all the shapes (or the subset specified in `route_list`) for two
@@ -1403,8 +1359,6 @@ def evaluate_route_shape_changes(
         match_id (Union[Collection[str], str], optional): Field name or a collection
             of field names to use as the match, e.g. ["N","stop"]. Defaults to None.
             Defaults to [base_t.node_id_prop, "stop"]
-        route_list (Collection, optional): List of routes to compare. If not provided,
-            will evaluate changes between all routes common between `base_t` and `updated_t`.
         n_buffer_vals (int, optional): Number of values on either side to include in
             match. Defaults to 3.
 
@@ -1416,10 +1370,10 @@ def evaluate_route_shape_changes(
     base_shapes_df = base_t.shapes_df.copy()
     updated_shapes_df = updated_t.shapes_df.copy()
 
-    WranglerLogger.debug(
-        f"\nbase_shapes_df: \n{base_shapes_df}\
-        \nupdated_shapes_df: \n {updated_shapes_df}"
-    )
+    # WranglerLogger.debug(
+    #    f"\nbase_shapes_df: \n{base_shapes_df}\
+    #    \nupdated_shapes_df: \n {updated_shapes_df}"
+    # )
 
     if not base_t.node_id_prop == updated_t.node_id_prop:
         msg = f"Base and updated node_id fields not same {base_t.node_id_prop} vs\
@@ -1459,12 +1413,9 @@ def evaluate_route_shape_changes(
                 Available columns: {updated_shapes_df.columns}."
         if err:
             raise ValueError(err)
-
-    # if the routes to compare are not specified in route_list, select all
-    # routes which are common between the transit networks
-    if not route_list:
-        route_list = [i for i in updated_t.routes if i in base_t.routes]
-
+    # select all routes which are common between the transit networks
+    route_list = [i for i in updated_t.routes if i in base_t.routes]
+    print("ROUTE_LISTB", route_list)
     # Compare route changes for each route in the list
     shape_changes_by_route_id_dict = {}
     for i in route_list:
@@ -1473,7 +1424,10 @@ def evaluate_route_shape_changes(
             updated_shapes_df[updated_shapes_df[_route_id_prop] == i],
             match_id,
         )
-        rt_change_dict = update_route_routing_change_dict(existing_r_df, change_r_df,)
+        rt_change_dict = update_route_routing_change_dict(
+            existing_r_df,
+            change_r_df,
+        )
         WranglerLogger.debug(f"rt_change: {rt_change_dict}")
         shape_changes_by_route_id_dict[i] = copy.deepcopy(rt_change_dict)
 
@@ -1485,8 +1439,10 @@ def evaluate_route_shape_changes(
 def evaluate_model_transit_differences(
     base_transit: ModelTransit,
     updated_transit: ModelTransit,
-    route_property_update_list: Collection[str] = None,
-    new_route_property_list: Collection[str] = None,
+    route_prop_update_list: Collection[str] = MODEL_ROUTE_PROPS,
+    node_prop_update_list: Collection[str] = MODEL_NODE_PROPS,
+    new_route_prop_list: Collection[str] = MODEL_ROUTE_PROPS,
+    new_node_prop_list: Collection[str] = MODEL_NODE_PROPS,
     absolute: bool = True,
     include_existing: bool = False,
     n_buffer_vals: int = 3,
@@ -1502,11 +1458,16 @@ def evaluate_model_transit_differences(
     Args:
         base_transit (ModelTransit): an :py:class:`ModelTransit` instance for the base condition
         updated_transit (ModelTransit): an ModelTransit instance for the updated condition
-        route_property_update_list (Collection[str], Optional): list of properties
+        update_route_prop_list (Collection[str], Optional): list of properties
             to consider updates for, ignoring others.
-            If not set, will default to all the fields in updated_transit.
-        new_route_property_list (Collection[str], Optional): list of properties to add
-            to new routes. If not set, will default to all the fields in updated_transit.
+            If not set, will default to MODEL_ROUTE_PROPS.
+        update_node_prop_list (Collection[str], Optional): list of properties
+            to consider updates for, ignoring others.
+            If not set, will default to NODE_PROPS.
+        new_route_prop_list (Collection[str], Optional): list of properties to add
+            to new routes. If not set, will default to MODEL_ROUTE_PROPS.
+        new_node_prop_list (Collection[str], Optional): list of properties to add
+            to new routes. If not set, will default to MODEL_ROUTE_PROPS.
         absolute (Bool): indicating if should use the [False case]'existing'+'change' or
             [True case]'set' notation a project card. Defaults to True.
         include_existing (Bool): if set to True, will include 'existing' in project card.
@@ -1522,17 +1483,38 @@ def evaluate_model_transit_differences(
 
     # Project cards are coded with "wrangler standard" variables (which is mostly GTFS)
     # Use CubeToStdAdapter to translate the variable names from Model Transit
+    # std_ids is False so that the route_id is NAME rather than split up. This facilitates
+    # matching between cube lins
 
     _base_adapter = CubeToStdAdapter(base_transit)
     _build_adapter = CubeToStdAdapter(updated_transit)
 
-    base_route_props_df = _base_adapter.transform_routes()
-    updated_route_props_df = _build_adapter.transform_routes()
+    base_route_props_df = _base_adapter.transform_routes(std_ids=False)
+    updated_route_props_df = _build_adapter.transform_routes(std_ids=False)
 
+    _updated_prop_names = list(MODEL_TO_STD_PROP_TRANS.keys()) + list(
+        MODEL_TO_STD_PROP_MAP.items()
+    )
+    # WranglerLogger.debug(f"Updating property names using: {_updated_prop_names}")
+    for m, s in _updated_prop_names:
+        if m in route_prop_update_list:
+            route_prop_update_list.remove(m)
+            route_prop_update_list.append(s)
+        if m in new_route_prop_list:
+            new_route_prop_list.remove(m)
+            new_route_prop_list.append(s)
+
+    # WranglerLogger.debug(f"route_prop_update_list: {route_prop_update_list}")
     # Identify which routes to delete, add, or update
+    # Note that wrangler treats new time periods as new routes - thus STD_ROUTE_ID_PROPS
+    # contains the route_id as well as start and end times.
 
-    _base_routes = base_transit.routes
-    _updated_routes = updated_transit.routes
+    _base_routes = base_route_props_df[ModelToStdAdapter.STD_ROUTE_ID_PROPS].to_dict(
+        orient="records"
+    )
+    _updated_routes = updated_route_props_df[
+        ModelToStdAdapter.STD_ROUTE_ID_PROPS
+    ].to_dict(orient="records")
 
     _routes_to_delete = [i for i in _base_routes if i not in _updated_routes]
     _routes_to_add = [i for i in _updated_routes if i not in _base_routes]
@@ -1542,22 +1524,22 @@ def evaluate_model_transit_differences(
 
     project_card_changes = []
 
-    if not route_property_update_list:
-        route_property_update_list = list(updated_route_props_df.columns)
-
-    if not new_route_property_list:
-        new_route_property_list = list(updated_route_props_df.columns)
-
     """
     Deletions
     """
 
     if _routes_to_delete:
-        WranglerLogger.debug(f"Deleting Routes: {_routes_to_delete}")
+        _del_rts_str = "\n  - " + "\n - ".join(map(str, _routes_to_delete))
+        msg = f"Deleting {len(_routes_to_delete)} Route(s): {_del_rts_str}"
+        WranglerLogger.debug(msg)
+
         _delete_changes = (
             base_route_props_df[
-                base_route_props_df[ROUTE_ID_PROP].isin(_routes_to_delete)
+                base_route_props_df[ModelToStdAdapter.STD_ROUTE_ID_PROPS].isin(
+                    DataFrame(_routes_to_delete).to_dict(orient="list")
+                )
             ]
+            .dropna(subset=ModelToStdAdapter.STD_ROUTE_ID_PROPS)
             .apply(delete_route_change_dict, axis=1)
             .tolist()
         )
@@ -1569,40 +1551,48 @@ def evaluate_model_transit_differences(
 
     if _routes_to_add:
         WranglerLogger.debug(f"Adding Routes: {_routes_to_add}")
-        _addition_changes = (
-            updated_route_props_df[
-                updated_route_props_df[ROUTE_ID_PROP].isin(_routes_to_add)
-            ]
-            .apply(
-                new_transit_route_change_dict,
-                transit_route_property_list=new_route_property_list,
-                shapes_df=updated_transit.shapes_df,
-                axis=1,
-            )
-            .tolist()
+
+        _routes_to_add_props_df = select_df_from_matched_df(
+            updated_route_props_df,
+            pd.DataFrame(_routes_to_add, columns=ModelToStdAdapter.STD_ROUTE_ID_PROPS),
+            compare_cols=ModelToStdAdapter.STD_ROUTE_ID_PROPS,
         )
+        print("_routes_to_add_props_df/n", _routes_to_add_props_df)
+        print(f"new_route_prop_list {new_route_prop_list}")
+        _addition_changes = _routes_to_add_props_df.apply(
+            new_transit_route_change_dict,
+            shapes_df=updated_transit.shapes_df,
+            route_prop_list=new_route_prop_list,
+            node_prop_list=new_node_prop_list,
+            axis=1,
+        ).tolist()
+
         project_card_changes += _addition_changes
 
     """
     Evaluate Property Updates
     """
+    print("UPDATE DF", updated_route_props_df.columns)
+
     if _routes_to_update:
+        _base_df, _updated_df = intersect_dfs(
+            base_route_props_df,
+            updated_route_props_df,
+            how_cols_join="right",
+            select_cols=ModelToStdAdapter.STD_ROUTE_ID_PROPS,
+            id_col=["route_id"],
+        )
+        msg = f"_base_df,_updated_df: { _base_df,_updated_df }"
+        WranglerLogger.debug(msg)
 
-        _base_df = base_route_props_df[
-            base_route_props_df[ROUTE_ID_PROP].isin(_routes_to_update)
-        ]
-        _updated_df = updated_route_props_df[
-            updated_route_props_df[ROUTE_ID_PROP].isin(_routes_to_update)
-        ]
-
-        _compare_df = _base_df[route_property_update_list].compare(
-            _updated_df[route_property_update_list], keep_shape=True,
+        _compare_df = _base_df[route_prop_update_list].compare(
+            _updated_df[route_prop_update_list],
+            keep_shape=True,
         )
 
-        # add ID fields
-        _id_fields = ModelToStdAdapter.REQUIRED_STD_ROUTE_ID_PROPERTIES + [
-            ROUTE_ID_PROP
-        ]
+        # Since df.compare drops fields which aren't different,
+        # re-add ID fields
+        _id_fields = ModelToStdAdapter.STD_ROUTE_ID_PROPS
         _compare_df[[(i, "self") for i in _id_fields]] = updated_route_props_df[
             _id_fields
         ]
@@ -1618,23 +1608,20 @@ def evaluate_model_transit_differences(
             axis=1,
         )
 
-        print("PROPS", _compare_df["property_changes"][0])
-
         _compare_df.columns = _compare_df.columns.droplevel(level=1)
         _compare_df = _compare_df[_id_fields + ["property_changes"]]
 
         _routing_changes_by_route_id = evaluate_route_shape_changes(
             base_transit,
             updated_transit,
-            route_list=_routes_to_update,
             n_buffer_vals=n_buffer_vals,
         )
 
-        _compare_df["shape_changes"] = _compare_df[ROUTE_ID_PROP].map(
-            _routing_changes_by_route_id
-        )
+        _compare_df["shape_changes"] = _compare_df[
+            MODEL_TO_STD_PROP_MAP[MODEL_ROUTE_ID_PROP]
+        ].map(_routing_changes_by_route_id)
 
-        _update_changes = _compare_df.apply(update_project_card_dict, axis=1,)
+        _update_changes = _compare_df.apply(update_project_card_dict, axis=1)
 
         project_card_changes += _update_changes.tolist()
 
@@ -1643,25 +1630,60 @@ def evaluate_model_transit_differences(
 
 def new_transit_route_change_dict(
     route_row: Union[pd.Series, Mapping],
-    transit_route_property_list: Collection[str],
     shapes_df: DataFrame,
+    route_prop_list: Collection[str] = MODEL_ROUTE_PROPS,
+    node_prop_list: Collection[str] = MODEL_NODE_PROPS,
 ) -> Mapping:
     """Processes a row of a pandas dataframe or a dictionary with the fields:
     - name
     - direction_id
-    - start_time_HHMM
-    - end_time_HHMM
+    - start_time
+    - end_time
     - agency_id
     - routing
-    - + all fields in route_property_list
+    - + all fields in route_prop_list
 
     Args:
         route_row (pd.Series): [description]
         shapes[]
     """
-    route_shapes_df = shapes_df.loc[shapes_df["NAME"] == route_row["NAME"]]
+    route_row = route_row.dropna()
+    print(f"route_prop_list {route_prop_list}")
+    print(f"PROJ_REQUIRED_ROUTE_PROPS {PROJ_REQUIRED_ROUTE_PROPS}")
+    # Make sure required properties are included
+    route_prop_list = list(set(PROJ_REQUIRED_ROUTE_PROPS + route_prop_list))
+    node_prop_list = list(set(PROJ_REQUIRED_NODE_PROPS + node_prop_list))
 
-    routing_properties = {
+    # Flag properties which aren't in the dataframe
+    _missing_route_props = [p for p in route_prop_list if p not in route_row]
+    _missing_node_props = [p for p in node_prop_list if p not in shapes_df.columns]
+
+    if _missing_route_props:
+        route_prop_list = list(set(route_prop_list) - set(_missing_route_props))
+        WranglerLogger.warning(
+            f"Missing specified route properties: {_missing_route_props}"
+        )
+
+    if _missing_node_props:
+        node_prop_list = list(set(node_prop_list) - set(_missing_node_props))
+        WranglerLogger.warning(
+            f"Missing specified node properties: {_missing_node_props}"
+        )
+
+    _rt_id_field = "NAME"
+    if _rt_id_field not in route_row:
+        _rt_id_field = MODEL_TO_STD_PROP_MAP["NAME"]
+
+    route_shapes_df = shapes_df.loc[shapes_df["NAME"] == route_row[_rt_id_field]]
+
+    _shapes_s = route_shapes_df.apply(
+        _wrangler_node_format,
+        ## TODO
+        # properties = properties,
+        axis=1,
+    )
+    print("SHAPES.", _shapes_s)
+    routing_props = {
         "property": "routing",
         "set": route_shapes_df.apply(
             _wrangler_node_format,
@@ -1671,25 +1693,30 @@ def new_transit_route_change_dict(
         ).tolist(),
     }
 
-    transit_route_properties = [
-        {"property": p, "set": route_row[p]} for p in transit_route_property_list
+    transit_route_props = [
+        {"property": p, "set": route_row[p]} for p in route_prop_list
     ]
 
-    add_transit_card_dict = {
+    _facility_fields = [
+        p for p in ModelToStdAdapter.PROJ_FACILITY_FIELDS if p in route_row
+    ]
+
+    _card_dict = {
         "category": "New Transit Service",
-        "facility": {
-            "route_id": route_row.name,
-            "direction_id": route_row.direction_id,
-            "start_time": route_row.start_time_HHMM,
-            "end_time": route_row.end_time_HHMM,
-            "agency_id": route_row.agency_id,
-        },
-        "properties": transit_route_properties + [routing_properties],
+        "facility": {p: route_row[p] for p in _facility_fields},
+        "properties": transit_route_props + [routing_props],
     }
 
-    WranglerLogger.debug(f"Adding transit line: {route_row.name}")
+    _add_list = [
+        f"{p}: {route_row[p]}"
+        for p in ModelToStdAdapter.PROJ_FACILITY_FIELDS
+        if p in route_row
+    ]
+    _add_str = "\n - " + "\n - ".join(_add_list)
+    msg = f"Adding transit route: { _add_str }"
+    WranglerLogger.debug(msg)
 
-    return add_transit_card_dict
+    return _card_dict
 
 
 def delete_route_change_dict(route_row: Union[pd.Series, Mapping]) -> Mapping:
@@ -1700,26 +1727,25 @@ def delete_route_change_dict(route_row: Union[pd.Series, Mapping]) -> Mapping:
         route_row: row of df with line to be deleted or a dict with following attributes:
         - name
         - direction_id
-        - start_time_HHMM
-        - end_time_HHMM
+        - start_time
+        - end_time
 
     Returns:
         A project card change-formatted dictionary for the route deletion.
     """
 
-    delete_card_dict = {
+    _facility_fields = [
+        p for p in ModelToStdAdapter.PROJ_FACILITY_FIELDS if p in route_row
+    ]
+
+    _card_dict = {
         "category": "Delete Transit Service",
-        "facility": {
-            "route_id": route_row.name,
-            "direction_id": route_row.direction_id,
-            "start_time": route_row.start_time_HHMM,
-            "end_time": route_row.end_time_HHMM,
-        },
+        "facility": {p: route_row[p] for p in _facility_fields},
     }
 
-    WranglerLogger.debug(f"Deleting transit route {route_row.name}")
+    WranglerLogger.debug(f"Deleting transit route {_card_dict['facility']}")
 
-    return delete_card_dict
+    return _card_dict
 
 
 def update_project_card_dict(route_row: pd.Series) -> Mapping:
@@ -1730,14 +1756,14 @@ def update_project_card_dict(route_row: pd.Series) -> Mapping:
 
     Returns: project card dictionary
     """
+
+    _facility_fields = [
+        p for p in ModelToStdAdapter.PROJ_FACILITY_FIELDS if p in route_row
+    ]
+
     update_card_dict = {
         "category": "Update Transit Service",
-        "facility": {
-            "route_id": route_row.name,
-            "direction_id": route_row.direction_id,
-            "start_time": route_row.start_time_HHMM,
-            "end_time": route_row.end_time_HHMM,
-        },
+        "facility": {p: route_row[p] for p in _facility_fields},
         "properties": route_row.property_changes + [route_row.shape_changes],
     }
 
@@ -1787,7 +1813,8 @@ def update_route_prop_change_dict(
 
 
 def update_route_routing_change_dict(
-    existing_routing_df: Collection[Any], set_routing_df: Collection[Any],
+    existing_routing_df: Collection[Any],
+    set_routing_df: Collection[Any],
 ) -> Mapping[str, Any]:
     """Format route changes for project cards. Right now, this matches
         the formatting for cube nodes. Could change in future.
