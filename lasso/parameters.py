@@ -8,8 +8,9 @@ import os
 from dataclasses import dataclass, field, is_dataclass
 from typing import Any, List, Dict, Set, Mapping, Collection, Sequence
 
+from network_wrangler import WranglerLogger
+
 from .data import PolygonOverlay, ValueLookup
-from .logger import WranglerLogger
 
 
 def get_base_dir(lasso_base_dir=os.getcwd()):
@@ -611,9 +612,7 @@ class Parameters:
         update_dict.update(kwargs)
 
         if not update_dict:
-            WranglerLogger.warning(
-                "Update called but nothing to update. Given: {}".format(update_dict)
-            )
+            WranglerLogger.debug("Parameters update called but nothing to update.")
             return self
 
         _update_dict = Parameters.keywords_into_dict_by_param_type(update_dict)

@@ -1,6 +1,7 @@
 """
 Functions which support Lasso but are not specific to a class.
 """
+
 from typing import Mapping, Collection, Union, Any
 import os
 
@@ -9,11 +10,11 @@ from pandas import DataFrame
 import pandas as pd
 import numpy as np
 
-from .logger import WranglerLogger
+from network_wrangler import WranglerLogger
 
 import cProfile
 import functools
-import pstats
+import pstats 
 import tempfile
 
 

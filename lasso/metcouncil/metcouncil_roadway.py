@@ -3,11 +3,10 @@ from typing import Mapping, Any
 from pandas import DataFrame
 from geopandas import GeoDataFrame
 
-from network_wrangler import update_df, RoadwayNetwork
+from network_wrangler import update_df, RoadwayNetwork, WranglerLogger
 
 from ..parameters import Parameters, RoadwayNetworkModelParameters
 from ..model_roadway import ModelRoadwayNetwork
-from ..logger import WranglerLogger
 from ..utils import profile_me, fill_df_cols
 
 from .defaults import MC_DEFAULT_PARAMS

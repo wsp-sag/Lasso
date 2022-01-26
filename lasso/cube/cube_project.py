@@ -8,10 +8,9 @@ import geopandas as gpd
 
 from network_wrangler import ProjectCard
 from network_wrangler import RoadwayNetwork
-
+from network_wrangler import WranglerLogger
 
 from ..model_roadway import ModelRoadwayNetwork
-from ..logger import WranglerLogger
 from ..parameters import Parameters
 from ..utils import column_name_to_parts
 
@@ -206,13 +205,13 @@ class CubeProject(object):
         base_transit_v = list(filter(None, [base_transit_source, base_transit_network]))
         base_roadway_v = list(filter(None, [base_roadway_dir, base_roadway_network]))
         build_transit_v = list(
-            filter(None, [build_transit_source, build_transit_network, transit_changes])
+            filter(None, [build_transit_source, build_transit_network])
         )
         build_roadway_v = list(
             filter(
                 None,
                 [
-                    roadway_changes,
+                    roadway_changes_df,
                     roadway_log_file,
                     roadway_csv_file,
                     roadway_shp_file,
@@ -321,13 +320,12 @@ class CubeProject(object):
             )
 
         project = CubeProject(
-            roadway_changes=roadway_changes,
-            transit_changes=transit_changes,
+            roadway_changes_df=roadway_changes_df,
             base_roadway_network=base_roadway_network,
             base_transit_network=base_transit_network,
             build_transit_network=build_transit_network,
             evaluate=True,
-            project_name=project_name,
+            project=project_name,
             parameters=_parameters,
         )
 
@@ -422,10 +420,22 @@ class CubeProject(object):
         base_roadway_network: ModelRoadwayNetwork,
         roadway_changes: DataFrame,
         parameters: Parameters,
-    ):
+    ) -> None:
         """
         Checks to see that any links or nodes that change exist in base roadway network.
+
+        Args:
+            base_roadway_network: roadway network on which to make changes
+            roadway_changes: dataframe of changes read from cube log file
+            parameters: parameters instance which has appropriate lookups
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: if network doesn't have links or nodes that changes are supposed to be made on
         """
+
         WranglerLogger.info(
             """Evaluating compatibility between roadway network changes and base network.
             Not evaluating deletions."""

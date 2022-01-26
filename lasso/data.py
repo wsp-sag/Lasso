@@ -19,8 +19,7 @@ from pandas import DataFrame
 from geopandas import GeoDataFrame
 
 from network_wrangler import update_df
-
-from .logger import WranglerLogger
+from network_wrangler import WranglerLogger
 
 
 class FieldError(ValueError):

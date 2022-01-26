@@ -9,9 +9,9 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 
 from network_wrangler import RoadwayNetwork
+from network_wrangler import WranglerLogger
 
 from .parameters import Parameters
-from .logger import WranglerLogger
 from .data import FieldMapping, PolygonOverlay, update_df
 from .utils import (
     fill_df_na,
@@ -537,7 +537,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         polygon_overlay_gdf = polygon_overlay.gdf.to_crs(epsg=links_df.crs.to_epsg())
 
         if fill_values_dict:
-            polygon_overlay_gdf = fill_df_cols(polygon_overlay_gdf, fill_values_dict,)
+            polygon_overlay_gdf = fill_df_cols(
+                polygon_overlay_gdf,
+                fill_values_dict,
+            )
             field_mapping = {k: k for k in fill_values_dict.keys()}
 
         if method == "link centroid":
