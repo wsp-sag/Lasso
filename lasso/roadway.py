@@ -1611,6 +1611,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_fixedwidth(
         self,
+        output_dir,
         node_output_variables: list = None,
         link_output_variables: list = None,
         output_link_txt: str = None,
@@ -1629,13 +1630,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         3. write out cube network building script with header and width specification.
 
         Args:
+            output_dir (str): File path to where links, nodes and script will be written and run
             node_output_variables (list): list of node variable names.
             link_output_variables (list): list of link variable names.
-            output_link_txt (str): File path to output link database.
-            output_node_txt (str): File path to output node database.
-            output_link_header_width_txt (str): File path to link column width records.
-            output_node_header_width_txt (str): File path to node column width records.
-            output_cube_network_script (str): File path to CUBE network building script.
+            output_link_txt (str): File name of output link database (within output_dir)
+            output_node_txt (str): File name of output node database (within output_dir)
+            output_link_header_width_txt (str): File name of link column width records (within output_dir)
+            output_node_header_width_txt (str): File name of node column width records (within output_dir)
+            output_cube_network_script (str): File name of CUBE network building script (within output_dir)
             drive_only (bool): If True, only writes drive nodes and links
 
         Returns:
@@ -1730,14 +1732,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         WranglerLogger.info("Writing out link database")
 
-        link_ff_df.to_csv(output_link_txt, sep=";", index=False, header=False)
+        link_ff_df.to_csv(os.path.join(output_dir, output_link_txt), sep=";", index=False, header=False)
 
         # write out header and width correspondence
         WranglerLogger.info("Writing out link header and width ----")
         link_max_width_df = DataFrame(
             list(link_max_width_dict.items()), columns=["header", "width"]
         )
-        link_max_width_df.to_csv(output_link_header_width_txt, index=False)
+        link_max_width_df.to_csv(os.path.join(output_dir, output_link_header_width_txt), index=False)
 
         #MTC
         node_ff_df, node_max_width_dict = self.dataframe_to_fixed_width(
@@ -1757,14 +1759,14 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             node_ff_df = node_ff_df.loc[node_ff_df["drive_node"] == 1]
 
 
-        node_ff_df.to_csv(output_node_txt, sep=";", index=False, header=False)
+        node_ff_df.to_csv(os.path.join(output_dir, output_node_txt), sep=";", index=False, header=False)
 
         # write out header and width correspondence
         WranglerLogger.info("Writing out node header and width")
         node_max_width_df = DataFrame(
             list(node_max_width_dict.items()), columns=["header", "width"]
         )
-        node_max_width_df.to_csv(output_node_header_width_txt, index=False)
+        node_max_width_df.to_csv(os.path.join(output_dir, output_node_header_width_txt), index=False)
 
         # write out cube script
         s = 'RUN PGM = NETWORK MSG = "Read in network from fixed width file" \n'
@@ -1820,17 +1822,16 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         s += '\n \nENDRUN'
 
 
-        with open(output_cube_network_script, "w") as f:
+        with open(os.path.join(output_dir, output_cube_network_script), "w") as f:
             f.write(s)
  
         # run the cube script to create the cube network
         import subprocess
         env = copy.copy(os.environ)
-        cube_cmd = "runtpp.exe {}".format(output_cube_network_script)
-        working_dir = os.path.split(output_link_txt)[0]
+        cube_cmd = '"C:\\Program Files\\Citilabs\\CubeVoyager\\runtpp.exe" {}'.format(output_cube_network_script)
         try:
-            WranglerLogger.info("Running [{}] in wd=[{}]".format(cube_cmd, working_dir))
-            ret = subprocess.run(cube_cmd, cwd=working_dir, capture_output=True, check=True)
+            WranglerLogger.info("Running [{}] in cwd [{}]".format(cube_cmd, output_dir))
+            ret = subprocess.run(cube_cmd, cwd=output_dir, capture_output=True, check=True)
 
             WranglerLogger.info("return code: {}".format(ret.returncode))
 
@@ -1840,5 +1841,5 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             for line in ret.stderr.decode('utf-8').split('\r\n'):
                 if len(line) > 0: WranglerLogger.info("stderr: {}".format(line))
         
-        except e:
+        except Exception as e:
             WranglerLogger.error(e)
