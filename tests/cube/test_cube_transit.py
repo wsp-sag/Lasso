@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from lasso.cube import CubeTransit
+from lasso.cube.cube_model_transit import CubeTransit
 
 """
 Run tests from bash/shell
@@ -17,7 +17,7 @@ CUBE_DIR = os.path.join(BASE_TRANSIT_DIR, "cube")
 # 1. Parsing #
 ##############
 @pytest.mark.transit
-@pytest.mark.travis
+@pytest.mark.ci
 def test_parse_transit_linefile(request):
     print("\n--Starting:", request.node.name)
     test_lin = """
@@ -70,7 +70,7 @@ def test_parse_transit_linefile(request):
     print("Nodes: ", tn.shapes_of_route(ex_line_name))
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_parse_transit_linefile_with_node_vars(request):
     print("\n--Starting:", request.node.name)
@@ -133,7 +133,7 @@ def test_parse_transit_linefile_with_node_vars(request):
 ##################
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_read_cube_transit_from_file(request):
     print("\n--Starting:", request.node.name)
@@ -144,7 +144,7 @@ def test_read_cube_transit_from_file(request):
     print(f"Routes: {tnet.routes}")
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_read_cube_transit_from_dir(request):
     print("\n--Starting:", request.node.name)
@@ -156,7 +156,7 @@ def test_read_cube_transit_from_dir(request):
     ## todo write an assert that actually tests something
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_read_cube_transit_from_wrangler_object(request):
     print("\n--Starting:", request.node.name)
@@ -168,7 +168,7 @@ def test_read_cube_transit_from_wrangler_object(request):
     print("Read {} routes:\n{}".format(len(tn.routes), "\n - ".join(tn.routes)))
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_read_cube_transit_from_gtfs(request):
     print("\n--Starting:", request.node.name)
@@ -185,7 +185,7 @@ def test_read_cube_transit_from_gtfs(request):
 ##########################
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_write_cube_transit_fr_standard(request):
     print("\n--Starting:", request.node.name)
@@ -196,7 +196,7 @@ def test_write_cube_transit_fr_standard(request):
     # todo write an assert
 
 
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.transit
 def test_write_cube_transit_fr_cube(request):
     print("\n--Starting:", request.node.name)

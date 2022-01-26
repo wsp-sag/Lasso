@@ -36,11 +36,13 @@ def test_datetime_to_time_period_abbr():
     }
 
     tp_abbr1_result = time_utils.datetime_to_time_period_abbr(
-        _hhmmss_to_datetime("15:00:10"), tod_map,
+        _hhmmss_to_datetime("15:00:10"),
+        tod_map,
     )
 
     tp_abbr2_result = time_utils.datetime_to_time_period_abbr(
-        _hhmmss_to_datetime("5:00"), tod_map,
+        _hhmmss_to_datetime("5:00"),
+        tod_map,
     )
 
     assert tp_abbr1_result == "PM"
@@ -57,9 +59,15 @@ def test_hhmmss_to_time_period_abbr():
         "NT": ("19:00", "06:00"),
     }
 
-    tp_abbr1_result = time_utils.hhmmss_to_time_period_abbr("07:00:00", tod_map,)
+    tp_abbr1_result = time_utils.hhmmss_to_time_period_abbr(
+        "07:00:00",
+        tod_map,
+    )
 
-    tp_abbr2_result = time_utils.hhmmss_to_time_period_abbr("19:00", tod_map,)
+    tp_abbr2_result = time_utils.hhmmss_to_time_period_abbr(
+        "19:00",
+        tod_map,
+    )
 
     assert tp_abbr1_result == "AM"
     assert tp_abbr2_result == "NT"
@@ -74,9 +82,15 @@ def test_timec_to_time_period():
         "NT": ("19:00", "06:00"),
     }
 
-    tp_abbr1_result = time_utils.time_sec_to_time_period(3 * 3600, tod_map,)
+    tp_abbr1_result = time_utils.time_sec_to_time_period(
+        3 * 3600,
+        tod_map,
+    )
 
-    tp_abbr2_result = time_utils.time_sec_to_time_period(16 * 3600, tod_map,)
+    tp_abbr2_result = time_utils.time_sec_to_time_period(
+        16 * 3600,
+        tod_map,
+    )
 
     assert tp_abbr1_result == "NT"
     assert tp_abbr2_result == "PM"
@@ -97,11 +111,15 @@ def test_get_timespan_from_tranit_network_model_time_period():
     }
 
     timespan_result_1 = time_utils.get_timespan_from_transit_network_model_time_period(
-        [1], tod_map, transit_tod_map,
+        [1],
+        tod_map,
+        transit_tod_map,
     )
 
     timespan_result_2 = time_utils.get_timespan_from_transit_network_model_time_period(
-        [1, 2], tod_map, transit_tod_map,
+        [1, 2],
+        tod_map,
+        transit_tod_map,
     )
 
     assert timespan_result_1 == ("06:00:00", "10:00:00")
@@ -118,11 +136,13 @@ def test_get_timespan_from_network_model_time_period_abbr():
     }
 
     timespan_result_1 = time_utils.get_timespan_from_network_model_time_period_abbr(
-        ["MD"], tod_map,
+        ["MD"],
+        tod_map,
     )
 
     timespan_result_2 = time_utils.get_timespan_from_network_model_time_period_abbr(
-        ["AM", "MD"], tod_map,
+        ["AM", "MD"],
+        tod_map,
     )
 
     assert timespan_result_1 == ("10:00:00", "15:00:00")

@@ -36,7 +36,7 @@ def test_read_metcouncil_net_with_params(request, stpaul_model_net):
 
 
 @pytest.mark.metcouncil
-@pytest.mark.travis
+@pytest.mark.ci
 @pytest.mark.sijia
 def test_calculate_lanes(request, stpaul_model_net):
     """
@@ -61,7 +61,7 @@ def test_calculate_lanes(request, stpaul_model_net):
 
 
 @pytest.mark.metcouncil
-@pytest.mark.travis
+@pytest.mark.ci
 def test_assign_group_roadway_class(request, stpaul_model_net):
     """
     Tests that assign group and roadway class are computed
@@ -82,7 +82,7 @@ def test_assign_group_roadway_class(request, stpaul_model_net):
 
 
 @pytest.mark.metcouncil
-@pytest.mark.travis
+@pytest.mark.ci
 def test_calculate_area_type(request, stpaul_model_net):
     """
     Tests that parameters are read
@@ -101,7 +101,7 @@ def test_calculate_area_type(request, stpaul_model_net):
 
 
 @pytest.mark.metcouncil
-@pytest.mark.travis
+@pytest.mark.ci
 def test_calculate_county_mpo(request, stpaul_model_net):
     """
     Tests that parameters are read
@@ -120,7 +120,7 @@ def test_calculate_county_mpo(request, stpaul_model_net):
 
 
 @pytest.mark.metcouncil
-@pytest.mark.travis
+@pytest.mark.ci
 def test_roadway_standard_to_met_council_network(request, stpaul_model_net):
     """
     Tests that parameters are read

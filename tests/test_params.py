@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.mark.params
-@pytest.mark.travis
+@pytest.mark.ci
 def test_update_params(request):
     print("\n--Starting:", request.node.name)
     from lasso import Parameters
@@ -16,7 +16,7 @@ def test_update_params(request):
 
 
 @pytest.mark.params
-@pytest.mark.travis
+@pytest.mark.ci
 def test_params_as_dict(request):
     print("\n--Starting:", request.node.name)
     from lasso import Parameters

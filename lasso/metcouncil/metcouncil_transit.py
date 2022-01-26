@@ -21,7 +21,7 @@ class MetCouncilTransit(CubeTransit):
     def __init__(self, **kwargs):
 
         super().__init__(
-            tp_property=MC_TP_PROPERTY,
+            tp_prop=MC_TP_PROP,
             route_properties=MC_ROUTE_PROPS,
             node_properties=MC_NODE_PROPS,
             **kwargs,
