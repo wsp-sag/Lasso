@@ -1449,6 +1449,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
     def write_roadway_as_shp(
         self,
+        output_dir,
         node_output_variables: list = None,
         link_output_variables: list = None,
         data_to_csv: bool = True,
@@ -1457,19 +1458,28 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         output_node_shp: str = None,
         output_link_csv: str = None,
         output_node_csv: str = None,
+        output_gpkg: str = None,
+        output_link_gpkg_layer: str = None,
+        output_node_gpkg_layer: str = None,
+        output_gpkg_link_filter: str = None
     ):
         """
-        Write out dbf/shp for cube.  Write out csv in addition to shp with full length variable names.
+        Write out dbf/shp/gpkg for cube.  Write out csv in addition to shp with full length variable names.
 
         Args:
+            output_dir (str): File path to directory
             node_output_variables (list): List of strings for node output variables.
             link_output_variables (list): List of strings for link output variables.
             data_to_csv (bool): True if write network in csv format.
             data_to_dbf (bool): True if write network in dbf/shp format.
-            output_link_shp (str): File path to output link dbf/shp.
-            output_node_shp (str): File path to output node dbf/shp.
-            output_link_csv (str): File path to output link csv.
-            output_node_csv (str): File path to output node csv.
+            output_link_shp (str): File name to output link dbf/shp.
+            output_node_shp (str): File name of output node dbf/shp.
+            output_link_csv (str): File name to output link csv.
+            output_node_csv (str): File name to output node csv.
+            output_gpkg (str): File name to output GeoPackage.
+            output_link_gpkg_layer (str): Layer name within output_gpkg to output links.
+            output_node_gpkg_layer (str): Layer name within output_gpkg to output links.
+            output_gpkg_link_filter (str): Optional column name to additional output link subset layers
 
         Returns:
             None
@@ -1528,41 +1538,58 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             #link_output_variables if data_to_dbf else ["A", "B", "shape_id", "geometry"]
         )
 
-        output_link_shp = (
-            output_link_shp if output_link_shp else self.parameters.output_link_shp
-        )
-
-        output_node_shp = (
-            output_node_shp if output_node_shp else self.parameters.output_node_shp
-        )
-
-        output_link_csv = (
-            output_link_csv if output_link_csv else self.parameters.output_link_csv
-        )
-
-        output_node_csv = (
-            output_node_csv if output_node_csv else self.parameters.output_node_csv
-        )
+        # Removing code to set this to versions from parameters
+        # User can use these as arg
 
         """
         Start Process
         """
-
-        WranglerLogger.info("Renaming DBF Node Variables")
-        nodes_dbf_df = self.rename_variables_for_dbf(
-            self.nodes_mtc_df, output_variables=node_output_variables
-        )
-        WranglerLogger.info("Renaming DBF Link Variables")
-        links_dbf_df = self.rename_variables_for_dbf(
-            self.links_mtc_df, output_variables=dbf_link_output_variables
-        )
+        # rename these to short only for shapefile option
+        if output_node_shp:
+            WranglerLogger.info("Renaming DBF Node Variables")
+            nodes_dbf_df = self.rename_variables_for_dbf(self.nodes_mtc_df, output_variables=node_output_variables)
+        else:
+            WranglerLogger.debug("nodes_mtc_df columns: {}".format(list(self.nodes_mtc_df.columns)))
+            nodes_dbf_df = self.nodes_mtc_df[node_output_variables]
+        
+        if output_link_shp:
+            WranglerLogger.info("Renaming DBF Link Variables")
+            links_dbf_df = self.rename_variables_for_dbf(self.links_mtc_df, output_variables=dbf_link_output_variables)
+        else:
+            WranglerLogger.debug("links_mtc_df columns: {}".format(list(self.links_mtc_df.columns)))
+            links_dbf_df = self.links_mtc_df[dbf_link_output_variables]
 
         links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry=links_dbf_df["geometry"])
 
-        WranglerLogger.info("Writing Node Shapes:\n - {}".format(output_node_shp))
-        nodes_dbf_df.to_file(output_node_shp)
-        WranglerLogger.info("Writing Link Shapes:\n - {}".format(output_link_shp))
-        links_dbf_df.to_file(output_link_shp)
+        if output_node_shp:
+            WranglerLogger.info("Writing Node Shapes: {}".format(os.path.join(output_dir, output_node_shp)))
+            nodes_dbf_df.to_file(os.path.join(output_dir, output_node_shp))
+
+        if output_gpkg and output_node_gpkg_layer:
+            WranglerLogger.info("Writing GeoPackage {} with Node Layer {}".format(os.path.join(output_dir, output_gpkg), output_node_gpkg_layer))
+            nodes_dbf_df.to_file(os.path.join(output_dir, output_gpkg), layer=output_node_gpkg_layer, driver="GPKG")
+
+        if output_link_shp:
+            WranglerLogger.info("Writing Link Shapes: {}".format(os.path.join(output_dir, output_link_shp)))
+            links_dbf_df.to_file(os.path.join(output_dir, output_link_shp))
+
+        if output_gpkg and output_link_gpkg_layer:
+            WranglerLogger.info("Writing GeoPackage {} with Link Layer {}".format(os.path.join(output_dir, output_gpkg), output_link_gpkg_layer))
+            links_dbf_df.to_file(os.path.join(output_dir, output_gpkg), layer=output_link_gpkg_layer, driver="GPKG")
+
+            # output additional link layers if filter column is specified
+            # e.g. if county-subsets are output
+            if output_gpkg_link_filter:
+                link_value_counts = links_dbf_df[output_gpkg_link_filter].value_counts()
+                for filter_val,filter_count in link_value_counts.items():
+                    gpkg_layer_name = "{}_{}".format(output_link_gpkg_layer, filter_val)
+                    WranglerLogger.info("Writing GeoPackage {} with Link Layer {} for {} rows".format(
+                        os.path.join(output_dir, output_gpkg), gpkg_layer_name, filter_count))
+                    links_dbf_df.loc[ links_dbf_df[output_gpkg_link_filter]==filter_val ].to_file(
+                        os.path.join(output_dir, output_gpkg), layer=gpkg_layer_name, driver="GPKG")
+
+
+
 
         if data_to_csv:
             WranglerLogger.info(
@@ -1576,6 +1603,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.nodes_mtc_df[node_output_variables].to_csv(
                 output_node_csv, index=False
             )
+
 
     # this should be moved to util
     @staticmethod
@@ -1815,12 +1843,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             start_pos += node_max_width_df.width.iloc[i] + 1
 
         s = s[:-1]
-        s += "\n"
-        s += 'FILEO NETO = "complete_network.net" \n\n    ZONES = {} \n\n'.format(self.parameters.zones)
-        s += ';ROADWAY = LTRIM(TRIM(ROADWAY)) \n'
-        s += ';NAME = LTRIM(TRIM(NAME)) \n'
-        s += '\n \nENDRUN'
-
+        s += '\n'
+        s += 'FILEO NETO = "complete_network.net"\n\n'
+        s += ' ZONES = {}\n\n'.format(self.parameters.zones)
+        s += '; Trim leading whitespace from string variables\n'
+        # todo: The below should be built above based on columns that are strings
+        s += ' phase=NODEMERGE\n'
+        s += '  county = LTRIM(county)\n'
+        s += ' endphase\n'
+        s += ' phase=LINKMERGE\n'
+        s += '  name = LTRIM(name)\n'
+        s += '  county = LTRIM(county)\n'
+        s += '  cntype = LTRIM(cntype)\n'
+        s += ' endphase\n'
+        s += '\nENDRUN\n'
 
         with open(os.path.join(output_dir, output_cube_network_script), "w") as f:
             f.write(s)
