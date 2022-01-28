@@ -1561,6 +1561,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry=links_dbf_df["geometry"])
 
+        # temp debug
+        WranglerLogger.debug("links_dbf_df.loc[(links_dbf_df.A.isin([7063066,2563066]))|(links_dbf_df.B.isin([7063066,2563066]))]:\n{}".format(
+            links_dbf_df.loc[(links_dbf_df.A.isin([7063066,2563066]))|(links_dbf_df.B.isin([7063066,2563066]))]
+        ))
+
         if output_node_shp:
             WranglerLogger.info("Writing Node Shapes: {}".format(os.path.join(output_dir, output_node_shp)))
             nodes_dbf_df.to_file(os.path.join(output_dir, output_node_shp))
@@ -1573,9 +1578,45 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.info("Writing Link Shapes: {}".format(os.path.join(output_dir, output_link_shp)))
             links_dbf_df.to_file(os.path.join(output_dir, output_link_shp))
 
+        # debug test
+        link_schema = {
+            "properties": {
+                "A"             : "int:8",
+                "B"             : "int:8",
+                "model_link_id" : "int:10",
+                "shstGeometryId": "str:32",
+                "name"          : "str:84",
+                "ft"            : "int:2",
+                "assignable"    : "int:18",
+                "cntype"        : "str:80",
+                "distance"      : "float",
+                "county"        : "str:15",
+                "bike_access"   : "int:2",
+                "drive_access"  : "int:2",
+                "walk_access"   : "int:2",
+                "rail_only"     : "int:2",
+                "bus_only"      : "int:2",
+                "transit"       : "int:2",
+                "managed"       : "int:2",
+                "tollbooth"     : "int:2",
+                "tollseg"       : "int:2",
+                "segment_id"    : "int:4",
+                "lanes_EA"      : "int:2",
+                "lanes_AM"      : "int:2",
+                "lanes_MD"      : "int:2",
+                "lanes_PM"      : "int:2",
+                "lanes_EV"      : "int:2",
+                "useclass_EA"   : "int:2",
+                "useclass_AM"   : "int:2",
+                "useclass_MD"   : "int:2",
+                "useclass_PM"   : "int:2",
+                "useclass_EV"   : "int:2"
+            },
+            "geometry": "LineString"
+        }
         if output_gpkg and output_link_gpkg_layer:
             WranglerLogger.info("Writing GeoPackage {} with Link Layer {}".format(os.path.join(output_dir, output_gpkg), output_link_gpkg_layer))
-            links_dbf_df.to_file(os.path.join(output_dir, output_gpkg), layer=output_link_gpkg_layer, driver="GPKG")
+            links_dbf_df.to_file(os.path.join(output_dir, output_gpkg), layer=output_link_gpkg_layer, schema=link_schema, driver="GPKG")
 
             # output additional link layers if filter column is specified
             # e.g. if county-subsets are output
@@ -1583,10 +1624,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 link_value_counts = links_dbf_df[output_gpkg_link_filter].value_counts()
                 for filter_val,filter_count in link_value_counts.items():
                     gpkg_layer_name = "{}_{}".format(output_link_gpkg_layer, filter_val)
+                    gpkg_layer_name = gpkg_layer_name.replace(" ","_")
                     WranglerLogger.info("Writing GeoPackage {} with Link Layer {} for {} rows".format(
                         os.path.join(output_dir, output_gpkg), gpkg_layer_name, filter_count))
                     links_dbf_df.loc[ links_dbf_df[output_gpkg_link_filter]==filter_val ].to_file(
-                        os.path.join(output_dir, output_gpkg), layer=gpkg_layer_name, driver="GPKG")
+                        os.path.join(output_dir, output_gpkg), layer=gpkg_layer_name, schema=link_schema, driver="GPKG")
 
 
 
