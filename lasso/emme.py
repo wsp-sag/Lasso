@@ -731,68 +731,69 @@ def prepare_table_for_taz_transit_network(
         else:
             new_link_gdf = new_link_gdf.append(add_snap_gdf, ignore_index=True, sort=False)
 
-    new_link_gdf = new_link_gdf[['A', 'N']].copy()
-    new_link_gdf.rename(columns = {'N' : 'B'}, inplace = True)
+    if len(rail_nodes_df) > 0:
+        new_link_gdf = new_link_gdf[['A', 'N']].copy()
+        new_link_gdf.rename(columns = {'N' : 'B'}, inplace = True)
 
-    # add the opposite direction
-    new_link_gdf = pd.concat(
-        [
+        # add the opposite direction
+        new_link_gdf = pd.concat(
+            [
+                new_link_gdf,
+                new_link_gdf.rename(columns = {'A' : 'B', 'B' : 'A'})
+            ],
+            sort = False, 
+            ignore_index = True
+        )
+
+        # create shapes
+        new_link_gdf = pd.merge(
             new_link_gdf,
-            new_link_gdf.rename(columns = {'A' : 'B', 'B' : 'A'})
-        ],
-        sort = False, 
-        ignore_index = True
-    )
+            nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "A", "X": "A_X", "Y" : "A_Y"}),
+            how = "left",
+            on = "A"
+        )
 
-    # create shapes
-    new_link_gdf = pd.merge(
-        new_link_gdf,
-        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "A", "X": "A_X", "Y" : "A_Y"}),
-        how = "left",
-        on = "A"
-    )
+        new_link_gdf = pd.merge(
+            new_link_gdf,
+            nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "B", "X": "B_X", "Y" : "B_Y"}),
+            how = "left",
+            on = "B"
+        )
 
-    new_link_gdf = pd.merge(
-        new_link_gdf,
-        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "B", "X": "B_X", "Y" : "B_Y"}),
-        how = "left",
-        on = "B"
-    )
+        new_link_gdf["geometry"] = new_link_gdf.apply(
+            lambda g: LineString([Point(g.A_X, g.A_Y), Point(g.B_X, g.B_Y)]),
+            axis = 1
+        )
 
-    new_link_gdf["geometry"] = new_link_gdf.apply(
-        lambda g: LineString([Point(g.A_X, g.A_Y), Point(g.B_X, g.B_Y)]),
-        axis = 1
-    )
+        new_link_gdf = gpd.GeoDataFrame(
+            new_link_gdf,
+            geometry = new_link_gdf['geometry'],
+            crs = links_df.crs
+        )
 
-    new_link_gdf = gpd.GeoDataFrame(
-        new_link_gdf,
-        geometry = new_link_gdf['geometry'],
-        crs = links_df.crs
-    )
+        for c in links_df.columns:
+            if c not in new_link_gdf.columns:
+                if c not in ['county', 'shstGeometryId', 'cntype']:
+                    new_link_gdf[c] = 0
+                else:
+                    new_link_gdf[c] = ''
+        new_link_gdf['drive_access'] = 1
+        new_link_gdf['walk_access'] = 1
+        new_link_gdf['bike_access'] = 1
+        new_link_gdf['ft'] = 99
 
-    for c in links_df.columns:
-        if c not in new_link_gdf.columns:
-            if c not in ['county', 'shstGeometryId', 'cntype']:
-                new_link_gdf[c] = 0
-            else:
-                new_link_gdf[c] = ''
-    new_link_gdf['drive_access'] = 1
-    new_link_gdf['walk_access'] = 1
-    new_link_gdf['bike_access'] = 1
-    new_link_gdf['ft'] = 99
+        length_gdf = new_link_gdf.copy()
+        length_gdf = length_gdf.to_crs(epsg=26915)
+        length_gdf['distance'] = length_gdf.geometry.length / 1609.34
 
-    length_gdf = new_link_gdf.copy()
-    length_gdf = length_gdf.to_crs(epsg=26915)
-    length_gdf['distance'] = length_gdf.geometry.length / 1609.34
+        new_link_gdf['distance'] = length_gdf['distance']
 
-    new_link_gdf['distance'] = length_gdf['distance']
-
-    new_link_gdf["geometry_wkt"] = new_link_gdf["geometry"].apply(lambda x: x.wkt)
-    
-    links_df = pd.concat([links_df, new_link_gdf], sort = False, ignore_index = True)
-    
-    links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
-    
+        new_link_gdf["geometry_wkt"] = new_link_gdf["geometry"].apply(lambda x: x.wkt)
+        
+        links_df = pd.concat([links_df, new_link_gdf], sort = False, ignore_index = True)
+        
+        links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+        
     # /temporary fix
     ###############
 
@@ -1569,6 +1570,11 @@ class ProcessNetwork(object):
         walk.speed = walk_speed
         for link in network.links():
             link.modes |= set([walk])
+        # set drive link and bus link as "b"
+        bus = network.create_mode("TRANSIT", "b")
+        for link in network.links():
+            if (link['@drive_link'] == 1) | (link['@bus_only'] == 1):
+                link.modes |= set([bus])
         # adding the transit modes to the network
         for vehicle_data in vehicle_table:
             mode = network.mode(vehicle_data["mode"])
