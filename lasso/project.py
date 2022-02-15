@@ -927,7 +927,7 @@ class Project(object):
         if (not self.roadway_link_changes.empty) | (not self.roadway_node_changes.empty):
             highway_change_list = self.add_highway_changes()
 
-        if (self.transit_changes is not None) or (
+        if (not self.transit_changes.empty)  or (
             self.base_cube_transit_network is not None
             and self.build_cube_transit_network is not None
         ):
