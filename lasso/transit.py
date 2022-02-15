@@ -1299,15 +1299,15 @@ class StandardTransit(object):
             add_nntime = False
 
         for nodeIdx in range(len(trip_node_list)):
-            
+
             if trip_node_list[nodeIdx] in stop_node_id_list:
                 # in case a route stops at a stop more than once, e.g. circular route
                 stop_seq += 1
-                
+
                 if (add_nntime) & (stop_seq > 1):
                     if len(trip_stop_times_df[
                         trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]]) > 1:
-                    
+
                         nntime_v = trip_stop_times_df.loc[
                             (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]) &
                             (trip_stop_times_df["internal_stop_sequence"] == stop_seq),
@@ -1337,7 +1337,7 @@ class StandardTransit(object):
                 stop_name = trip_stop_times_df.loc[
                     (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"stop_name"].iloc[0]
                 stop_names.append(stop_name)
-                
+
             else:
                 nntimes.append(0)
                 allow_alightings.append(0)
@@ -1408,7 +1408,7 @@ class StandardTransit(object):
 
         # lines updated
         transit_changes['line_id'] = transit_changes.apply(
-            lambda x: '-'.join(x['element_id'].split('-')[:-3]) if 
+            lambda x: '-'.join(x['element_id'].split('-')[:-3]) if
             x['object'] == 'TRANSIT_STOP' else
             x['element_id'],
             axis = 1
@@ -1437,40 +1437,20 @@ class StandardTransit(object):
                 existing_value = int(trip_df[
                     trip_df['line_id'] == line_id
                 ][c].iloc[0])
-                
+
                 change_item["existing"] = existing_value
-                
+
                 if c == 'headway_secs':
                     change_item["set"] = row['headway'] * 60
                 else:
                     change_item["set"] = row[c]
-                
+
                 change_item["property"] = c
 
                 properties_list.append(change_item)
 
-            base_start_time_str = self.parameters.time_period_to_time.get(
-                line_id.split("_")[2]
-            )[0]
+            property_changes_df.loc[index, 'properties'] = properties_list
 
-            base_end_time_str = self.parameters.time_period_to_time.get(
-                line_id.split("_")[2]
-            )[1]
-
-            update_card_dict = {
-                "category": "Transit Service Property Change",
-                "facility": {
-                    "route_id": line_id.split("_")[1],
-                    "direction_id": int(line_id.split("_")[-2].strip("d\"")),
-                    "shape_id": line_id.split("_")[-1].strip("s\""),
-                    "start_time": base_start_time_str,
-                    "end_time": base_end_time_str,
-                },
-                "properties": properties_list,
-            }
-
-            project_card_changes.append(update_card_dict)
-        
         ###############
         # shape changes
         ###############
@@ -1481,10 +1461,10 @@ class StandardTransit(object):
 
         for index, row in shape_changes_df.iterrows():
             line_id = row.line_id
-            
-            # get base shape 
+
+            # get base shape
             trip_row = trip_df[trip_df.line_id == line_id].copy().squeeze()
-            
+
             base_shape = self.shape_gtfs_to_emme(
                 trip_row=trip_row
             )
@@ -1494,32 +1474,11 @@ class StandardTransit(object):
             build_shape = row.new_itinerary
 
             updated_shapes = CubeTransit.evaluate_route_shape_changes(
-                shape_base = base_shape.shape_model_node_id, 
+                shape_base = base_shape.shape_model_node_id,
                 shape_build = pd.Series(row.new_itinerary)
             )
             updated_shapes[0]['property'] = 'shapes'
-
-            base_start_time_str = self.parameters.time_period_to_time.get(
-                    line_id.split("_")[2]
-                )[0]
-
-            base_end_time_str = self.parameters.time_period_to_time.get(
-                line_id.split("_")[2]
-            )[1]
-
-            update_card_dict = {
-                "category": "Transit Service Property Change",
-                "facility": {
-                    "route_id": line_id.split("_")[1],
-                    "direction_id": int(line_id.split("_")[-2].strip("d\"")),
-                    "shape_id": line_id.split("_")[-1].strip("s\""),
-                    "start_time": base_start_time_str,
-                    "end_time": base_end_time_str,
-                },
-                "properties": updated_shapes,
-            }
-            
-            project_card_changes.append(update_card_dict)
+            shape_changes_df.loc[index, 'properties'] = updated_shapes
 
         ##############
         # stop changes
@@ -1528,23 +1487,54 @@ class StandardTransit(object):
             lines_updated_df.object.isin(['TRANSIT_STOP'])
         ].copy()
 
-
         stop_attribute_list = ['allow_alightings', 'allow_boardings']
 
-        for index, row in stop_changes_df.iterrows():
+        stop_changes_df = stop_changes_df.groupby(
+            ['line_id','i_node']
+        )[stop_attribute_list].last().reset_index()
+        
+        stop_attribute_changes_df = pd.DataFrame()
+
+        for attribute in stop_attribute_list:
+
+            attribute_df = stop_changes_df.groupby(
+                ['line_id', attribute]
+            )['i_node'].apply(list).reset_index()
+            attribute_df['properties'] = attribute_df.apply(
+                lambda x: {
+                    'property' : attribute if x[attribute] == True else 'no_'+attribute.split('_')[-1],
+                    'set': x['i_node']},
+                axis = 1
+            )
+            
+            stop_attribute_changes_df = pd.concat(
+                [stop_attribute_changes_df, 
+                attribute_df[['line_id', 'properties']]],
+                sort = False,
+                ignore_index = True
+            )
+        
+        ##############
+        # combine all transit changes
+        ##############
+        transit_changes_df = pd.concat(
+            [
+                property_changes_df,
+                shape_changes_df,
+                stop_attribute_changes_df
+            ],
+            sort = False,
+            ignore_index = True
+        )
+
+        # groupby line_id
+        transit_changes_df = transit_changes_df.groupby(
+            ['line_id']
+        )['properties'].apply(list).reset_index()
+
+        # create change items by line_id
+        for index, row in transit_changes_df.iterrows():
             line_id = row['line_id']
-            node_id = row['i_node']
-            properties_list = []
-            change_item = {}
-            for c in stop_attribute_list:
-                
-                if row[c] is np.nan:
-                    continue
-                change_item["property"] = c
-                change_item["set"] = row[c]
-                
-                properties_list.append(change_item)
-                
             base_start_time_str = self.parameters.time_period_to_time.get(
                 line_id.split("_")[2]
             )[0]
@@ -1560,10 +1550,9 @@ class StandardTransit(object):
                     "direction_id": int(line_id.split("_")[-2].strip("d\"")),
                     "shape_id": line_id.split("_")[-1].strip("s\""),
                     "start_time": base_start_time_str,
-                    "end_time": base_end_time_str,
-                    'node_id' : node_id
+                    "end_time": base_end_time_str
                 },
-                "properties": properties_list,
+                "properties": row['properties'],
             }
             
             project_card_changes.append(update_card_dict)
@@ -1715,21 +1704,3 @@ opmode_attr_name  : "number" | "name" | "longname"
 %ignore WS
 
 """
-
-class EMMETransit(object):
-    """
-    Class for storing information about transit defined in the emme network build files.
-
-    Has the capability to:
-
-    1 - Parse emme network build files for transit
-    2 - 
-    """
-
-    def __init__(
-        self, 
-        standard_transit, 
-        parameters: Union[Parameters, dict] = {}
-    ):
-
-        return 
