@@ -117,7 +117,7 @@ class Project(object):
             raise ValueError(msg)
 
         if base_roadway_network != None:
-            self.determine_roadway_network_changes_compatability(
+            self.determine_roadway_network_changes_compatibility(
                 self.base_roadway_network, self.roadway_changes, self.parameters
             )
 
@@ -363,7 +363,7 @@ class Project(object):
         return log_df
 
     @staticmethod
-    def determine_roadway_network_changes_compatability(
+    def determine_roadway_network_changes_compatibility(
         base_roadway_network: ModelRoadwayNetwork,
         roadway_changes: DataFrame,
         parameters: Parameters,
@@ -390,7 +390,19 @@ class Project(object):
 
         link_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
-        ]
+        ].copy()
+        link_changes_df['A_B'] = link_changes_df['A'].astype(str) + '_' + link_changes_df['B'].astype(str)
+
+        link_additions_df = roadway_changes[
+            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "A")
+        ].copy()
+
+        if len(link_additions_df) > 0:
+            link_additions_df['A_B'] = link_additions_df['A'].astype(str) + '_' + link_additions_df['B'].astype(str)
+
+            link_changes_df = link_changes_df[
+                ~(link_changes_df['A_B'].isin(link_additions_df['A_B'].tolist()))
+            ].copy()
 
         link_merge_df = pd.merge(
             link_changes_df[["A", "B"]].astype(str),
@@ -411,7 +423,17 @@ class Project(object):
 
         node_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
-        ]
+        ].copy()
+        
+        node_additions_df = roadway_changes[
+            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "A")
+        ].copy()
+
+        if len(node_additions_df) > 0:
+            node_changes_df = node_changes_df[
+                ~(node_changes_df['model_node_id'].isin(node_additions_df['model_node_id'].tolist()))
+            ]
+
         node_merge_df = pd.merge(
             node_changes_df[["model_node_id"]],
             base_roadway_network.nodes_df[["model_node_id", "geometry"]],
