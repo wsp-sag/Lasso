@@ -12,11 +12,12 @@ import math
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 from pyproj import CRS
-from shapely.geometry import Point, LineString
+import shapely
 
+import network_wrangler
 from .parameters import Parameters
+from .transit import StandardTransit
 from .logger import WranglerLogger
-from network_wrangler import RoadwayNetwork
 from .util import geodesic_point_buffer, create_locationreference
 
 
@@ -1813,6 +1814,134 @@ def write_as_cube_lin(
     with open(outpath, "w") as f:
         f.write("\n".join(l))
 
+def write_cube_lines_to_geopackage(output_dir:str, output_gpkg:str, transit_network:StandardTransit, 
+        standard_roadway_network:network_wrangler.RoadwayNetwork, 
+        parameters:Parameters, faresystem_crosswalk_file:str):
+    """
+    Writes StandardTransit instance to geopackage in a manner consistent with the mtc.write_as_cube_lin()
+
+    standard_roadway_network is a network_wrangler.RoadwayNetwork instance; this is required to get the shapes for the transit links.
+
+    TODO: cube network's faresystem_crosswalk_file is required right now -- fix
+    """
+    # create the transit trip list consistent with the way it's created for Cube; see write_as_cube_lin() above
+    trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters, faresystem_crosswalk_file)
+    # print("trip_cube_df.head():\n{}".format(trip_cube_df.head(20)))
+    # print("trip_cube_df.dtypes:\n{}".format(trip_cube_df.dtypes))
+
+    # this has a huge number of columns; let's keep the subset used in mtc.cube_format()
+    trip_cube_df = trip_cube_df[['NAME','LONGNAME','agency_id','agency_raw_name','TM2_line_haul_name','tod','HEADWAY','TM2_mode',
+        'faresystem','ONEWAY','TM2_operator','route_short_name','vehtype_num',
+        # these are used to get the stops/geometry
+        'trip_id','shape_id']]
+    line_count = len(trip_cube_df)
+    print("trip_cube_df length: {}".format(line_count))
+    # print("trip_cube_df.head():\n{}".format(trip_cube_df.head(20)))
+
+    # iterate through each of the lines and get the shape with stops
+    shape_stop_dict_list = []
+    for index,row in trip_cube_df.iterrows():
+        # for testing, let's stop at 50 since this is a bit slow
+        # if index >= 50: break
+
+        add_nntime = False
+        if row.TM2_line_haul_name in ["Light rail", "Heavy rail", "Commuter rail", "Ferry service"]:
+            add_nntime = True
+        # this returns a dict list, add them to our running list
+        print("processed line {}/{}".format(index, len(trip_cube_df)), end="\r")
+        shape_stop_dict_list.extend( transit_network.shape_gtfs_to_dict_list(row.trip_id, row.shape_id, add_nntime) )
+    trip_shapes_df = pd.DataFrame.from_records(shape_stop_dict_list)
+
+    # prepare to turn these into links
+    # find the first and last shape_pt_sequence per line
+    trip_shape_summary_df =  trip_shapes_df.groupby(by='trip_id').agg(
+        first_shape_pt_seq = pd.NamedAgg(column='shape_pt_sequence', aggfunc='min'),
+        last_shape_pt_seq  = pd.NamedAgg(column='shape_pt_sequence', aggfunc='max'),
+        first_stop_seq     = pd.NamedAgg(column='stop_sequence',     aggfunc='min'),
+        last_stop_seq      = pd.NamedAgg(column='stop_sequence',     aggfunc='max'),
+        num_stops          = pd.NamedAgg(column='is_stop',           aggfunc='sum')
+    ).reset_index(drop=False)
+
+    # get first shape model node ids
+    trip_shape_summary_df = pd.merge(
+         left     = trip_shape_summary_df,
+         right    = trip_shapes_df[['trip_id','shape_pt_sequence','shape_model_node_id']],
+         how      = 'left',
+         left_on  = ['trip_id', 'first_shape_pt_seq'],
+         right_on = ['trip_id', 'shape_pt_sequence'],
+    ).rename(columns={'shape_model_node_id':'first_shape_model_node_id'})
+    trip_shape_summary_df.drop(columns='shape_pt_sequence',inplace=True)
+
+    # get last shape model node ids
+    trip_shape_summary_df = pd.merge(
+         left     = trip_shape_summary_df,
+         right    = trip_shapes_df[['trip_id','shape_pt_sequence','shape_model_node_id']],
+         how      = 'left',
+         left_on  = ['trip_id', 'last_shape_pt_seq'],
+         right_on = ['trip_id', 'shape_pt_sequence'],
+    ).rename(columns={'shape_model_node_id':'last_shape_model_node_id'})
+    trip_shape_summary_df.drop(columns='shape_pt_sequence',inplace=True)
+    # not doing so for stop ids since they should be the same...
+
+    # this should already be true but just in case
+    trip_links_df = trip_shapes_df.sort_values(by=['trip_id','shape_pt_sequence'])
+    trip_links_df['shape_pt_sequence_B'  ] = trip_links_df['shape_pt_sequence'].shift(-1)
+    trip_links_df['shape_model_node_id_B'] = trip_links_df['shape_model_node_id'].shift(-1)
+    # rename others to make it clear they are for A
+    trip_links_df.rename(columns={
+        'shape_model_node_id':'shape_model_node_id_A',
+        'shape_pt_sequence'  :'shape_pt_sequence_A',
+        'is_stop'            :'is_stop_A',
+        'access'             :'access_A',
+        'stop_sequence'      :'stop_sequence_A'
+    }, inplace=True)
+
+    # since they're links, drop the last row for each trip
+    trip_links_df = pd.merge(
+        left  = trip_links_df,
+        right = trip_shape_summary_df[['trip_id','last_shape_pt_seq']], # todo add all the columns
+        how   = 'left',
+        on    = 'trip_id'
+    )
+    trip_links_len = len(trip_links_df)
+    trip_links_df = trip_links_df.loc[ trip_links_df.shape_pt_sequence_A != trip_links_df.last_shape_pt_seq ].copy()
+    print("Dropped {} rows from trip_links_df".format(trip_links_len - len(trip_links_df)))
+    trip_links_df.drop(columns='last_shape_pt_seq', inplace=True) # this was used, no longer needed
+
+    # join with standard_roadway_network_links on A,B
+    transit_links_df = pd.merge(
+        left     = trip_links_df,
+        right    = standard_roadway_network.links_df[['A','B','model_link_id','shstGeometryId','geometry']],
+        how      = 'left',
+        left_on  = ['shape_model_node_id_A','shape_model_node_id_B'],
+        right_on = ['A','B'],
+        indicator= True
+    )
+    # print("transit_links_df.dtypes:\n{}".format(transit_links_df.dtypes))
+    print("transit_links_df['_merge'].value_counts():\n{}".format(transit_links_df['_merge'].value_counts()))
+    transit_links_df['_merge'] = transit_links_df._merge.astype(str)
+
+    # convert the dataframe to a geodataframe
+    transit_links_gdf = gpd.GeoDataFrame(transit_links_df)
+    transit_links_gdf.set_crs(crs="EPSG:4326", inplace=True) # todo: is this defined as a constant somewhere?
+
+    WranglerLogger.info("Writing transit_links_df into GeoPackage {}".format(os.path.join(output_dir, output_gpkg)))
+    transit_links_gdf.to_file(os.path.join(output_dir, output_gpkg), layer="transit_links", driver="GPKG")
+
+    # combine trip_shape_summary_df with trip_cube_df
+    trip_shape_summary_df = pd.merge(
+        left  = trip_shape_summary_df,
+        right = trip_cube_df,
+        how   = 'left',
+        on    = 'trip_id',
+    )
+    # save as csv 
+    # TODO: create transit_links_gdf aggregated to the trip level and save that
+    outputfile = os.path.join(output_dir, "trip_shape_summary.csv")
+    trip_shape_summary_df.to_csv(outputfile, index=False)
+    WranglerLogger.info("Wrote {}".format(outputfile))
+    return (transit_links_gdf, trip_shape_summary_df, trip_links_df)
+
 def vehicle_type_pts_format(row):
     """
     Creates a string representing the vehicle type in cube pts file notation.
@@ -2418,7 +2547,7 @@ def create_tap_nodes_and_links(
     tap_shapes_gdf["shstGeometryId"] = tap_shapes_gdf["id"]
 
     tap_shapes_gdf["geometry"] = tap_shapes_gdf.apply(
-        lambda x: LineString([Point(x.X, x.Y), Point(x.tap_X, x.tap_Y)]),
+        lambda x: shapely.geometry.LineString([shapely.geometry.Point(x.X, x.Y), shapely.geometry.Point(x.tap_X, x.tap_Y)]),
         axis = 1
     )
 
@@ -2618,7 +2747,7 @@ def add_tap_and_tap_connector(
         add_tap_shapes_gdf["shstGeometryId"] = add_tap_shapes_gdf["id"]
 
         add_tap_shapes_gdf["geometry"] = add_tap_shapes_gdf.apply(
-            lambda x: LineString([Point(x.X, x.Y), Point(x.tap_X, x.tap_Y)]),
+            lambda x: shapely.geometry.LineString([shapely.geometry.Point(x.X, x.Y), shapely.geometry.Point(x.tap_X, x.tap_Y)]),
             axis = 1
         )
 
