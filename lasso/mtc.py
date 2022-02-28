@@ -1883,6 +1883,14 @@ def write_cube_lines_to_geopackage(output_dir:str, output_gpkg:str, transit_netw
     trip_shape_summary_df.drop(columns='shape_pt_sequence',inplace=True)
     # not doing so for stop ids since they should be the same...
 
+    # combine trip_shape_summary_df with trip_cube_df
+    trip_shape_summary_df = pd.merge(
+        left  = trip_shape_summary_df,
+        right = trip_cube_df,
+        how   = 'left',
+        on    = 'trip_id',
+    )
+
     # this should already be true but just in case
     trip_links_df = trip_shapes_df.sort_values(by=['trip_id','shape_pt_sequence'])
     trip_links_df['shape_pt_sequence_B'  ] = trip_links_df['shape_pt_sequence'].shift(-1)
@@ -1897,9 +1905,11 @@ def write_cube_lines_to_geopackage(output_dir:str, output_gpkg:str, transit_netw
     }, inplace=True)
 
     # since they're links, drop the last row for each trip
+    # also get a fiew trip_summary details
     trip_links_df = pd.merge(
         left  = trip_links_df,
-        right = trip_shape_summary_df[['trip_id','last_shape_pt_seq']], # todo add all the columns
+        right = trip_shape_summary_df[['trip_id','last_shape_pt_seq',
+                'NAME','agency_id','TM2_line_haul_name','TM2_mode','faresystem','tod','HEADWAY']], 
         how   = 'left',
         on    = 'trip_id'
     )
@@ -1928,13 +1938,6 @@ def write_cube_lines_to_geopackage(output_dir:str, output_gpkg:str, transit_netw
     WranglerLogger.info("Writing transit_links_df into GeoPackage {}".format(os.path.join(output_dir, output_gpkg)))
     transit_links_gdf.to_file(os.path.join(output_dir, output_gpkg), layer="transit_links", driver="GPKG")
 
-    # combine trip_shape_summary_df with trip_cube_df
-    trip_shape_summary_df = pd.merge(
-        left  = trip_shape_summary_df,
-        right = trip_cube_df,
-        how   = 'left',
-        on    = 'trip_id',
-    )
     # save as csv 
     # TODO: create transit_links_gdf aggregated to the trip level and save that
     outputfile = os.path.join(output_dir, "trip_shape_summary.csv")
@@ -2986,4 +2989,3 @@ def calculate_county(
             "Finished Calculating node county variable: {}".format(network_variable)
         )
 
-        return roadway_network
