@@ -2989,3 +2989,4 @@ def calculate_county(
             "Finished Calculating node county variable: {}".format(network_variable)
         )
 
+        return roadway_network
