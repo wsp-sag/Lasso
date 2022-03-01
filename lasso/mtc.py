@@ -322,7 +322,8 @@ def determine_number_of_lanes(
                 if pd.notna(x.osm_min_lanes):
                     if x.pems_lanes == x.osm_min_lanes:
                         if x.roadway == "motorway":
-                            return int(x.pems_lanes)
+                            heuristic_num = 1
+                            return pd.Series([int(x.pems_lanes), heuristic_num])
             # heuristic 2
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
@@ -332,20 +333,23 @@ def determine_number_of_lanes(
                                 if x.roadway != "motorway_link":
                                     if x.osm_min_lanes >= x.sfcta_min_lanes:
                                         if x.osm_max_lanes <= x.sfcta_max_lanes:
-                                            return int(x.sfcta_min_lanes)
+                                            heuristic_num = 2
+                                            return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
             # heuristic 3
             if pd.notna(x.pems_lanes):
                 if pd.notna(x.osm_min_lanes):
                     if x.pems_lanes >= x.osm_min_lanes:
                         if x.pems_lanes <= x.osm_max_lanes:
                             if x.roadway == "motorway":
-                                return int(x.pems_lanes)
+                                heuristic_num = 3
+                                return pd.Series([int(x.pems_lanes), heuristic_num])
             # heuristic 4
             if x.roadway in ["motorway", "motorway_link"]:
                 if pd.notna(x.osm_min_lanes):
                     if x.osm_min_lanes <= x.tom_lanes:
                         if x.osm_max_lanes >= x.tom_lanes:
-                            return int(x.osm_min_lanes)
+                            heuristic_num = 4
+                            return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 5
             if x.county != "San Francisco":
                 if pd.notna(x.osm_min_lanes):
@@ -353,7 +357,8 @@ def determine_number_of_lanes(
                         if x.tm2_lanes > 0:
                             if x.osm_min_lanes <= x.tm2_lanes:
                                 if x.osm_max_lanes >= x.tm2_lanes:
-                                    return int(x.tm2_lanes)
+                                    heuristic_num = 5
+                                    return pd.Series([int(x.tm2_lanes), heuristic_num])
             # heuristic 6
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
@@ -361,62 +366,76 @@ def determine_number_of_lanes(
                         if x.sfcta_min_lanes == x.sfcta_max_lanes:
                             if x.roadway != "motorway":
                                 if x.roadway != "motorway_link":
-                                    return int(x.sfcta_min_lanes)
+                                    heuristic_num = 6
+                                    return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
             # heuristic 7
             if x.roadway in ["motorway", "motorway_link"]:
                 if pd.notna(x.osm_min_lanes):
                     if x.osm_min_lanes == x.osm_max_lanes:
-                        return int(x.osm_min_lanes)
+                        heuristic_num = 7
+                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 8
             if x.roadway in ["motorway", "motorway_link"]:
                 if pd.notna(x.osm_min_lanes):
                     if (x.osm_max_lanes - x.osm_min_lanes) == 1:
-                        return int(x.osm_min_lanes)
+                        heuristic_num = 8
+                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 9
             if x.roadway == "motorway":
                 if pd.notna(x.pems_lanes):
-                    return int(x.pems_lanes)
+                    heuristic_num = 9
+                    return pd.Series([int(x.pems_lanes), heuristic_num])
             # heuristic 10
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
                     if x.sfcta_min_lanes > 0:
                         if x.roadway != "motorway":
                             if x.roadway != "motorway_link":
-                                return int(x.sfcta_min_lanes)
+                                heuristic_num = 10
+                                return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
             # heuristic 11
             if pd.notna(x.osm_min_lanes):
                 if x.osm_min_lanes == x.osm_max_lanes:
-                    return int(x.osm_min_lanes)
+                    heuristic_num = 11
+                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 12
             if pd.notna(x.osm_min_lanes):
                 if x.roadway in ["motorway", "motorway_link"]:
                     if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
-                        return int(x.osm_min_lanes)
+                        heuristic_num = 12
+                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 13
             if pd.notna(x.osm_min_lanes):
                 if (x.osm_max_lanes - x.osm_min_lanes) == 1:
-                    return int(x.osm_min_lanes)
+                    heuristic_num = 13
+                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 14
             if pd.notna(x.osm_min_lanes):
                 if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
-                    return int(x.osm_min_lanes)
+                    heuristic_num = 14
+                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
             # heuristic 15
             if pd.notna(x.tm2_lanes):
                 if x.tm2_lanes > 0:
-                    return int(x.tm2_lanes)
+                    heuristic_num = 15
+                    return pd.Series([int(x.tm2_lanes), heuristic_num])
             # heuristic 16
             if pd.notna(x.tom_lanes):
                 if x.tom_lanes > 0:
-                    return int(x.tom_lanes)
+                    heuristic_num = 16
+                    return pd.Series([int(x.tom_lanes), heuristic_num])
             # heuristic 17
             if x.roadway in ["residential", "service"]:
-                return int(1)
+                heuristic_num = 17
+                return pd.Series([int(1), heuristic_num])
             # heuristic 18
-            return int(1)
+            heuristic_num = 18
+            return pd.Series([int(1), heuristic_num])
 
-    join_gdf[network_variable] = join_gdf.apply(lambda x: _determine_lanes(x), axis = 1)
+    join_gdf[[network_variable, 'heuristic_num']] = join_gdf.apply(lambda x: _determine_lanes(x), axis = 1)
 
     roadway_network.links_df[network_variable] = join_gdf[network_variable]
+    roadway_network.links_df['heuristic_num'] = join_gdf['heuristic_num']
 
     WranglerLogger.info(
         "Finished determining number of lanes using variable: {}".format(network_variable)
