@@ -403,6 +403,10 @@ class Project(object):
                 gtfs_feed_dir=base_transit_dir,
                 parameters=parameters
             )
+        else:
+            msg = "No base transit network."
+            WranglerLogger.info(msg)
+            base_transit_network = None
 
         project = Project(
             roadway_link_changes=roadway_link_changes,
