@@ -954,6 +954,8 @@ def calculate_farezone(
     stops_df = transit_network.feed.stops.copy()
 
     # get the fare rules table for zonal fare agencies
+    # TODO: in GTFS data, origin_id has value ' ' which essential is NA. Probably should clean it upstream in the
+    #       Pipeline stage. Same for all important fields - need to check typos, etc. during Pipeline.
     fare_rules_df = transit_network.feed.fare_rules.copy()
     zonal_fare_df = fare_rules_df[
         ((fare_rules_df.origin_id.notnull()) | (fare_rules_df.origin_id.notnull())) &
@@ -985,6 +987,7 @@ def calculate_farezone(
         on = "model_node_id"
     )
 
+    # unique combinations of agency_raw_name, zone_id
     unique_zone_df = unique_model_node_zone_df.groupby(
         ["agency_raw_name", "zone_id"]
     ).count().reset_index()[["agency_raw_name", "zone_id"]]
@@ -1034,7 +1037,8 @@ def calculate_farezone(
         sort = False,
         ignore_index = True
     )
-
+    
+    # drop duplicates, i.e. stops serving more than one agency
     final_model_node_zone_df = final_model_node_zone_df.drop_duplicates(
         subset = ["model_node_id", network_variable]
     )
@@ -1075,9 +1079,24 @@ def write_cube_fare_files(
     transfer_fare_df=None
 ):
     """
-    create cube transit files
+    create cube transit files: fares.far, fareMatrix.txt (if has zonal fare), faresystem_crosswalk.txt
 
-    # Todo: add documentation for this method, especially around transfer_fare_df
+    Inputs:
+        - fare_attributes from Standard Networks
+        - fare_rules from Standard Networks
+        - transfer_fare_df: inter-agency transfer cost
+    
+    This method does the following:
+        - For zonal fares (if any), attach the "farezone" value created by calculate_farezone() to 
+          "origin_id" and "desination_id" (representing origin/destination zones) in fare_rules,
+          and generate fare_system ID by operator (assuming each operator has one zonal system). 
+          Caveat: if one of origin_id or destination_id is missing in Standard Networks fare_rules table,
+          or the origin_id/desination_id cannot find a matching farezone (usually because the 
+          origin_id/destination_id doesn't exist in the GTFS stops data), that fare_rules row is dropped.
+        - For flat fares (including Free fares), generate fare_system ID by operator + fare_id + price.
+          Caveat: if one route_id has multiple fare_id in GTFS data, only one will be kept; if a row 
+          in the fare_rules table does not have a route_id, it will be dropped.
+
     """
 
     if not outpath:
@@ -1099,6 +1118,8 @@ def write_cube_fare_files(
         how = "outer",
         on = ["fare_id", "agency_raw_name"])
 
+    # TODO: in GTFS data, origin_id has value ' ' which essential is NA. Probably should clean it upstream in the
+    #       Pipeline stage. Same for all important fields - need to check typos, etc. during Pipeline. 
     zonal_fare_df = fare_df[((fare_df.origin_id.notnull()) | (fare_df.destination_id.notnull())) & (fare_df.origin_id != " ")].copy()
     flat_fare_df = fare_df[~(((fare_df.origin_id.notnull()) | (fare_df.destination_id.notnull())) & (fare_df.origin_id != " "))].copy()
 
@@ -1118,6 +1139,7 @@ def write_cube_fare_files(
 
         stop_with_zone_id_df = stops_df[stops_df.zone_id.notnull()].copy()
 
+        # unique combinations of agency_raw_name, zone_id, model_node_id
         model_node_zone_df = stop_with_zone_id_df.groupby(
             ["model_node_id", "agency_raw_name", "zone_id"]
         ).count().reset_index()[
@@ -1126,6 +1148,9 @@ def write_cube_fare_files(
 
         model_node_zone_df["model_node_id"] = model_node_zone_df["model_node_id"].astype(int)
 
+        # note: in 'calculate_farezone', stops serving more than one operators get one farezone
+        #       shared by these operators, so each model_node_id only has one farezone, hence merge
+        #       on 'model_node_id' instead of ['model_node_id', 'agency_raw_name']
         final_zone_farezone_df = pd.merge(
             model_node_zone_df,
             roadway_network.nodes_df[["model_node_id", "farezone"]],
@@ -1133,6 +1158,7 @@ def write_cube_fare_files(
             on = "model_node_id"
         )
 
+        # unique combinations of agency_raw_name, zone_id, farezone
         final_zone_farezone_df = final_zone_farezone_df.drop_duplicates(subset = ["agency_raw_name", "zone_id", "farezone"])
 
         zonal_fare_df = pd.merge(
@@ -1172,6 +1198,7 @@ def write_cube_fare_files(
     if (not has_flat_fare):
         flat_fare_system_df = pd.DataFrame()
     else:
+        # unique combinations of 'agency_raw_name', 'fare_id', 'price'
         flat_fare_system_df = flat_fare_df.groupby(["agency_raw_name", "fare_id", "price"])['transfers'].count().reset_index().drop('transfers', axis = 1)
         if len(zonal_fare_system_df) > 0:
             flat_fare_system_df["faresystem"] = range(
@@ -1190,7 +1217,12 @@ def write_cube_fare_files(
             how = "left",
             on = ["agency_raw_name", "fare_id"]
         )
-
+        # TODO: in 2015 GTFS data, CCTA's gtfs has 3 fare systems, fare_id 3 (free), fare_id 1 ($2), fare_id 2 ($2.25),
+        #       some routes have both fare_id 1 and 2. One of them is dropped by the following drop_duplicates(), but
+        #       no guarantee the correct one will stay. So it is better to clean it up in the Pipeline phase. 
+        # Caveat: in v12 of Standard Networks, quite a few rows in flat_fare_df do not have route_id despite having
+        #       route_id_original. They would have been dropped in this step. Why these routes do not have
+        #       route_id? - could be that these routes do not exist in the GTFS routes data.
         flat_fare_df.drop_duplicates(["route_id", "agency_raw_name"], inplace = True)
         flat_fare_df["route_id"] = flat_fare_df["route_id"].fillna(0).astype(int).astype(str)
 
