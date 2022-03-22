@@ -42,8 +42,8 @@ jobs:
 
       # https://github.com/marketplace/actions/checkout
       # Git clone network_wrangler
-      - uses: actions/checkout@v3
       - name: Git clone network_wrangler
+        uses: actions/checkout@v3
         with:
           # Repository name with owner. For example, actions/checkout
           repository: 'BayAreaMetro/network_wrangler'
