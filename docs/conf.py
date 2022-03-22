@@ -27,7 +27,7 @@ import lasso
 # -- Project information -----------------------------------------------------
 
 project = "lasso"
-copyright = "2019 Metropolitan Council"
+copyright = "2019-2022 Metropolitan Council, Metropolitan Transportation Commission"
 author = "Sijia Wang and Elizabeth Sall"
 
 
