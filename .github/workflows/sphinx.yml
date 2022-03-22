@@ -40,6 +40,18 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
 
+      # https://github.com/marketplace/actions/checkout
+      # Git clone network_wrangler
+      - uses: actions/checkout@v3
+      - name: Git clone network_wrangler
+        with:
+          # Repository name with owner. For example, actions/checkout
+          repository: 'BayAreaMetro/network_wrangler'
+          # The branch, tag or SHA to checkout.
+          ref: 'generic_agency'
+          # Relative path under $GITHUB_WORKSPACE to place the repository
+          path: ''
+
       # https://docs.github.com/en/actions/guides/building-and-testing-python#installing-dependencies
       # ^-- This gives info on installing dependencies with pip
       - name: Install dependencies
@@ -47,6 +59,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
+          # this should be local from the Git clone action above
+          ls
+          pip install ./network_wrangler
       - name: Debugging information
         run: |
           echo "github.ref:" ${{github.ref}}
