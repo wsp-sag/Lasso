@@ -60,7 +60,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
           # this should be local from the Git clone action above
-          ls
+          ls -l network_wrangler
           pip install ./network_wrangler
       - name: Debugging information
         run: |
