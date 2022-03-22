@@ -50,7 +50,7 @@ jobs:
           # The branch, tag or SHA to checkout.
           ref: 'generic_agency'
           # Relative path under $GITHUB_WORKSPACE to place the repository
-          path: ''
+          path: 'network_wrangler_clone'
 
       # https://docs.github.com/en/actions/guides/building-and-testing-python#installing-dependencies
       # ^-- This gives info on installing dependencies with pip
@@ -60,8 +60,8 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
           # this should be local from the Git clone action above
-          ls -l network_wrangler
-          pip install ./network_wrangler
+          ls -l network_wrangler_clone
+          pip install ./network_wrangler_clone
       - name: Debugging information
         run: |
           echo "github.ref:" ${{github.ref}}
