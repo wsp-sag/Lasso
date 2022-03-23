@@ -1,3 +1,8 @@
+import re
+from unidecode import unidecode
+
+import numpy as np
+
 def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
     """
     Calculated per:
@@ -84,3 +89,22 @@ def column_name_to_parts(c, parameters=None):
         WranglerLogger.error(msg)
 
     return base_name, time_period, category, managed
+
+def shorten_name(name):
+    if type(name) == str:
+        name_list = name.split(',')
+    elif type(name) in [np.float, np.int32, np.int64]:
+        name_list = str(name)
+    else:
+        name_list = name
+    name_list = [re.sub(r'\W+', ' ', str(c)).replace('nan', '').strip(' ') for c in name_list]
+
+    name_list = list(set(name_list))
+    #name_list.remove('')
+
+    name_new = ' '.join(name_list).strip(' ')
+
+    # convert non english character to english
+    name_new = unidecode(name_new)
+
+    return name_new

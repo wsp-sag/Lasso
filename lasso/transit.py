@@ -840,7 +840,7 @@ class StandardTransit(object):
             about time periods and variables.
     """
 
-    def __init__(self, ptg_feed, parameters: Union[Parameters, dict] = {}):
+    def __init__(self, ptg_feed, road_net = None, parameters: Union[Parameters, dict] = {}):
         """
 
         Args:
@@ -848,6 +848,7 @@ class StandardTransit(object):
             parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters
         """
         self.feed = ptg_feed
+        self.road_net = road_net
 
         if type(parameters) is dict:
             self.parameters = Parameters(**parameters)
@@ -875,7 +876,7 @@ class StandardTransit(object):
         Returns:
             StandardTransit
         """
-        return StandardTransit(transit_network_object.feed, parameters=parameters)
+        return StandardTransit(transit_network_object.feed, transit_network_object.road_net, parameters=parameters)
 
     @staticmethod
     def read_gtfs(gtfs_feed_dir: str, parameters: Union[Parameters, dict] = {}):
@@ -962,8 +963,13 @@ class StandardTransit(object):
         """
         Add information from: routes, frequencies, and routetype to trips_df
         """
-        trip_df = pd.merge(trip_df, self.feed.routes, how="left", on="route_id")
-        trip_df = pd.merge(trip_df, self.feed.frequencies, how="left", on="trip_id")
+        trip_df = pd.merge(trip_df, self.feed.routes, how="left", on=['agency_raw_name',"route_id"])
+        trip_df = pd.merge(
+            trip_df, 
+            self.feed.frequencies[['agency_raw_name', 'trip_id', 'start_time', 'headway_secs']], 
+            how="left", 
+            on=['agency_raw_name',"trip_id"]
+        )
 
         trip_df["tod_name"] = trip_df.start_time.apply(self.time_to_cube_time_period)
         inv_cube_time_periods_map = {
@@ -975,7 +981,7 @@ class StandardTransit(object):
         )
 
         # add shape_id to name when N most common pattern is used for routes*tod*direction
-        trip_df["shp_id"] = trip_df.groupby(["route_id", "tod_name", "direction_id"]).cumcount()
+        trip_df["shp_id"] = trip_df.groupby(['agency_raw_name', "route_id", "tod_name", "direction_id"]).cumcount()
         trip_df["shp_id"] = trip_df["shp_id"].astype(str)
         trip_df["shp_id"] = "shp" + trip_df["shp_id"]
 
@@ -1046,6 +1052,7 @@ class StandardTransit(object):
         #                 route_type : cube_mode
         route_type_to_cube_mode = {
             0: 8,  # Tram, Streetcar, Light rail
+            1: 8,  # Light rail
             3: 0,  # Bus; further disaggregated for cube
             2: 9,
         }  # Rail
@@ -1140,17 +1147,59 @@ class StandardTransit(object):
             for a route in cube format.
 
         """
+        # check if model node id is in standard transit
+        # if not, need to join with roadway to get model node id
+        roadway_nodes_df = self.road_net.nodes_df[['shst_node_id', 'osm_node_id', 'model_node_id']].copy()
+        roadway_nodes_df['osm_node_id'] = roadway_nodes_df['osm_node_id'].fillna(0)
+
+        if 'osm_node_id' in self.feed.stops.columns:
+            self.feed.stops['osm_node_id'] = self.feed.stops['osm_node_id'].fillna(0)
+            self.feed.stops['osm_node_id'] = self.feed.stops['osm_node_id'].astype(float)
+        if 'shape_osm_node_id' in self.feed.shapes.columns:
+            self.feed.shapes['shape_osm_node_id'] = self.feed.shapes['shape_osm_node_id'].fillna(0)
+            self.feed.shapes['shape_osm_node_id'] = self.feed.shapes['shape_osm_node_id'].astype(float)
+
+        if 'model_node_id' not in self.feed.stops.columns:
+            self.feed.stops = pd.merge(
+                self.feed.stops,
+                roadway_nodes_df,
+                how = 'left',
+                on = ['shst_node_id', 'osm_node_id']
+            )
+        if 'shape_model_node_id' not in self.feed.shapes.columns:
+            self.feed.shapes = pd.merge(
+                self.feed.shapes,
+                roadway_nodes_df.rename(
+                    columns = {
+                        'shst_node_id' : 'shape_shst_node_id',
+                        'osm_node_id' : 'shape_osm_node_id',
+                        'model_node_id' : 'shape_model_node_id',
+                    }
+                ),
+                how = 'left',
+                on = ['shape_shst_node_id', 'shape_osm_node_id']
+            )
+        
         trip_stop_times_df = self.feed.stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[
-            trip_stop_times_df.trip_id == row.trip_id
+            (trip_stop_times_df.trip_id == row.trip_id) &
+            (trip_stop_times_df.agency_raw_name == row.agency_raw_name)
         ]
 
         trip_node_df = self.feed.shapes.copy()
-        trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
+        trip_node_df = trip_node_df[
+            (trip_node_df.shape_id == row.shape_id) &
+            (trip_node_df.agency_raw_name == row.agency_raw_name)
+        ]
 
-        trip_stop_times_df = pd.merge(
-            trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
-        )
+        if row.route_type == 3:
+            trip_stop_times_df = pd.merge(
+                trip_stop_times_df, self.feed.stops, how="left", on=['agency_raw_name', "stop_id", 'trip_id']
+            )
+        else:
+            trip_stop_times_df = pd.merge(
+                trip_stop_times_df, self.feed.stops, how="left", on=['agency_raw_name', "stop_id"]
+            )
 
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
@@ -1159,11 +1208,11 @@ class StandardTransit(object):
         node_list_str = ""
         for nodeIdx in range(len(trip_node_list)):
             if trip_node_list[nodeIdx] in stop_node_id_list:
-                node_list_str += "\n %s" % (trip_node_list[nodeIdx])
+                node_list_str += "\n %s" % int(trip_node_list[nodeIdx])
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
             else:
-                node_list_str += "\n -%s" % (trip_node_list[nodeIdx])
+                node_list_str += "\n -%s" % int(trip_node_list[nodeIdx])
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
 

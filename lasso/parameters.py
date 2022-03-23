@@ -452,6 +452,14 @@ class Parameters:
             self.data_file_location, "lookups", "lanes.csv"
         )
 
+        self.osm_lanes_file = os.path.join(
+            self.data_file_location, "lookups", "osm_lanes.csv"
+        )
+
+        self.metc_lanes_file = os.path.join(
+            self.data_file_location, "lookups", "metc_reviewed_lanes.csv"
+        )
+
         ###  TAZS
 
         self.taz_shape = os.path.join(
@@ -501,6 +509,26 @@ class Parameters:
         self.downtown_area_type = int(5)
 
         self.centroid_connect_lanes = int(1)
+
+        self.centroid_file = os.path.join(
+            self.data_file_location, "centroid", "centroid_node.pickle"
+        )
+
+        self.centroid_connector_link_file = os.path.join(
+            self.data_file_location, "centroid", "cc_link.pickle"
+        )
+
+        self.centroid_connector_shape_file = os.path.join(
+            self.data_file_location, "centroid", "cc_shape.pickle"
+        )
+
+        self.metc_assgngrp_file = os.path.join(
+            self.data_file_location, "lookups", "metc_reviewed_assgngrp.csv"
+        )
+
+        self.metc_rdclass_file = os.path.join(
+            self.data_file_location, "lookups", "metc_reviewed_rdclass.csv"
+        )
 
         self.osm_assgngrp_dict = os.path.join(
             self.data_file_location, "lookups", "osm_highway_asgngrp_crosswalk.csv"

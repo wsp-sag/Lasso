@@ -209,7 +209,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         """
         WranglerLogger.info("Creating calculated roadway variables.")
         self.calculate_area_type()
-        self.calculate_county()
+        self.calculate_county(overwrite=True)
         self.calculate_mpo()
         self.add_counts()
         self.create_ML_variable()
@@ -288,8 +288,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         centroids_gdf["geometry"] = centroids_gdf["geometry"].centroid
 
         county_gdf = gpd.read_file(county_shape)
-        county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.CRS)
-        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
+        county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.CRS_alt)
+        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", predicate="intersects")
 
         joined_gdf[county_shape_variable] = (
             joined_gdf[county_shape_variable]
@@ -299,6 +299,30 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         self.links_df[network_variable] = joined_gdf[county_shape_variable]
+
+        nodes_gdf = self.nodes_df.copy()
+        joined_gdf = gpd.sjoin(nodes_gdf, county_gdf, how="left", predicate="intersects")
+
+        joined_gdf[county_shape_variable] = (
+            joined_gdf[county_shape_variable]
+            .map(county_codes_dict)
+            .fillna(10)
+            .astype(int)
+        )
+
+        joined_gdf = joined_gdf.drop_duplicates(
+            subset = ['model_node_id']
+        )
+        joined_gdf[network_variable] = joined_gdf[county_shape_variable]
+
+        self.nodes_df = self.nodes_df.drop(network_variable, axis = 1)
+
+        self.nodes_df = pd.merge(
+            self.nodes_df,
+            joined_gdf[['model_node_id', network_variable]],
+            how = 'left',
+            on = 'model_node_id',
+        )
 
         WranglerLogger.info(
             "Finished Calculating county variable: {}".format(network_variable)
@@ -1203,13 +1227,13 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_metcouncil_df = pd.merge(
             self.links_metcouncil_df.drop("geometry", axis = 1),  # drop the stick geometry in links_df
-            self.shapes_df[["shape_id", "geometry"]],
+            self.shapes_df[[RoadwayNetwork.UNIQUE_SHAPE_KEY, "geometry"]],
             how = "left",
-            on = "shape_id"
+            on = RoadwayNetwork.UNIQUE_SHAPE_KEY
         )
 
-        self.links_metcouncil_df.crs = "EPSG:4326"
-        self.nodes_metcouncil_df.crs = "EPSG:4326"
+        self.links_metcouncil_df.crs = "EPSG:4269"
+        self.nodes_metcouncil_df.crs = "EPSG:4269"
         WranglerLogger.info("Setting Coordinate Reference System to EPSG 26915")
         self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
         self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
@@ -1288,7 +1312,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if str(dbf_df["geometry"].iloc[0].geom_type) == "Point":
                 dbf_df["X"] = dbf_df.geometry.apply(lambda g: g.x)
                 dbf_df["Y"] = dbf_df.geometry.apply(lambda g: g.y)
-                dbf_name_list += ["X", "Y"]
+                if ('X' not in dbf_name_list):
+                    dbf_name_list += ["X", "Y"]
 
         WranglerLogger.debug("DBF Variables: {}".format(",".join(dbf_name_list)))
 
