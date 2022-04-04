@@ -18,6 +18,7 @@ STPAUL_SHAPE_FILE = os.path.join(STPAUL_DIR, "shape.geojson")
 STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
+
 @pytest.mark.metcouncil
 @pytest.mark.travis
 def test_calculate_lanes(request):
@@ -35,7 +36,7 @@ def test_calculate_lanes(request):
     params = Parameters()
 
     if "lanes" in net.links_df.columns:
-        net.links_df.drop(['lanes'], axis=1)
+        net.links_df.drop(["lanes"], axis=1)
 
     l_net = metcouncil.calculate_number_of_lanes(
         roadway_net=net,
@@ -46,6 +47,7 @@ def test_calculate_lanes(request):
     print("Number of Lanes Frequency for all links")
     print(l_net.links_df.lanes.value_counts())
     ## todo write an assert that actually tests something
+
 
 @pytest.mark.metcouncil
 @pytest.mark.travis
@@ -75,6 +77,7 @@ def test_assign_group_roadway_class(request):
     print("Roadway Class Frequency for all links")
     print(l_net.links_df.roadway_class.value_counts())
     ## todo write an assert that actually tests something
+
 
 @pytest.mark.metcouncil
 @pytest.mark.travis

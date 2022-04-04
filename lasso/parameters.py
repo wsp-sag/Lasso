@@ -652,7 +652,7 @@ class Parameters:
             "rail_only",
             "bike_facility",
             "mrcc_id",
-            "ROUTE_SYS",  #mrcc functional class
+            "ROUTE_SYS",  # mrcc functional class
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")

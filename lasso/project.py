@@ -15,7 +15,7 @@ from .transit import CubeTransit, StandardTransit
 from .logger import WranglerLogger
 from .parameters import Parameters
 from .roadway import ModelRoadwayNetwork
-from .util import column_name_to_parts
+from .util import column_name_to_parts, update_crs_nodes_df
 
 
 class Project(object):
@@ -50,6 +50,8 @@ class Project(object):
         build_transit_network (CubeTransit):
         project_name (str): name of the project, set to DEFAULT_PROJECT_NAME if not provided
         parameters: an  instance of the Parameters class which sets a bunch of parameters
+        input_crs: the coordinate system of the change data
+        project_card_crs: the coordinate system of the project card. Defaults to 4326 WGS84
     """
 
     DEFAULT_PROJECT_NAME = "USER TO define"
@@ -61,6 +63,7 @@ class Project(object):
         # "assign_group",
         "centroidconnect",
     ]
+
     CALCULATED_VALUES = [
         "area_type",
         "county",
@@ -78,6 +81,8 @@ class Project(object):
         project_name: Optional[str] = "",
         evaluate: Optional[bool] = False,
         parameters: Union[dict, Parameters] = {},
+        input_crs: Optional[int] = None,
+        project_card_crs: Optional[int] =4326, # WGS84
     ):
         """
         ProjectCard constructor.
@@ -90,8 +95,11 @@ class Project(object):
             build_transit_network: CubeTransit instance for build transit network
             project_name: name of the project
             evaluate: defaults to false, but if true, will create card data
-            parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
-
+            parameters: dictionary of parameter settings (see Parameters class) or an instance 
+                of Parameters. If not specified, will use default parameters.
+            input_crs: input coordinate system EPSG code. If not specified, will use model_espg 
+                in parameters.
+            project_card_crs: output coordinate system EPSG code. Defaults to 4326 WGS84.
         returns: instance of ProjectCard
         """
         self.card_data = Dict[str, Dict[str, Any]]
@@ -116,6 +124,8 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
+        self.input_crs = input_crs if input_crs else self.parameters.output_epsg
+ 
         if base_roadway_network != None:
             self.determine_roadway_network_changes_compatibility(
                 self.base_roadway_network, self.roadway_changes, self.parameters
@@ -152,6 +162,8 @@ class Project(object):
         project_name: Optional[str] = None,
         recalculate_calculated_variables: Optional[bool] = False,
         recalculate_distance: Optional[bool] = False,
+        input_crs: Optional[int] = None,
+        project_card_crs: Optional[int] =4326, # WGS84,
         parameters: Optional[dict] = {},
     ):
         """
@@ -171,9 +183,16 @@ class Project(object):
             base_roadway_network: Base roadway network object.
             base_transit_network: Base transit network object.
             build_transit_network: Build transit network object.
-            project_name:  If not provided, will default to the roadway_log_file filename if provided (or the first filename if a list is provided)
-            recalculate_calculated_variables: if reading in a base network, if this is true it will recalculate variables such as area type, etc. This only needs to be true if you are creating project cards that are changing the calculated variables.
-            recalculate_distance:  recalculate the distance variable. This only needs to be true if you are creating project cards that change the distance.
+            project_name:  If not provided, will default to the roadway_log_file filename if 
+                provided (or the first filename if a list is provided)
+            recalculate_calculated_variables: if reading in a base network, if this is true it 
+                will recalculate variables such as area type, etc. This only needs to be true if 
+                you are creating project cards that are changing the calculated variables.
+            recalculate_distance:  recalculate the distance variable. This only needs to be true 
+                if you are creating project cards that change the distance.
+            input_crs: input coordinate system EPSG code. If not specified, will use model_espg 
+                in parameters.
+            project_card_crs: output coordinate system EPSG code. Defaults to 4326 WGS84.
             parameters: dictionary of parameters
         Returns:
             A Project instance.
@@ -184,7 +203,9 @@ class Project(object):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_transit_source:
-            base_transit_network = CubeTransit.create_from_cube(base_transit_source, parameters)
+            base_transit_network = CubeTransit.create_from_cube(
+                base_transit_source, parameters
+            )
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
             )
@@ -207,7 +228,9 @@ class Project(object):
             raise ValueError(msg)
         if build_transit_source:
             WranglerLogger.debug("build")
-            build_transit_network = CubeTransit.create_from_cube(build_transit_source, parameters)
+            build_transit_network = CubeTransit.create_from_cube(
+                build_transit_source, parameters
+            )
             WranglerLogger.debug(
                 "Build network has {} lines".format(len(build_transit_network.lines))
             )
@@ -250,8 +273,12 @@ class Project(object):
             raise ValueError(msg)
         if roadway_log_file and not project_name:
             if type(roadway_log_file) == list:
-                project_name = os.path.splitext(os.path.basename(roadway_log_file[0]))[0]
-                WranglerLogger.info("No Project Name - Using name of first log file in list")
+                project_name = os.path.splitext(os.path.basename(roadway_log_file[0]))[
+                    0
+                ]
+                WranglerLogger.info(
+                    "No Project Name - Using name of first log file in list"
+                )
             else:
                 project_name = os.path.splitext(os.path.basename(roadway_log_file))[0]
                 WranglerLogger.info("No Project Name - Using name of log file")
@@ -328,26 +355,38 @@ class Project(object):
             with open(file) as f:
                 _content = f.readlines()
 
-                _node_lines = [x.strip().replace(";",",") for x in _content if x.startswith("N")]
+                _node_lines = [
+                    x.strip().replace(";", ",") for x in _content if x.startswith("N")
+                ]
                 WranglerLogger.debug("node lines: {}".format(_node_lines))
-                _link_lines = [x.strip().replace(";",",") for x in _content if x.startswith("L")]
+                _link_lines = [
+                    x.strip().replace(";", ",") for x in _content if x.startswith("L")
+                ]
                 WranglerLogger.debug("link lines: {}".format(_link_lines))
 
-                _nodecol = ["OBJECT", "OPERATION", "GROUP"] + _node_lines[0].split(",")[1:]
+                _nodecol = ["OBJECT", "OPERATION", "GROUP"] + _node_lines[0].split(",")[
+                    1:
+                ]
                 WranglerLogger.debug("Node Cols: {}".format(_nodecol))
-                _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[1:]
+                _linkcol = ["OBJECT", "OPERATION", "GROUP"] + _link_lines[0].split(",")[
+                    1:
+                ]
                 WranglerLogger.debug("Link Cols: {}".format(_linkcol))
 
                 def split_log(x):
-                    return list(reader([x], delimiter=',', quotechar='"'))[0]
+                    return list(reader([x], delimiter=",", quotechar='"'))[0]
 
-                _node_df = pd.DataFrame([split_log(x) for x in _node_lines[1:]],columns = _nodecol)
+                _node_df = pd.DataFrame(
+                    [split_log(x) for x in _node_lines[1:]], columns=_nodecol
+                )
                 WranglerLogger.debug("Node DF: {}".format(_node_df))
-                _link_df = pd.DataFrame([split_log(x) for x in _link_lines[1:]],columns = _linkcol)
+                _link_df = pd.DataFrame(
+                    [split_log(x) for x in _link_lines[1:]], columns=_linkcol
+                )
                 WranglerLogger.debug("Link DF: {}".format(_link_df))
 
-                node_df = pd.concat([node_df,_node_df])
-                link_df = pd.concat([link_df,_link_df])
+                node_df = pd.concat([node_df, _node_df])
+                link_df = pd.concat([link_df, _link_df])
 
         log_df = pd.concat([link_df, node_df], ignore_index=True, sort=False)
 
@@ -391,17 +430,23 @@ class Project(object):
         link_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
         ].copy()
-        link_changes_df['A_B'] = link_changes_df['A'].astype(str) + '_' + link_changes_df['B'].astype(str)
+        link_changes_df["A_B"] = (
+            link_changes_df["A"].astype(str) + "_" + link_changes_df["B"].astype(str)
+        )
 
         link_additions_df = roadway_changes[
             (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "A")
         ].copy()
 
         if len(link_additions_df) > 0:
-            link_additions_df['A_B'] = link_additions_df['A'].astype(str) + '_' + link_additions_df['B'].astype(str)
+            link_additions_df["A_B"] = (
+                link_additions_df["A"].astype(str)
+                + "_"
+                + link_additions_df["B"].astype(str)
+            )
 
             link_changes_df = link_changes_df[
-                ~(link_changes_df['A_B'].isin(link_additions_df['A_B'].tolist()))
+                ~(link_changes_df["A_B"].isin(link_additions_df["A_B"].tolist()))
             ].copy()
 
         link_merge_df = pd.merge(
@@ -424,14 +469,18 @@ class Project(object):
         node_changes_df = roadway_changes[
             (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
         ].copy()
-        
+
         node_additions_df = roadway_changes[
             (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "A")
         ].copy()
 
         if len(node_additions_df) > 0:
             node_changes_df = node_changes_df[
-                ~(node_changes_df['model_node_id'].isin(node_additions_df['model_node_id'].tolist()))
+                ~(
+                    node_changes_df["model_node_id"].isin(
+                        node_additions_df["model_node_id"].tolist()
+                    )
+                )
             ]
 
         node_merge_df = pd.merge(
@@ -482,6 +531,7 @@ class Project(object):
 
         return transit_change_list
 
+    
     def add_highway_changes(self, limit_variables_to_existing_network=False):
         """
         Evaluates changes from the log file based on the base highway object and
@@ -500,6 +550,12 @@ class Project(object):
             self.roadway_changes.OBJECT == "N"
         ].copy()
 
+        node_changes_df = update_crs_nodes_df(
+            node_changes_df,
+            to_crs =self.project_card_crs,
+            from_crs =  self.input_crs,
+        )
+       
         link_changes_df = self.roadway_changes[
             self.roadway_changes.OBJECT == "L"
         ].copy()
@@ -522,9 +578,7 @@ class Project(object):
                     return "C"
 
         def _process_deletions(link_changes_df):
-            """
-
-            """
+            """ """
             WranglerLogger.debug("Processing link deletions")
 
             cube_delete_df = link_changes_df[link_changes_df.OPERATION_final == "D"]
@@ -544,9 +598,7 @@ class Project(object):
         def _process_link_additions(
             link_changes_df, limit_variables_to_existing_network
         ):
-            """
-
-            """
+            """ """
             WranglerLogger.debug("Processing link additions")
             cube_add_df = link_changes_df[link_changes_df.OPERATION_final == "A"]
             if len(cube_add_df) == 0:
@@ -561,8 +613,7 @@ class Project(object):
                 ]
             else:
                 add_col = [
-                    c
-                    for c in cube_add_df.columns if c not in ["OPERATION_final"]
+                    c for c in cube_add_df.columns if c not in ["OPERATION_final"]
                 ]
                 # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
@@ -574,9 +625,7 @@ class Project(object):
             return {"category": "Add New Roadway", "links": add_link_properties}
 
         def _process_node_additions(node_add_df):
-            """
-
-            """
+            """ """
             WranglerLogger.debug("Processing node additions")
 
             if len(node_add_df) == 0:
@@ -591,9 +640,7 @@ class Project(object):
             return add_nodes_dict_list
 
         def _process_single_link_change(change_row, changeable_col):
-            """
-
-            """
+            """ """
 
             #  1. Find associated base year network values
             base_df = self.base_roadway_network.links_df[
@@ -623,7 +670,7 @@ class Project(object):
             for col in changeable_col:
                 WranglerLogger.debug("Assessing Column: {}".format(col))
                 # if it is the same as before, or a static value, don't process as a change
-                if str(change_row[col]).strip('"\'') == str(base_row[col]).strip('"\''):
+                if str(change_row[col]).strip("\"'") == str(base_row[col]).strip("\"'"):
                     continue
                 if (col == "roadway_class") & (change_row[col] == 0):
                     continue
@@ -698,7 +745,9 @@ class Project(object):
                         if processed_p["property"] == p_base_name:
                             if processed_p["set"] != change_row[c]:
                                 msg = "Detected different changes for split-property variables on regular roadway links: "
-                                msg += "conflicting \"{}\" values \"{}\", \"{}\"".format(p_base_name, processed_p["set"], change_row[c])
+                                msg += 'conflicting "{}" values "{}", "{}"'.format(
+                                    p_base_name, processed_p["set"], change_row[c]
+                                )
                                 WranglerLogger.error(msg)
                                 raise ValueError(msg)
                 elif p_time_period:
@@ -727,9 +776,7 @@ class Project(object):
             return card_df
 
         def _process_link_changes(link_changes_df, changeable_col):
-            """
-
-            """
+            """ """
             cube_change_df = link_changes_df[link_changes_df.OPERATION_final == "C"]
             if not cube_change_df.shape[0]:
                 WranglerLogger.info("No link changes processed")
@@ -845,7 +892,9 @@ class Project(object):
                     )
                 )
 
-            change_link_dict_list = _process_link_changes(link_changes_df, changeable_col)
+            change_link_dict_list = _process_link_changes(
+                link_changes_df, changeable_col
+            )
 
         if len(node_changes_df) != 0:
             node_changes_df = _consolidate_actions(
@@ -865,7 +914,10 @@ class Project(object):
             if add_link_dict:
                 add_link_dict["nodes"] = _process_node_additions(node_add_df)
             else:
-                add_link_dict = {"category": "Add New Roadway", "nodes": _process_node_additions(node_add_df)}
+                add_link_dict = {
+                    "category": "Add New Roadway",
+                    "nodes": _process_node_additions(node_add_df),
+                }
 
         else:
             None

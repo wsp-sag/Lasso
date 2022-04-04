@@ -13,12 +13,22 @@ import numpy as np
 from network_wrangler import RoadwayNetwork
 from .parameters import Parameters
 from .logger import WranglerLogger
+from .util import  update_crs_nodes_df
+
 
 class ModelRoadwayNetwork(RoadwayNetwork):
     """
+    A representation of the physical roadway network and its properties which is sufficient for
+    travel modeling.
+
     Subclass of network_wrangler class :ref:`RoadwayNetwork <network_wrangler:RoadwayNetwork>`
 
-    A representation of the physical roadway network and its properties.
+    Contains additional information above the network_wrangler class, including:
+    - MetCouncil-specific attribute coding, such as summarizing properties by time period and
+        auto user category (i.e. sov, hov2, etc.)
+    - Attributes calculated from the network or added data in `metcouncil_data` folder
+    - Splitting of managed lanes to separate links in order to facilitate network modeling in Cube
+
     """
 
     CALCULATED_VALUES = [
@@ -42,7 +52,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             links: dataframe of links
             shapes: geodataframe of shapes
             parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
-
         """
         super().__init__(nodes, links, shapes)
 
@@ -394,7 +403,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             raise ValueError(msg)
 
         downtown_area_type_shape = (
-            downtown_area_type_shape if downtown_area_type_shape else self.parameters.downtown_area_type_shape
+            downtown_area_type_shape
+            if downtown_area_type_shape
+            else self.parameters.downtown_area_type_shape
         )
 
         if not downtown_area_type_shape:
@@ -402,7 +413,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if not os.path.exists(downtown_area_type_shape):
-            msg = "File not found for downtown area type shape: {}".format(downtown_area_type_shape)
+            msg = "File not found for downtown area type shape: {}".format(
+                downtown_area_type_shape
+            )
             WranglerLogger.error(msg)
             raise ValueError(msg)
 
@@ -446,15 +459,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             centroids_gdf, downtown_gdf, how="left", op="intersects"
         )
 
-        d_joined_gdf['downtown_area_type'] = (
-            d_joined_gdf['Id']
-            .fillna(-99)
-            .astype(int)
+        d_joined_gdf["downtown_area_type"] = d_joined_gdf["Id"].fillna(-99).astype(int)
+
+        joined_gdf.loc[
+            d_joined_gdf["downtown_area_type"] == 0, area_type_shape_variable
+        ] = downtown_area_type
+
+        WranglerLogger.debug(
+            "Downtown Area Type used boundary file: {}".format(downtown_area_type_shape)
         )
-
-        joined_gdf.loc[d_joined_gdf['downtown_area_type'] == 0, area_type_shape_variable] = downtown_area_type
-
-        WranglerLogger.debug("Downtown Area Type used boundary file: {}".format(downtown_area_type_shape))
 
         self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
 
@@ -578,7 +591,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # there are aadt = 0 in the counts, drop them
         var_shst_df = var_shst_df[var_shst_df[shst_csv_variable] > 0].copy()
         # count station to shared street match - there are many-to-one matches, keep just one match
-        var_shst_df.drop_duplicates(subset = ["shstReferenceId"], inplace = True)
+        var_shst_df.drop_duplicates(subset=["shstReferenceId"], inplace=True)
 
         if "shstReferenceId" not in var_shst_df.columns:
             msg = "'shstReferenceId' required but not found in {}".format(var_shst_data)
@@ -615,25 +628,26 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         # MN and WI counts are vehicles using the segment in both directions, no directional counts
         # we will make sure both direction has the same daily AADT
         dir_link_count_df = self.links_df[
-            (self.links_df[network_variable] > 0) &
-            (self.links_df["drive_access"] == 1)
+            (self.links_df[network_variable] > 0) & (self.links_df["drive_access"] == 1)
         ][["A", "B", network_variable]].copy()
-        reverse_dir_link_count_df = dir_link_count_df.rename(columns = {"A":"B", "B":"A"}).copy()
+        reverse_dir_link_count_df = dir_link_count_df.rename(
+            columns={"A": "B", "B": "A"}
+        ).copy()
 
         link_count_df = pd.concat(
             [dir_link_count_df, reverse_dir_link_count_df],
-            sort = False,
-            ignore_index = True
+            sort=False,
+            ignore_index=True,
         )
-        link_count_df.drop_duplicates(subset = ["A", "B"], inplace = True)
+        link_count_df.drop_duplicates(subset=["A", "B"], inplace=True)
 
         self.links_df = pd.merge(
-            self.links_df.drop(network_variable, axis = 1),
+            self.links_df.drop(network_variable, axis=1),
             link_count_df[["A", "B", network_variable]],
-            how = "left",
-            on = ["A", "B"]
+            how="left",
+            on=["A", "B"],
         )
-        self.links_df[network_variable].fillna(0, inplace = True)
+        self.links_df[network_variable].fillna(0, inplace=True)
         WranglerLogger.info(
             "Added variable: {} using Shared Streets Reference".format(network_variable)
         )
@@ -856,7 +870,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         return join_refId_df[links_df.columns.tolist() + [field_name, "source_link_id"]]
 
     def calculate_hov(
-        self, network_variable="HOV", as_integer=True, overwrite=False,
+        self,
+        network_variable="HOV",
+        as_integer=True,
+        overwrite=False,
     ):
         """
         Calculates hov variable.
@@ -918,7 +935,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_ML_variable(
-        self, network_variable="ML_lanes", overwrite=False,
+        self,
+        network_variable="ML_lanes",
+        overwrite=False,
     ):
         """
         Created ML lanes placeholder for project to write out ML changes
@@ -956,7 +975,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_hov_corridor_variable(
-        self, network_variable="segment_id", overwrite=False,
+        self,
+        network_variable="segment_id",
+        overwrite=False,
     ):
         """
         Created hov corridor placeholder for project to write out corridor changes
@@ -995,7 +1016,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
     def create_managed_variable(
-        self, network_variable="managed", overwrite=False,
+        self,
+        network_variable="managed",
+        overwrite=False,
     ):
         """
         Created placeholder for project to write out managed
@@ -1067,7 +1090,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         Verify inputs
         """
 
-        if ("centroidconnect" not in self.links_df) & ("taz" not in self.links_df.roadway.unique()):
+        if ("centroidconnect" not in self.links_df) & (
+            "taz" not in self.links_df.roadway.unique()
+        ):
             if centroidconnect_only:
                 msg = "No variable specified for centroid connector, calculating centroidconnect first"
                 WranglerLogger.error(msg)
@@ -1114,7 +1139,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         for c in list(set(self.links_df.columns) & set(int_col_names)):
             self.links_df[c] = self.links_df[c].replace(np.nan, 0)
             # REPLACE BLANKS WITH ZERO FOR INTEGER COLUMNS
-            self.links_df[c] = self.links_df[c].replace('', 0)
+            self.links_df[c] = self.links_df[c].replace("", 0)
             try:
                 self.links_df[c] = self.links_df[c].astype(int)
             except ValueError:
@@ -1154,32 +1179,43 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             else:
                 self.nodes_df[x].fillna("", inplace=True)
 
-    def roadway_standard_to_met_council_network(self, output_epsg=None):
+    def roadway_standard_to_met_council_network(self, model_epsg: int = None):
         """
-        Rename and format roadway attributes to be consistent with what metcouncil's model is expecting.
+        Create model links and nodes from wrangler standard network.
+            (1) Split links into two parallel components, connected by auxiliary links when 
+                managed lanes present.
+            (2) Calculate met-council specific attributes.
+            (3) Rename and format roadway attributes to be consistent with what metcouncil's model 
+        is expecting: for example, create Lanes_AM from what we know about lanes all day.
+            (2) Convert geometry to use shapes_df when available and model's coordinate system.
+            
 
         Args:
-            output_epsg (int): epsg number of output network.
+            model_epsg (int): epsg number (coordinate reference system) of model network. If not
+                specified, uses what is specified in parameters.
 
         Returns:
             None
         """
 
         WranglerLogger.info(
-            "Renaming roadway attributes to be consistent with what metcouncil's model is expecting"
+            "Creating model roadway attributes which are consistent with what metcouncil's model is expecting"
         )
 
         """
         Verify inputs
         """
 
-        output_epsg = output_epsg if output_epsg else self.parameters.output_epsg
+        model_epsg = model_epsg if model_epsg else self.parameters.output_epsg
 
         """
         Start actual process
         """
+
+        WranglerLogger.info"Detecting if managed lanes present and splitting if there.")
+
         if "managed" in self.links_df.columns:
-            WranglerLogger.info("Creating managed lane network.")
+            WranglerLogger.debug("Creating managed lane network.")
             self.create_managed_lane_network(in_place=True)
 
             # when ML and assign_group projects are applied together, assign_group is filled as "" by wrangler for ML links
@@ -1187,8 +1223,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 if c in self.links_df.columns and c in self.parameters.int_col:
                     self.links_df[c] = self.links_df[c].replace("", 0)
         else:
-            WranglerLogger.info("Didn't detect managed lanes in network.")
+            WranglerLogger.debug("Didn't detect managed lanes in network.")
 
+        WranglerLogger.info("Creating calculated variables.")
         self.create_calculated_variables()
         self.calculate_distance(overwrite=True)
 
@@ -1201,26 +1238,33 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_metcouncil_df = self.links_df.copy()
         self.nodes_metcouncil_df = self.nodes_df.copy()
 
+        WranglerLogger.info("Updating geometry to use shapes.")
         self.links_metcouncil_df = pd.merge(
-            self.links_metcouncil_df.drop("geometry", axis = 1),  # drop the stick geometry in links_df
+            self.links_metcouncil_df.drop(
+                "geometry", axis=1
+            ),  # drop the stick geometry in links_df
             self.shapes_df[["shape_id", "geometry"]],
-            how = "left",
-            on = "shape_id"
+            how="left",
+            on="shape_id",
         )
 
-        self.links_metcouncil_df.crs = "EPSG:4326"
-        self.nodes_metcouncil_df.crs = "EPSG:4326"
-        WranglerLogger.info("Setting Coordinate Reference System to EPSG 26915")
-        self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=26915)
-        self.nodes_metcouncil_df = self.nodes_metcouncil_df.to_crs(epsg=26915)
-
-        self.nodes_metcouncil_df["X"] = self.nodes_metcouncil_df.geometry.apply(
-            lambda g: g.x
+        self.links_metcouncil_df.crs = self.links_df.crs # should be "EPSG:4326"
+        self.nodes_metcouncil_df.crs = self.nodes_df.crs # should be "EPSG:4326"
+        
+        WranglerLogger.info(
+            f"""Reprojecting model coordinate reference system.
+                  From: {self.links_df.crs},{self.nodes_df.crs}
+                  To:   {model_epsg}"""
         )
-        self.nodes_metcouncil_df["Y"] = self.nodes_metcouncil_df.geometry.apply(
-            lambda g: g.y
+        self.nodes_metcouncil_df = update_crs_nodes_df(
+            self.nodes_metcouncil_df,
+            to_crs = model_epsg,
+            keep_gdf = True,
         )
 
+        self.links_metcouncil_df = self.links_metcouncil_df.to_crs(epsg=model_epsg)
+
+        WranglerLogger.info("Renaming Node columns.")
         # CUBE expect node id to be N
         self.nodes_metcouncil_df.rename(columns={"model_node_id": "N"}, inplace=True)
 
@@ -1403,7 +1447,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             self.links_metcouncil_df, output_variables=dbf_link_output_variables
         )
 
-        links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry = links_dbf_df["geometry"])
+        links_dbf_df = gpd.GeoDataFrame(links_dbf_df, geometry=links_dbf_df["geometry"])
 
         if export_drive_only == True:
             nodes_dbf_df = nodes_dbf_df[nodes_dbf_df.drive_node == 1].copy()
@@ -1454,8 +1498,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         fw_df = df.drop("geometry", axis=1).copy()
         for c in fw_df.columns:
             fw_df[c] = fw_df[c].apply(lambda x: str(x))
-            fw_df['pad'] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
-            fw_df[c] = fw_df.apply(lambda x: x['pad'] + x[c], axis=1)
+            fw_df["pad"] = fw_df[c].apply(lambda x: " " * (max_width_dict[c] - len(x)))
+            fw_df[c] = fw_df.apply(lambda x: x["pad"] + x[c], axis=1)
 
         return fw_df, max_width_dict
 
@@ -1644,7 +1688,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         s = s[:-1]
         s += "\n"
         s += 'FILEO NETO = "complete_network.net" \n\n'
-        s += 'ZONES = {} \n\n'.format(self.parameters.zones)
+        s += "ZONES = {} \n\n".format(self.parameters.zones)
         s += "ROADWAY = LTRIM(TRIM(ROADWAY)) \n"
         s += "NAME = LTRIM(TRIM(NAME)) \n"
         s += "\n \nENDRUN"

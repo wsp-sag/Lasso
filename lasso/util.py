@@ -1,3 +1,5 @@
+import pandas as pd
+
 def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
     """
     Calculated per:
@@ -84,3 +86,39 @@ def column_name_to_parts(c, parameters=None):
         WranglerLogger.error(msg)
 
     return base_name, time_period, category, managed
+
+def update_crs_nodes_df(
+    nodes_df: pd.DataFrame,
+    to_crs:int,
+    from_crs:int=None,
+    keep_gdf: bool = False,
+    )->pd.DataFrame:
+    """
+    Changes the CRS with a dataframe with X and Y columns.
+    """
+    import geopandas as gpd
+
+    if not type(nodes_df) == gpd.GeoDataFrame:
+        if not from_crs:
+            raise ValueError("Must provide a from_crs if not inputing a GeoDataFrame")
+
+        nodes_gdf = gpd.GeoDataFrame(
+            nodes_df,
+            geometry=gpd.points_from_xy(nodes_df.X, nodes_df.Y),
+            crs=from_crs,
+        )
+
+    nodes_gdf= nodes_gdf.to_crs(epsg=to_crs)
+
+    nodes_gdf["X"] = nodes_gdf.geometry.apply(
+        lambda g: g.x
+    )
+
+    nodes_gdf["Y"] = nodes_gdf.geometry.apply(
+        lambda g: g.y
+    )
+
+    if keep_gdf:
+        return nodes_gdf
+    else:
+        return pd.DataFrame(nodes_gdf.drop(columns=["geometry"]))

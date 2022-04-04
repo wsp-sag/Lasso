@@ -100,6 +100,7 @@ def test_calculate_area_type(request):
     print(net.links_df.area_type.value_counts())
     ## todo write an assert that actually tests something
 
+
 @pytest.mark.roadway
 @pytest.mark.travis
 def test_calculate_assign_group_rdclass(request):
@@ -127,6 +128,7 @@ def test_calculate_assign_group_rdclass(request):
     print("Roadway Class  Frequency for drive links")
     print(net.links_df[net.links_df.drive_access == 1].roadway_class.value_counts())
     ## todo write an assert that actually tests something
+
 
 @pytest.mark.roadway
 @pytest.mark.travis
