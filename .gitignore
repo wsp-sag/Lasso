@@ -17,6 +17,7 @@ scratch/*
 *.bak
 .cache
 .hubstorinfo
+*/__pycache__/*
 
 #Docs
 docs/_generated/*

@@ -66,6 +66,7 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
+
 @pytest.mark.elo
 @pytest.mark.travis
 @pytest.mark.parametrize("logfilename", [logfile_list[0]])
@@ -137,7 +138,10 @@ def test_shp_changes(request):
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_shapefile_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_shapefile_roadway_change" + ".yml",
+        )
     )
 
 
@@ -158,7 +162,10 @@ def test_csv_changes(request):
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_csv_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_csv_roadway_change" + ".yml",
+        )
     )
 
 
