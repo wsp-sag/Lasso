@@ -1,3 +1,5 @@
+from typing import Union
+import geopandas as gpd
 import pandas as pd
 
 def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
@@ -88,17 +90,32 @@ def column_name_to_parts(c, parameters=None):
     return base_name, time_period, category, managed
 
 def update_crs_nodes_df(
-    nodes_df: pd.DataFrame,
+    nodes_df: Union[pd.DataFrame,gpd.GeoDataFrame],
     to_crs:int,
     from_crs:int=None,
     keep_gdf: bool = False,
-    )->pd.DataFrame:
-    """
-    Changes the CRS with a dataframe with X and Y columns.
-    """
-    import geopandas as gpd
+    )->Union[pd.DataFrame,gpd.GeoDataFrame]:
+    """Changes the CRS with a dataframe with X and Y columns.
 
-    if not type(nodes_df) == gpd.GeoDataFrame:
+    Args:
+        nodes_df (pd.DataFrame): Dataframe (of geodataframe) with X and Y columns which 
+            need to be updated.
+        to_crs (int): _description_
+        from_crs (int, optional): _description_. Defaults to None.
+        keep_gdf (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        pd.DataFrame: _description_
+        gpd.GeoDataFrame: _description_
+    """   
+    if type(nodes_df) == gpd.GeoDataFrame:
+        if not nodes_df.crs and not from_crs:
+            raise ValueError("Must provide from_crs becuase GeoDataFrame doesn't have a CRS specified.")
+        nodes_gdf = nodes_df
+    else:
         if not from_crs:
             raise ValueError("Must provide a from_crs if not inputing a GeoDataFrame")
 
@@ -109,7 +126,7 @@ def update_crs_nodes_df(
         )
 
     nodes_gdf= nodes_gdf.to_crs(epsg=to_crs)
-
+    
     nodes_gdf["X"] = nodes_gdf.geometry.apply(
         lambda g: g.x
     )
@@ -117,7 +134,7 @@ def update_crs_nodes_df(
     nodes_gdf["Y"] = nodes_gdf.geometry.apply(
         lambda g: g.y
     )
-
+    
     if keep_gdf:
         return nodes_gdf
     else:
