@@ -1,0 +1,1193 @@
+{
+    "command_history": [
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "752-1206"
+                ],
+                "attribute_name": "@lanes_ea",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "752-1206"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "752-1206": "LINESTRING(4882240.99647 3668143.664053, 4882313.240525 3668135.300387, 4882471.577908 3668118.572603, 4882646.626808 3668108.853756, 4882919.620384 3668097.758347, 4883061.249502 3668095.565507)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "752-1206"
+                ],
+                "attribute_name": "@lanes_am",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "752-1206"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "752-1206": "LINESTRING(4882240.99647 3668143.664053, 4882313.240525 3668135.300387, 4882471.577908 3668118.572603, 4882646.626808 3668108.853756, 4882919.620384 3668097.758347, 4883061.249502 3668095.565507)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "752-1206"
+                ],
+                "attribute_name": "@lanes_md",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "752-1206"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "752-1206": "LINESTRING(4882240.99647 3668143.664053, 4882313.240525 3668135.300387, 4882471.577908 3668118.572603, 4882646.626808 3668108.853756, 4882919.620384 3668097.758347, 4883061.249502 3668095.565507)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "752-1206"
+                ],
+                "attribute_name": "@lanes_pm",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "752-1206"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "752-1206": "LINESTRING(4882240.99647 3668143.664053, 4882313.240525 3668135.300387, 4882471.577908 3668118.572603, 4882646.626808 3668108.853756, 4882919.620384 3668097.758347, 4883061.249502 3668095.565507)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "752-1206"
+                ],
+                "attribute_name": "@lanes_ev",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "752-1206"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "752-1206": "LINESTRING(4882240.99647 3668143.664053, 4882313.240525 3668135.300387, 4882471.577908 3668118.572603, 4882646.626808 3668108.853756, 4882919.620384 3668097.758347, 4883061.249502 3668095.565507)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "delete_link",
+            "parameters": {
+                "include_reverse": false,
+                "link_id": "1206-752"
+            },
+            "results": {
+                "changes": {
+                    "removed": {
+                        "LINK": [
+                            "1206-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-752": "LINESTRING(4883061.249502 3668095.565507, 4882919.620384 3668097.758347, 4882646.626808 3668108.853756, 4882471.577908 3668118.572603, 4882313.240525 3668135.300387, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "create_node",
+            "parameters": {
+                "node_id": 1890,
+                "is_centroid": false,
+                "attributes": {
+                    "@rail_node": 0.0,
+                    "@farezone": 0.0,
+                    "@walk_node": 0.0,
+                    "@tap_id": 0.0,
+                    "@stop_tap_id": 0.0,
+                    "@drive_node": 0.0,
+                    "y": 3668189.71890663,
+                    "data2": 0.0,
+                    "data3": 0.0,
+                    "@bike_node": 0.0,
+                    "x": 4882789.12038625,
+                    "@taz_id": 0.0,
+                    "@maz_id": 0.0,
+                    "data1": 0.0,
+                    "#node_type": "",
+                    "#node_county": "",
+                    "#osm_node_id": "",
+                    "label": " ",
+                    "#zone_id": 0,
+                    "#node_id": 0
+                }
+            },
+            "results": {
+                "changes": {
+                    "added": {
+                        "NODE": [
+                            "1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "NODE": {
+                        "1890": "POINT(4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {}
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "NODE",
+                "element_ids": [
+                    "1890"
+                ],
+                "attribute_name": "@bike_node",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "NODE": [
+                            "1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "NODE": {
+                        "1890": "POINT(4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {}
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "NODE",
+                "element_ids": [
+                    "1890"
+                ],
+                "attribute_name": "@drive_node",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "NODE": [
+                            "1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "NODE": {
+                        "1890": "POINT(4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {}
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "NODE",
+                "element_ids": [
+                    "1890"
+                ],
+                "attribute_name": "@walk_node",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "NODE": [
+                            "1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "NODE": {
+                        "1890": "POINT(4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {}
+        },
+        {
+            "command": "create_link",
+            "parameters": {
+                "include_reverse": false,
+                "link_id": "1206-1890",
+                "attributes": {
+                    "@managed": 0.0,
+                    "@rail_link": 0.0,
+                    "length": 0.0287957,
+                    "modes": "c",
+                    "@walk_link": 0.0,
+                    "@bus_only": 0.0,
+                    "@assignable": 0.0,
+                    "@bike_link": 0.0,
+                    "@drive_link": 0.0,
+                    "@ft": 0.0,
+                    "@segment_id": 0.0,
+                    "@tollbooth": 0.0,
+                    "@useclass_am": 0.0,
+                    "@lanes_am": 0.0,
+                    "@tollseg": 0.0,
+                    "@useclass_ea": 0.0,
+                    "@useclass_md": 0.0,
+                    "@useclass_pm": 0.0,
+                    "@useclass_ev": 0.0,
+                    "@lanes_ea": 0.0,
+                    "@lanes_md": 0.0,
+                    "@lanes_ev": 0.0,
+                    "@lanes_pm": 0.0,
+                    "#b_node": 0,
+                    "#link_county": "",
+                    "#cntype": "",
+                    "#shstgeometryid": "",
+                    "#link_id": 0,
+                    "#a_node": 0
+                },
+                "new_turn_attributes": {
+                    "data1": 0.0,
+                    "data2": 0.0,
+                    "data3": 0.0,
+                    "penalty_func": "auto"
+                }
+            },
+            "results": {
+                "changes": {
+                    "added": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "create_link",
+            "parameters": {
+                "include_reverse": false,
+                "link_id": "1890-752",
+                "attributes": {
+                    "@managed": 0.0,
+                    "@rail_link": 0.0,
+                    "length": 0.0550055,
+                    "modes": "c",
+                    "@walk_link": 0.0,
+                    "@bus_only": 0.0,
+                    "@assignable": 0.0,
+                    "@bike_link": 0.0,
+                    "@drive_link": 0.0,
+                    "@ft": 0.0,
+                    "@segment_id": 0.0,
+                    "@tollbooth": 0.0,
+                    "@useclass_am": 0.0,
+                    "@lanes_am": 0.0,
+                    "@tollseg": 0.0,
+                    "@useclass_ea": 0.0,
+                    "@useclass_md": 0.0,
+                    "@useclass_pm": 0.0,
+                    "@useclass_ev": 0.0,
+                    "@lanes_ea": 0.0,
+                    "@lanes_md": 0.0,
+                    "@lanes_ev": 0.0,
+                    "@lanes_pm": 0.0,
+                    "#b_node": 0,
+                    "#link_county": "",
+                    "#cntype": "",
+                    "#shstgeometryid": "",
+                    "#link_id": 0,
+                    "#a_node": 0
+                },
+                "new_turn_attributes": {
+                    "data1": 0.0,
+                    "data2": 0.0,
+                    "data3": 0.0,
+                    "penalty_func": "auto"
+                }
+            },
+            "results": {
+                "changes": {
+                    "added": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@assignable",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@bike_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@drive_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@walk_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@ft",
+                "value": 6.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@lanes_ea",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@lanes_am",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@lanes_md",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@lanes_pm",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "@lanes_ev",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "#cntype",
+                "value": "TANA"
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1206-1890"
+                ],
+                "attribute_name": "#link_county",
+                "value": "Alameda"
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1206-1890"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1206-1890": "LINESTRING(4883061.249502 3668095.565507, 4882789.120386 3668189.718907)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1206": "POINT(4883061.249502 3668095.565507)",
+                    "1890": "POINT(4882789.120386 3668189.718907)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@assignable",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@bike_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@drive_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@walk_link",
+                "value": 1.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@ft",
+                "value": 6.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@lanes_ea",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@lanes_md",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@lanes_am",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@lanes_pm",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "@lanes_ev",
+                "value": 2.0
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "#cntype",
+                "value": "TANA"
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        },
+        {
+            "command": "set_attribute",
+            "parameters": {
+                "element_type": "LINK",
+                "element_ids": [
+                    "1890-752"
+                ],
+                "attribute_name": "#link_county",
+                "value": "Alameda"
+            },
+            "results": {
+                "changes": {
+                    "modified": {
+                        "LINK": [
+                            "1890-752"
+                        ]
+                    }
+                },
+                "geometries": {
+                    "LINK": {
+                        "1890-752": "LINESTRING(4882789.120386 3668189.718907, 4882240.99647 3668143.664053)"
+                    }
+                }
+            },
+            "extra_geometries": {
+                "NODE": {
+                    "1890": "POINT(4882789.120386 3668189.718907)",
+                    "752": "POINT(4882240.99647 3668143.664053)"
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "author_initials": "inro",
+        "comments": "demo emme simple roadway changes",
+        "date": "2021-11-17",
+        "emmebank_path": "Z:/Data/Users/Sijia/MTC/github/Lasso/tests/scratch/emme_drive_network/database/emmebank",
+        "project_title": "emme_drive_network",
+        "projection": "",
+        "scenario_number": "1",
+        "scenario_title": "",
+        "time": "10:38:02"
+    },
+    "type": "NETWORK_BUILD",
+    "version": "F8A1BCA0-D0A1-49a1-9A43-6769D2312D7D 07B0F5AD-A2A7-4B4E-B4A9-06EB441586D6 1 0 0"
+}

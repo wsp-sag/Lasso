@@ -18,6 +18,18 @@ STPAUL_SHAPE_FILE = os.path.join(STPAUL_DIR, "shape.geojson")
 STPAUL_LINK_FILE = os.path.join(STPAUL_DIR, "link.json")
 STPAUL_NODE_FILE = os.path.join(STPAUL_DIR, "node.geojson")
 
+
+def _read_stpaul_net():
+    net = RoadwayNetwork.read(
+        link_filename=STPAUL_LINK_FILE,
+        node_filename=STPAUL_NODE_FILE,
+        shape_filename=STPAUL_SHAPE_FILE,
+        fast=True,
+        shape_foreign_key="shape_id",
+    )
+    return net
+
+
 @pytest.mark.metcouncil
 @pytest.mark.travis
 def test_calculate_lanes(request):
@@ -26,16 +38,11 @@ def test_calculate_lanes(request):
     """
     print("\n--Starting:", request.node.name)
 
-    net = ModelRoadwayNetwork.read(
-        link_file=STPAUL_LINK_FILE,
-        node_file=STPAUL_NODE_FILE,
-        shape_file=STPAUL_SHAPE_FILE,
-        fast=True,
-    )
+    net = _read_stpaul_net()
     params = Parameters()
 
     if "lanes" in net.links_df.columns:
-        net.links_df.drop(['lanes'], axis=1)
+        net.links_df.drop(["lanes"], axis=1)
 
     l_net = metcouncil.calculate_number_of_lanes(
         roadway_net=net,
@@ -55,12 +62,7 @@ def test_assign_group_roadway_class(request):
     """
     print("\n--Starting:", request.node.name)
 
-    net = ModelRoadwayNetwork.read(
-        link_file=STPAUL_LINK_FILE,
-        node_file=STPAUL_NODE_FILE,
-        shape_file=STPAUL_SHAPE_FILE,
-        fast=True,
-    )
+    net = _read_stpaul_net()
     params = Parameters()
 
     l_net = metcouncil.calculate_assign_group_and_roadway_class(
@@ -76,26 +78,3 @@ def test_assign_group_roadway_class(request):
     print(l_net.links_df.roadway_class.value_counts())
     ## todo write an assert that actually tests something
 
-@pytest.mark.metcouncil
-@pytest.mark.travis
-def test_centroidconnect(request):
-    """
-    Tests that centroid connectors are identified
-    """
-    print("\n--Starting:", request.node.name)
-
-    net = ModelRoadwayNetwork.read(
-        link_file=STPAUL_LINK_FILE,
-        node_file=STPAUL_NODE_FILE,
-        shape_file=STPAUL_SHAPE_FILE,
-        fast=True,
-    )
-    params = Parameters()
-
-    l_net = metcouncil.calculate_centroidconnect(
-        roadway_net=net,
-        parameters=params,
-        overwrite=False,
-    )
-    assert "centroidconnect" in l_net.links_df.columns
-    ## todo write an assert that actually tests something

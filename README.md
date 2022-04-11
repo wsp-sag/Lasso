@@ -161,10 +161,11 @@ separates out managed lanes as parallel links.
 from Lasso import ModelRoadwayNetwork
 
 net = ModelRoadwayNetwork.read(
-        link_file=STPAUL_LINK_FILE,
+        link_filename=STPAUL_LINK_FILE,
         node_file=STPAUL_NODE_FILE,
         shape_file=STPAUL_SHAPE_FILE,
         fast=True,
+        shape_foreign_key ='shape_id',
     )
 
 net.write_roadway_as_fixedwidth()

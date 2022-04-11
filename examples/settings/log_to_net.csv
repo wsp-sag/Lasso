@@ -23,6 +23,8 @@ LANES_AM,lanes_AM
 LANES_MD,lanes_MD
 LANES_PM,lanes_PM
 LANES_NT,lanes_NT
+LANES_EA,lanes_EA
+LANES_EV,lanes_EV
 PRICE_SOV_AM,price_sov_AM
 PRICE_HOV2_AM,price_hov2_AM
 PRICE_HOV3_AM,price_hov3_AM
@@ -66,6 +68,13 @@ ML_LANES_AM,ML_lanes_AM
 ML_LANES_MD,ML_lanes_MD
 ML_LANES_PM,ML_lanes_PM
 ML_LANES_NT,ML_lanes_NT
+ML_LANES_EA,ML_lanes_EA
+ML_LANES_EV,ML_lanes_EV
 MANAGED,managed
 BUS_ONLY,bus_only
 RAIL_ONLY,rail_only
+USECLASS_EA,useclass_EA
+USECLASS_AM,useclass_AM
+USECLASS_MD,useclass_MD
+USECLASS_PM,useclass_PM
+USECLASS_EV,useclass_EV

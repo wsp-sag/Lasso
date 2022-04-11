@@ -1,0 +1,69 @@
+VEHTYPE,100%Capacity,85%Capacity,seatcap,vehtype_num
+10 Car BART,1110,943,550,1
+10 Car BART RENOVATED,1120,952,550,2
+5 Car BART,555,471,275,3
+5 Car BART RENOVATED,473,402,275,4
+6 Car Valley Link,640,544,280,5
+7 Car BART,777,660,385,6
+7 Car BART RENOVATED,784,666,385,7
+8 Car BART,888,754,550,8
+8 Car BART RENOVATED,900,765,550,9
+8.5 Car BART,943,801,468,10
+8.5 Car BART RENOVATED,952,809,468,11
+9 Car BART,999,849,495,12
+9 Car BART RENOVATED,1008,856,495,13
+AC Plus Bus,70,59,57,14
+AC Plus Bus TI,70,59,57,15
+AC Standard Bus,63,53,37,16
+Brentwood BRT,40,34,37,17
+Cable Car,63,53,29,18
+Caltrain,1444,1227,681,19
+Caltrain PCBB,1841,1564,681,20
+Caltrain PCBB 7 car,1611,1369,662,21
+Caltrain PCEP,1502,1276,681,22
+Dumbarton GRT,28,23,8,23
+Ferry,400,340,400,24
+Ferry GGT,450,382,450,25
+Ferry Treasure Island,80,68,80,26
+Ferry Vallejo,275,233,275,27
+Ferry small,250,212,250,28
+HSR,450,382,450,29
+Hovercraft_Pilot,30,25,30,30
+LRV1,119,101,60,31
+LRV2,238,202,120,32
+LRV2.5,298,253,150,33
+LRV3,357,303,180,34
+LRV4,476,404,240,35
+Motor Articulated Bus,94,79,56,36
+Motor Articulated Bus ALLDOOR,94,79,56,37
+Motor Articulated Bus ALLDOOR LOWFLOOR,94,79,56,38
+Motor Bus Mix of Standard and Artics,80,68,48,39
+Motor Bus Mix of Standard and Artics ALLDOOR,80,68,48,40
+Motor Bus Mix of Standard and Artics ALLDOOR LOWFLOOR,80,68,48,41
+Motor Bus Mix of Standard and Artics ALL,80,68,48,42
+Motor Small Bus,45,38,25,43
+Motor Small Bus ALLDOOR,45,38,25,44
+Motor Small Bus ALLDOOR LOWFLOOR,45,38,25,45
+Motor Standard Bus,63,53,39,46
+Motor Standard Bus ALLDOOR,63,53,39,47
+Motor Standard Bus ALLDOOR LOWFLOOR,63,53,39,48
+NTRC 7 Car,900,765,667,49
+OAC,89,75,76,50
+SMART 2 car,318,270,158,51
+SamTrans Plus Bus,75,63,57,52
+SamTrans Standard Bus,60,51,40,53
+Streetcar,70,59,30,54
+Trolley Articulated Bus,94,79,56,55
+Trolley Articulated Bus ALLDOOR,94,79,56,56
+Trolley Articulated Bus ALLDOOR LOWFLOOR,94,79,56,57
+Trolley Standard Bus,63,53,39,58
+Trolley Standard Bus ALLDOOR,63,53,39,59
+Trolley Standard Bus ALLDOOR LOWFLOOR,63,53,39,60
+Unknown Train,800,680,800,61
+VTA LRT1,171,145,66,62
+VTA LRT2,342,290,132,63
+VTA LRT3,513,436,198,64
+Van,25,21,18,65
+VanTI,28,23,18,66
+eBart 1 car,200,170,104,67
+eBart 2 car,400,340,208,68

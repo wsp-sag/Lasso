@@ -10,7 +10,8 @@ from .logger import WranglerLogger, setupLogging
 __all__ = [
     "Project",
     "CubeTransit",
-    "StandardTransit" "get_shared_streets_intersection_hash",
+    "StandardTransit",
+    "get_shared_streets_intersection_hash",
     "ModelRodwayNetwork",
     "Parameters",
     "WranglerLogger",

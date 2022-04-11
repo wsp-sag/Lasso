@@ -82,5 +82,8 @@ env/
 
 # large metcouncil data file
 metcouncil_data/mrcc/*.mrcc.out.matched.geojson
+# proprietary mtc data file
+mtc_data/lookups/tomtom_attributes.csv
 .Rproj.user
 scripts/.Rhistory
+

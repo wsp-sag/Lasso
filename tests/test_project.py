@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 import pytest
 from pandas import DataFrame
 
-from lasso import Project, Parameters
+from lasso import Project, Parameters, parameters
 
 """
 Run tests from bash/shell
@@ -18,11 +18,15 @@ ROADWAY_DIR = os.path.join(os.getcwd(), "examples", "stpaul")
 BUILD_TRANSIT_DIR = os.path.join(CUBE_DIR, "single_transit_route_attribute_change")
 SCRATCH_DIR = os.path.join(os.getcwd(), "tests", "scratch")
 
+EMME_DIR = os.path.join(os.getcwd(), "examples", "emme")
+MTC_DIR = os.path.join(os.getcwd(), "examples", "mtc")
+
 ## create list of example logfiles to use as input
 logfile_list = [
     os.path.join(CUBE_DIR, "st_paul_test.log"),
 ]
 
+parameters = Parameters(lasso_base_dir = os.getcwd())
 
 @pytest.mark.parametrize("logfilename", logfile_list)
 @pytest.mark.travis
@@ -52,7 +56,9 @@ def test_highway_project_card(request, logfilename):
     assert type(lf) == DataFrame
 
     test_project = Project.create_project(
-        roadway_log_file=logfilename, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=logfilename, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
 
     assert type(test_project.roadway_changes) == DataFrame
@@ -66,7 +72,7 @@ def test_highway_project_card(request, logfilename):
         )
     )
 
-@pytest.mark.elo
+
 @pytest.mark.travis
 @pytest.mark.parametrize("logfilename", [logfile_list[0]])
 def test_project_card_create_with_parameters_kw(request, logfilename):
@@ -77,6 +83,7 @@ def test_project_card_create_with_parameters_kw(request, logfilename):
         base_roadway_dir=ROADWAY_DIR,
         roadway_log_file=os.path.join(CUBE_DIR, logfilename),
         parameters={"lasso_base_dir": os.getcwd()},
+        shape_foreign_key="shape_id",
     )
 
     test_roadway_project.write_project_card()
@@ -98,7 +105,9 @@ def test_project_card_concatenate(request):
     print("Reading Whole Logfile: {}".format(whole_logfile))
     lf = Project.read_logfile(whole_logfile)
     whole_logfile_project = Project.create_project(
-        roadway_log_file=whole_logfile, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=whole_logfile, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     print(
         "\nWHOLE  Card Dict:\n  {}".format(whole_logfile_project.card_data["changes"])
@@ -107,7 +116,9 @@ def test_project_card_concatenate(request):
     print("Reading Split Logfiles: {}".format(split_logfile_list))
     lf = Project.read_logfile(split_logfile_list)
     split_logfile_project = Project.create_project(
-        roadway_log_file=split_logfile_list, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=split_logfile_list, 
+        base_roadway_dir=ROADWAY_DIR, 
+        shape_foreign_key = 'shape_id',
     )
 
     print(
@@ -131,13 +142,17 @@ def test_shp_changes(request):
     test_project = Project.create_project(
         roadway_shp_file=os.path.join(CUBE_DIR, "example_shapefile_roadway_change.shp"),
         base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_shapefile_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_shapefile_roadway_change" + ".yml",
+        )
     )
 
 
@@ -152,13 +167,17 @@ def test_csv_changes(request):
     test_project = Project.create_project(
         roadway_csv_file=os.path.join(CUBE_DIR, "example_csv_roadway_change.csv"),
         base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
     assert type(test_project.roadway_changes) == DataFrame
     assert type(test_project.card_data) == dict
     print(test_project)
 
     test_project.write_project_card(
-        os.path.join(SCRATCH_DIR, "t_" + "example_csv_roadway_change" + ".yml",)
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "example_csv_roadway_change" + ".yml",
+        )
     )
 
 
@@ -170,7 +189,9 @@ def test_highway_change_project_card_valid(request, logfilename):
     print("Reading: {}".format(logfilename))
     lf = Project.read_logfile(logfilename)
     test_project = Project.create_project(
-        roadway_log_file=logfilename, base_roadway_dir=ROADWAY_DIR
+        roadway_log_file=logfilename, 
+        base_roadway_dir=ROADWAY_DIR,
+        shape_foreign_key="shape_id",
     )
 
     test_project.write_project_card(
@@ -190,3 +211,78 @@ def test_highway_change_project_card_valid(request, logfilename):
     )
 
     assert valid == True
+
+emmefile_list = [
+    os.path.join(EMME_DIR, "2021-11-17_103802.ems")
+]
+@pytest.mark.parametrize("emmefilename", emmefile_list)
+@pytest.mark.emmeroadway
+@pytest.mark.travis
+def test_emme_roadway_changes(request, emmefilename):
+    """
+    Tests that the .ems can be read in as a set changes with which to
+    create a valid project card.
+    """
+    print("/n--Starting:", request.node.name)
+
+    roadway_node_id_correspondence_file = os.path.join(
+        EMME_DIR, 
+        "emme_drive_network_node_id_crosswalk.csv")
+
+    test_project = Project.create_project(
+        network_build_file=emmefilename,
+        emme_node_id_crosswalk_file=roadway_node_id_correspondence_file,
+        base_roadway_dir=MTC_DIR,
+        base_transit_dir=MTC_DIR,
+        parameters=parameters
+    )
+
+    assert type(test_project.roadway_link_changes) == DataFrame
+    assert type(test_project.roadway_node_changes) == DataFrame
+    assert type(test_project.transit_changes) == DataFrame
+    assert type(test_project.card_data) == dict
+
+    test_project.write_project_card(
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "emme_" + os.path.basename(emmefilename) + ".yml",
+        )
+    )
+
+emmefile_list = [
+    os.path.join(EMME_DIR, '2022-02-14_123600.ems'),
+    os.path.join(EMME_DIR, '2022-02-15_115218.ems')
+]
+@pytest.mark.parametrize("emmefilename", emmefile_list)
+@pytest.mark.emmetransit
+@pytest.mark.travis
+def test_emme_transit_changes(request, emmefilename):
+    """
+    Tests that the .ems can be read in as a set changes with which to
+    create a valid project card.
+    """
+    print("/n--Starting:", request.node.name)
+
+    transit_node_id_correspondence_file = os.path.join(
+        EMME_DIR, 
+        "emme_tap_transit_network_node_id_crosswalk.csv")
+
+    test_project = Project.create_project(
+        network_build_file=emmefilename,
+        emme_node_id_crosswalk_file=transit_node_id_correspondence_file,
+        base_roadway_dir=MTC_DIR,
+        base_transit_dir=MTC_DIR,
+        parameters=parameters
+    )
+
+    assert type(test_project.roadway_link_changes) == DataFrame
+    assert type(test_project.roadway_node_changes) == DataFrame
+    assert type(test_project.transit_changes) == DataFrame
+    assert type(test_project.card_data) == dict
+
+    test_project.write_project_card(
+        os.path.join(
+            SCRATCH_DIR,
+            "t_" + "emme_" + os.path.basename(emmefilename) + ".yml",
+        )
+    )

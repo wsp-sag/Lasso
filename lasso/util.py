@@ -1,3 +1,10 @@
+from functools import partial
+import pyproj
+from shapely.ops import transform
+from shapely.geometry import Point, Polygon
+import re
+from unidecode import unidecode
+
 def get_shared_streets_intersection_hash(lat, long, osm_node_id=None):
     """
     Calculated per:
@@ -49,6 +56,45 @@ def secs_to_datetime(secs: int):
     return dt
 
 
+def geodesic_point_buffer(lat, lon, meters):
+    """
+    creates circular buffer polygon for node
+
+    Args:
+        lat: node lat
+        lon: node lon
+        meters: buffer distance, radius of circle
+    Returns:
+        Polygon
+    """
+    proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
+    # Azimuthal equidistant projection
+    aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+    project = partial(
+        pyproj.transform,
+        pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
+        proj_wgs84)
+    buf = Point(0, 0).buffer(meters)  # distance in meters
+    return Polygon(transform(project, buf).exterior.coords[:])
+
+def create_locationreference(node, link):
+    node['X'] = node['geometry'].apply(lambda p: p.x)
+    node['Y'] = node['geometry'].apply(lambda p: p.y)
+    node['point'] = [list(xy) for xy in zip(node.X, node.Y)]
+    node_dict = dict(zip(node.model_node_id, node.point))
+
+    link['A_point'] = link['A'].map(node_dict)
+    link['B_point'] = link['B'].map(node_dict)
+    link['locationReferences'] = link.apply(lambda x: [{'sequence':1,
+                                                        'point': x['A_point'],
+                                                        'distanceToNextRef':x['length'],
+                                                        'bearing' : 0,
+                                                        'intersectionId':x['fromIntersectionId']},
+                                                                         {'sequence':2,
+                                                             'point': x['B_point'],
+                                                             'intersectionId':x['toIntersectionId']}],
+                                                   axis = 1)
+
 def column_name_to_parts(c, parameters=None):
 
     if not parameters:
@@ -84,3 +130,20 @@ def column_name_to_parts(c, parameters=None):
         WranglerLogger.error(msg)
 
     return base_name, time_period, category, managed
+
+def shorten_name(name):
+    if type(name) == str:
+        name_list = name.split(',')
+    else:
+        name_list = name
+    name_list = [re.sub(r'\W+', ' ', c).replace('nan', '').strip(' ') for c in name_list]
+
+    name_list = list(set(name_list))
+    #name_list.remove('')
+
+    name_new = ' '.join(name_list).strip(' ')
+
+    # convert non english character to english
+    name_new = unidecode(name_new)
+
+    return name_new

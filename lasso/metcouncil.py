@@ -8,6 +8,7 @@ from .parameters import Parameters
 from .roadway import ModelRoadwayNetwork
 from .logger import WranglerLogger
 
+
 def calculate_number_of_lanes(
     roadway_net=None,
     parameters=None,
@@ -59,9 +60,7 @@ def calculate_number_of_lanes(
         raise ValueError(msg)
 
     lanes_lookup_file = (
-        lanes_lookup_file
-        if lanes_lookup_file
-        else parameters.lanes_lookup_file
+        lanes_lookup_file if lanes_lookup_file else parameters.lanes_lookup_file
     )
     if not lanes_lookup_file:
         msg = "'lanes_lookup_file' not found in method or lasso parameters.".format(
@@ -71,7 +70,9 @@ def calculate_number_of_lanes(
         raise ValueError(msg)
 
     centroid_connect_lanes = (
-        centroid_connect_lanes if centroid_connect_lanes else parameters.centroid_connect_lanes
+        centroid_connect_lanes
+        if centroid_connect_lanes
+        else parameters.centroid_connect_lanes
     )
 
     update_lanes = False
@@ -83,7 +84,7 @@ def calculate_number_of_lanes(
                     network_variable
                 )
             )
-            readway_net.links_df = roadway_net.links_df.drop([network_variable], axis = 1)
+            readway_net.links_df = roadway_net.links_df.drop([network_variable], axis=1)
         else:
             WranglerLogger.info(
                 "Number of lanes variable '{}' updated for some links. Returning without overwriting for those links. Calculating for other links".format(
@@ -100,7 +101,7 @@ def calculate_number_of_lanes(
         roadway_net=roadway_net,
         parameters=parameters,
         number_of_lanes=centroid_connect_lanes,
-        )
+    )
 
     WranglerLogger.debug(
         "Computing number lanes using: {}".format(
@@ -125,11 +126,11 @@ def calculate_number_of_lanes(
                 return int(0)
             elif max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington])>0:
                 return int(max([x.anoka, x.hennepin, x.carver, x.dakota, x.washington]))
-            elif max([x.widot, x.mndot])>0:
+            elif max([x.widot, x.mndot]) > 0:
                 return int(max([x.widot, x.mndot]))
-            elif x.osm_min>0:
+            elif x.osm_min > 0:
                 return int(x.osm_min)
-            elif x.naive>0:
+            elif x.naive > 0:
                 return int(x.naive)
             else:
                 return int(0)
@@ -141,7 +142,7 @@ def calculate_number_of_lanes(
         join_df[var_name] = join_df.apply(lambda x: _set_lanes(x), axis=1)
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
-            join_df[['model_link_id', var_name]],
+            join_df[["model_link_id", var_name]],
             how="left",
             on="model_link_id",
         )
@@ -155,7 +156,7 @@ def calculate_number_of_lanes(
         join_df[network_variable] = join_df.apply(lambda x: _set_lanes(x), axis=1)
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
-            join_df[['model_link_id', network_variable]],
+            join_df[["model_link_id", network_variable]],
             how="left",
             on="model_link_id",
         )
@@ -165,6 +166,7 @@ def calculate_number_of_lanes(
     )
 
     return roadway_net
+
 
 def calculate_assign_group_and_roadway_class(
     roadway_net=None,
@@ -217,7 +219,8 @@ def calculate_assign_group_and_roadway_class(
 
     WranglerLogger.info(
         "Calculating Assignment Group and Roadway Class as network variables: '{}' and '{}'".format(
-            assign_group_variable_name, road_class_variable_name,
+            assign_group_variable_name,
+            road_class_variable_name,
         )
     )
 
@@ -290,9 +293,7 @@ def calculate_assign_group_and_roadway_class(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
-    mrcc_shst_data = (
-        mrcc_shst_data if mrcc_shst_data else parameters.mrcc_shst_data
-    )
+    mrcc_shst_data = mrcc_shst_data if mrcc_shst_data else parameters.mrcc_shst_data
     if not mrcc_shst_data:
         msg = "'mrcc_shst_data' not found in method or lasso parameters.".format(
             mrcc_shst_data
@@ -306,9 +307,7 @@ def calculate_assign_group_and_roadway_class(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
-    widot_shst_data = (
-        widot_shst_data if widot_shst_data else parameters.widot_shst_data
-    )
+    widot_shst_data = widot_shst_data if widot_shst_data else parameters.widot_shst_data
     if not widot_shst_data:
         msg = "'widot_shst_data' not found in method or lasso parameters.".format(
             widot_shst_data
@@ -328,7 +327,9 @@ def calculate_assign_group_and_roadway_class(
         else parameters.mrcc_roadway_class_variable_shp
     )
     if not mrcc_roadway_class_variable_shp:
-        msg = "'mrcc_roadway_class_variable_shp' not found in method or lasso parameters."
+        msg = (
+            "'mrcc_roadway_class_variable_shp' not found in method or lasso parameters."
+        )
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
@@ -343,9 +344,7 @@ def calculate_assign_group_and_roadway_class(
         raise ValueError(msg)
 
     mrcc_assgngrp_dict = (
-        mrcc_assgngrp_dict
-        if mrcc_assgngrp_dict
-        else parameters.mrcc_assgngrp_dict
+        mrcc_assgngrp_dict if mrcc_assgngrp_dict else parameters.mrcc_assgngrp_dict
     )
     if not mrcc_assgngrp_dict:
         msg = "'mrcc_assgngrp_dict' not found in method or lasso parameters."
@@ -353,9 +352,7 @@ def calculate_assign_group_and_roadway_class(
         raise ValueError(msg)
 
     widot_assgngrp_dict = (
-        widot_assgngrp_dict
-        if widot_assgngrp_dict
-        else parameters.widot_assgngrp_dict
+        widot_assgngrp_dict if widot_assgngrp_dict else parameters.widot_assgngrp_dict
     )
     if not widot_assgngrp_dict:
         msg = "'widot_assgngrp_dict' not found in method or lasso parameters."
@@ -363,9 +360,7 @@ def calculate_assign_group_and_roadway_class(
         raise ValueError(msg)
 
     osm_assgngrp_dict = (
-        osm_assgngrp_dict
-        if osm_assgngrp_dict
-        else parameters.osm_assgngrp_dict
+        osm_assgngrp_dict if osm_assgngrp_dict else parameters.osm_assgngrp_dict
     )
     if not osm_assgngrp_dict:
         msg = "'osm_assgngrp_dict' not found in method or lasso parameters.".format(
@@ -379,13 +374,9 @@ def calculate_assign_group_and_roadway_class(
     """
 
     WranglerLogger.debug("Calculating Centroid Connectors")
-    calculate_centroidconnect(
-        roadway_net=roadway_net,
-        parameters=parameters)
+    calculate_centroidconnect(roadway_net=roadway_net, parameters=parameters)
 
-    WranglerLogger.debug(
-        "Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape)
-    )
+    WranglerLogger.debug("Reading MRCC Shapefile: {}".format(mrcc_roadway_class_shape))
     mrcc_gdf = gpd.read_file(mrcc_roadway_class_shape)
     WranglerLogger.debug("MRCC GDF Columns\n{}".format(mrcc_gdf.columns))
     #'LINK_ID', 'ROUTE_SYS', 'ST_CONCAT', 'geometry'
@@ -402,9 +393,7 @@ def calculate_assign_group_and_roadway_class(
     widot_gdf["LINK_ID"] = range(1, 1 + len(widot_gdf))
     WranglerLogger.debug("WiDOT GDF Columns\n{}".format(widot_gdf.columns))
     widot_shst_ref_df = ModelRoadwayNetwork.read_match_result(widot_shst_data)
-    WranglerLogger.debug(
-        "widot shst ref df columns".format(widot_shst_ref_df.columns)
-    )
+    WranglerLogger.debug("widot shst ref df columns".format(widot_shst_ref_df.columns))
     # join MRCC geodataframe with MRCC shared street return to get MRCC route_sys and shared street geometry id
     #
     # get route_sys from MRCC
@@ -421,7 +410,7 @@ def calculate_assign_group_and_roadway_class(
     if "mrcc_id" in roadway_net.links_df.columns:
         join_gdf.drop(["source_link_id"], axis=1, inplace=True)
     else:
-        join_gdf.rename(columns={"source_link_id" : "mrcc_id"}, inplace=True)
+        join_gdf.rename(columns={"source_link_id": "mrcc_id"}, inplace=True)
 
     join_gdf = ModelRoadwayNetwork.get_attribute(
         join_gdf,
@@ -441,8 +430,8 @@ def calculate_assign_group_and_roadway_class(
         join_gdf,
         osm_asgngrp_crosswalk_df.rename(
             columns={
-            "assign_group": "assignment_group_osm",
-            "roadway_class": "roadway_class_osm"
+                "assign_group": "assignment_group_osm",
+                "roadway_class": "roadway_class_osm",
             }
         ),
         how="left",
@@ -453,8 +442,8 @@ def calculate_assign_group_and_roadway_class(
         join_gdf,
         mrcc_asgngrp_crosswalk_df.rename(
             columns={
-            "assign_group": "assignment_group_mrcc",
-            "roadway_class": "roadway_class_mrcc"
+                "assign_group": "assignment_group_mrcc",
+                "roadway_class": "roadway_class_mrcc",
             }
         ),
         how="left",
@@ -465,8 +454,8 @@ def calculate_assign_group_and_roadway_class(
         join_gdf,
         widot_asgngrp_crosswak_df.rename(
             columns={
-            "assign_group": "assignment_group_widot",
-            "roadway_class": "roadway_class_widot"
+                "assign_group": "assignment_group_widot",
+                "roadway_class": "roadway_class_widot",
             }
         ),
         how="left",
@@ -492,7 +481,9 @@ def calculate_assign_group_and_roadway_class(
         except:
             return 0
 
-    join_gdf[assign_group_variable_name] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
+    join_gdf[assign_group_variable_name] = join_gdf.apply(
+        lambda x: _set_asgngrp(x), axis=1
+    )
 
     def _set_roadway_class(x):
         try:
@@ -513,24 +504,24 @@ def calculate_assign_group_and_roadway_class(
         except:
             return 0
 
-    join_gdf[road_class_variable_name] = join_gdf.apply(lambda x: _set_roadway_class(x), axis=1)
+    join_gdf[road_class_variable_name] = join_gdf.apply(
+        lambda x: _set_roadway_class(x), axis=1
+    )
 
     if "mrcc_id" in roadway_net.links_df.columns:
         columns_from_source = ["model_link_id"]
     else:
-        columns_from_source=[
-        "model_link_id",
-        "mrcc_id",
-        mrcc_roadway_class_variable_shp,
-        widot_roadway_class_variable_shp,
+        columns_from_source = [
+            "model_link_id",
+            "mrcc_id",
+            mrcc_roadway_class_variable_shp,
+            widot_roadway_class_variable_shp,
         ]
 
     if update_assign_group:
         join_gdf.rename(
-            columns={
-            assign_group_variable_name: assign_group_variable_name + "_cal"
-            },
-            inplace=True
+            columns={assign_group_variable_name: assign_group_variable_name + "_cal"},
+            inplace=True,
         )
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
@@ -543,32 +534,31 @@ def calculate_assign_group_and_roadway_class(
             roadway_net.links_df[assign_group_variable_name],
             roadway_net.links_df[assign_group_variable_name + "_cal"],
         )
-        roadway_net.links_df.drop(assign_group_variable_name + "_cal", axis=1, inplace=True)
+        roadway_net.links_df.drop(
+            assign_group_variable_name + "_cal", axis=1, inplace=True
+        )
     else:
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
             join_gdf[columns_from_source + [assign_group_variable_name]],
-            how = "left",
-            on = "model_link_id",
+            how="left",
+            on="model_link_id",
         )
 
     if "mrcc_id" in roadway_net.links_df.columns:
         columns_from_source = ["model_link_id"]
     else:
         columns_from_source = [
-        "model_link_id",
-        "mrcc_id",
-        mrcc_roadway_class_variable_shp,
-        widot_roadway_class_variable_shp,
+            "model_link_id",
+            "mrcc_id",
+            mrcc_roadway_class_variable_shp,
+            widot_roadway_class_variable_shp,
         ]
-
 
     if update_roadway_class:
         join_gdf.rename(
-            columns={
-            road_class_variable_name: road_class_variable_name + "_cal"
-            },
-            inplace=True
+            columns={road_class_variable_name: road_class_variable_name + "_cal"},
+            inplace=True,
         )
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
@@ -581,7 +571,9 @@ def calculate_assign_group_and_roadway_class(
             roadway_net.links_df[road_class_variable_name],
             roadway_net.links_df[road_class_variable_name + "_cal"],
         )
-        roadway_net.links_df.drop(road_class_variable_name + "_cal", axis=1, inplace=True)
+        roadway_net.links_df.drop(
+            road_class_variable_name + "_cal", axis=1, inplace=True
+        )
     else:
         roadway_net.links_df = pd.merge(
             roadway_net.links_df,
@@ -592,11 +584,13 @@ def calculate_assign_group_and_roadway_class(
 
     WranglerLogger.info(
         "Finished calculating assignment group variable {} and roadway class variable {}".format(
-            assign_group_variable_name, road_class_variable_name,
+            assign_group_variable_name,
+            road_class_variable_name,
         )
     )
 
     return roadway_net
+
 
 def calculate_centroidconnect(
     roadway_net,
@@ -649,9 +643,7 @@ def calculate_centroidconnect(
     Verify inputs
     """
     highest_taz_number = (
-        highest_taz_number
-        if highest_taz_number
-        else parameters.highest_taz_number
+        highest_taz_number if highest_taz_number else parameters.highest_taz_number
     )
 
     if not highest_taz_number:
@@ -686,13 +678,11 @@ def calculate_centroidconnect(
     ] = True
 
     if as_integer:
-        roadway_net.links_df[network_variable] = roadway_net.links_df[network_variable].astype(
-            int
-        )
-    WranglerLogger.info(
-        "Finished calculating centroid connector variable: {}".format(
+        roadway_net.links_df[network_variable] = roadway_net.links_df[
             network_variable
-        )
+        ].astype(int)
+    WranglerLogger.info(
+        "Finished calculating centroid connector variable: {}".format(network_variable)
     )
 
     return roadway_net

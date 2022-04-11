@@ -1,0 +1,4 @@
+*.net filter=lfs diff=lfs merge=lfs -text
+cc_link.pickle filter=lfs diff=lfs merge=lfs -text
+cc_shape.pickle filter=lfs diff=lfs merge=lfs -text
+centroid_node.pickle filter=lfs diff=lfs merge=lfs -text

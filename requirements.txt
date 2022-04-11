@@ -3,3 +3,4 @@ jupyter
 notebook
 pandas==1.0.5
 network-wrangler
+unidecode
