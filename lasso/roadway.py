@@ -289,7 +289,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         county_gdf = gpd.read_file(county_shape)
         county_gdf = county_gdf.to_crs(epsg=RoadwayNetwork.CRS_alt)
-        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", predicate="intersects")
+        joined_gdf = gpd.sjoin(centroids_gdf, county_gdf, how="left", op="intersects")
 
         joined_gdf[county_shape_variable] = (
             joined_gdf[county_shape_variable]
@@ -301,7 +301,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df[network_variable] = joined_gdf[county_shape_variable]
 
         nodes_gdf = self.nodes_df.copy()
-        joined_gdf = gpd.sjoin(nodes_gdf, county_gdf, how="left", predicate="intersects")
+        joined_gdf = gpd.sjoin(nodes_gdf, county_gdf, how="left", op="intersects")
 
         joined_gdf[county_shape_variable] = (
             joined_gdf[county_shape_variable]
