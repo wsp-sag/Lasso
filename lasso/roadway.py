@@ -315,7 +315,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
         joined_gdf[network_variable] = joined_gdf[county_shape_variable]
 
-        self.nodes_df = self.nodes_df.drop(network_variable, axis = 1)
+        if network_variable in self.nodes_df.columms:
+            self.nodes_df = self.nodes_df.drop(network_variable, axis = 1)
 
         self.nodes_df = pd.merge(
             self.nodes_df,
