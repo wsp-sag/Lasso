@@ -670,10 +670,10 @@ class Parameters:
             "geometry",
             "X",
             "Y",
-            "ML_lanes_AM",
-            "ML_lanes_MD",
-            "ML_lanes_PM",
-            "ML_lanes_NT",
+            #"ML_lanes_AM",
+            #"ML_lanes_MD",
+            #"ML_lanes_PM",
+            #"ML_lanes_NT",
             "segment_id",
             "managed",
             "bus_only",
@@ -681,6 +681,7 @@ class Parameters:
             "bike_facility",
             "mrcc_id",
             "ROUTE_SYS",  #mrcc functional class
+            "MNPASS_COD",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")

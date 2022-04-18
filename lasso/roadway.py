@@ -1152,7 +1152,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     raise ValueError(msg)
 
         for c in list(set(self.nodes_df.columns) & set(int_col_names)):
-            self.nodes_df[c] = self.nodes_df[c].astype(int)
+            self.nodes_df[c] = self.nodes_df[c].replace(np.nan, 0)
+            # REPLACE BLANKS WITH ZERO FOR INTEGER COLUMNS
+            self.nodes_df[c] = self.nodes_df[c].replace('', 0)
+            try:
+                self.nodes_df[c] = self.nodes_df[c].astype(int)
+            except ValueError:
+                msg = f"Could not convert column {c} to integer."
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
 
     def fill_na(self):
         """
