@@ -582,8 +582,24 @@ class Project(object):
             if len(node_add_df) == 0:
                 WranglerLogger.debug("No node additions processed")
                 return []
+            
+            WranglerLogger.info("Reprojecting node coordinates from model CRS to standard CRS")
+            if 'X' in node_add_df.columns:
+                node_add_df = gpd.GeoDataFrame(
+                    node_add_df,
+                    geometry = gpd.points_from_xy(
+                        node_add_df['X'],
+                        node_add_df['Y']
+                    ),
+                    crs = "EPSG:" + str(self.parameters.output_epsg)
+                )
+            
+            # convert to WGS 84
+            node_add_df = node_add_df.to_crs(epsg=self.parameters.wrangler_epsg)
+            node_add_df['X'] = node_add_df['geometry'].apply(lambda g: g.x)
+            node_add_df['Y'] = node_add_df['geometry'].apply(lambda g: g.y)
 
-            add_nodes_dict_list = node_add_df.drop(["OPERATION_final"], axis=1).to_dict(
+            add_nodes_dict_list = node_add_df.drop(["OPERATION_final", "geometry"], axis=1).to_dict(
                 "records"
             )
             WranglerLogger.debug("{} Nodes Added".format(len(add_nodes_dict_list)))

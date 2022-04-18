@@ -701,6 +701,7 @@ class Parameters:
         )
         self.output_dir = os.path.join(self.scratch_location)
         self.output_epsg = 26915
+        self.wrangler_epsg = 4269
 
         """
         Create all the possible headway variable combinations based on the cube time periods setting
