@@ -13,11 +13,13 @@ from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 from pyproj import CRS
 import shapely
+from shapely.geometry import Point, LineString
 
 import network_wrangler
 from .parameters import Parameters
 from .transit import StandardTransit
 from .logger import WranglerLogger
+from network_wrangler import RoadwayNetwork
 from .util import geodesic_point_buffer, create_locationreference
 
 
@@ -176,11 +178,15 @@ def determine_number_of_lanes(
     roadway_network=None,
     parameters=None,
     network_variable:str="lanes",
-    osm_lanes_attributes:str=None,
+    mtc_osm_lanes_attributes:str=None,
+    sj_osm_lanes_attributes:str=None,
     tam_tm2_attributes:str=None,
     sfcta_attributes:str=None,
     pems_attributes:str=None,
     tomtom_attributes:str=None,
+    sjmodel_lanes_file: str=None,
+    actc_lanes_file: str=None,
+    ccta_lanes_file: str=None,
     overwrite:bool=False,
 ):
     """
@@ -225,9 +231,9 @@ def determine_number_of_lanes(
         WranglerLogger.error(msg)
         raise ValueError(msg)
 
-    osm_lanes_attributes = (
-        osm_lanes_attributes
-        if osm_lanes_attributes
+    mtc_osm_lanes_attributes = (
+        mtc_osm_lanes_attributes
+        if mtc_osm_lanes_attributes
         else parameters.osm_lanes_attributes
     )
 
@@ -278,8 +284,13 @@ def determine_number_of_lanes(
     """
     Start actual process
     """
-    osm_df = pd.read_csv(osm_lanes_attributes)
-    osm_df = osm_df.rename(columns = {"min_lanes": "osm_min_lanes", "max_lanes": "osm_max_lanes"})
+    mtc_osm_df = pd.read_csv(mtc_osm_lanes_attributes)
+    mtc_osm_df = mtc_osm_df.rename(columns = {"min_lanes": "osm_min_lanes", "max_lanes": "osm_max_lanes"})
+    
+    sj_osm_df = pd.read_csv(sj_osm_lanes_attributes)
+    sj_osm_df = sj_osm_df.rename(columns = {'osm_lanes_min' : 'osm_min_lanes', 'osm_lanes_max':'osm_max_lanes'})
+    
+    osm_df = pd.concat([mtc_osm_df, sj_osm_df], sort = False, ignore_index = True)
 
     tam_df = pd.read_csv(tam_tm2_attributes)
     tam_df = tam_df[['shstReferenceId', 'lanes']].rename(columns = {"lanes": "tm2_lanes"})
@@ -296,9 +307,25 @@ def determine_number_of_lanes(
     tom_df = pd.read_csv(tomtom_attributes)
     tom_df = tom_df[['shstReferenceId', 'lanes']].rename(columns = {"lanes": "tom_lanes"})
 
-    join_gdf = pd.merge(
-        roadway_network.links_df, osm_df, how = "left", on = "shstReferenceId"
-    )
+    sjmodel_lanes_df = pd.read_csv(sjmodel_lanes_file)
+    sjmodel_lanes_df = sjmodel_lanes_df.rename(columns = {"base_lanes_min": "sj_lanes_min", "base_lanes_max": "sj_lanes_max"})
+    
+    cctamodel_lanes_df = pd.read_csv(ccta_lanes_file)
+    cctamodel_lanes_df = cctamodel_lanes_df.rename(
+        columns = {"base_lanes_min": "ccta_min_lanes", "base_lanes_max": "ccta_max_lanes"})
+    
+    actcmodel_lanes_df = pd.read_csv(actc_lanes_file)
+    actcmodel_lanes_df = actcmodel_lanes_df.rename(
+        columns = {"base_lanes_min": "actc_min_lanes", "base_lanes_max": "actc_max_lanes"})
+
+    if 'lanes' in roadway_network.links_df.columns:
+        join_gdf = pd.merge(
+            roadway_network.links_df.drop(['lanes'],axis = 1), osm_df, how = "left", on = "shstReferenceId"
+        )
+    else:
+        join_gdf = pd.merge(
+            roadway_network.links_df, osm_df, how = "left", on = "shstReferenceId"
+        )
 
     join_gdf = pd.merge(
         join_gdf, tam_df, how = "left", on = "shstReferenceId"
@@ -316,14 +343,64 @@ def determine_number_of_lanes(
         join_gdf, tom_df, how = "left", on = "shstReferenceId"
     )
 
+    join_gdf = pd.merge(
+        join_gdf, sjmodel_lanes_df, how = "left", on = "shstReferenceId"
+    )
+    
+    join_gdf = pd.merge(
+        join_gdf, cctamodel_lanes_df, how = "left", on = "shstReferenceId"
+    )
+    
+    join_gdf = pd.merge(
+        join_gdf, actcmodel_lanes_df, how = "left", on = "shstReferenceId"
+    )
+
     def _determine_lanes(x):
+            # add actc and ccta planning network
+            if x.county == 'Contra Costa':
+                if pd.notna(x.ccta_min_lanes):
+                    if x.ccta_min_lanes == x.ccta_max_lanes:
+                        if x.roadway != "motorway":
+                            if x.roadway != "motorway_link":
+                                if x.osm_min_lanes >= x.ccta_min_lanes:
+                                    if x.osm_max_lanes <= x.ccta_max_lanes:
+                                        return int(x.ccta_min_lanes)
+            if x.county == 'Contra Costa':
+                if pd.notna(x.ccta_min_lanes):
+                    if x.ccta_min_lanes > 0:
+                        if x.roadway != "motorway":
+                            if x.roadway != "motorway_link":
+                                return int(x.ccta_min_lanes)
+                                    
+            if x.county == 'Alameda':
+                if pd.notna(x.actc_min_lanes):
+                    if x.actc_min_lanes == x.actc_max_lanes:
+                        if x.roadway != "motorway":
+                            if x.roadway != "motorway_link":
+                                if x.osm_min_lanes >= x.actc_min_lanes:
+                                    if x.osm_max_lanes <= x.actc_max_lanes:
+                                        return int(x.actc_min_lanes)
+            if x.county == 'Alameda':
+                if pd.notna(x.actc_min_lanes):
+                    if x.actc_min_lanes > 0:
+                        if x.roadway != "motorway":
+                            if x.roadway != "motorway_link":
+                                return int(x.actc_min_lanes)
+            # add sj county network
+            if (x.osm_min_lanes > 0) & (x.sj_lanes_min > 0):
+                if (x.osm_min_lanes == x.osm_max_lanes):
+                    if (x.osm_min_lanes >= x.sj_lanes_min) & (x.osm_min_lanes <= x.sj_lanes_max):
+                        return x.osm_min_lanes   
+            if (x.sj_lanes_min > 0):
+                if (x.sj_lanes_min >= x.osm_min_lanes) & (x.sj_lanes_max <= x.osm_max_lanes):
+                    return x.sj_lanes_min
+
             # heuristic 1
             if pd.notna(x.pems_lanes):
                 if pd.notna(x.osm_min_lanes):
                     if x.pems_lanes == x.osm_min_lanes:
                         if x.roadway == "motorway":
-                            heuristic_num = 1
-                            return pd.Series([int(x.pems_lanes), heuristic_num])
+                            return int(x.pems_lanes)
             # heuristic 2
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
@@ -333,23 +410,20 @@ def determine_number_of_lanes(
                                 if x.roadway != "motorway_link":
                                     if x.osm_min_lanes >= x.sfcta_min_lanes:
                                         if x.osm_max_lanes <= x.sfcta_max_lanes:
-                                            heuristic_num = 2
-                                            return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
+                                            return int(x.sfcta_min_lanes)
             # heuristic 3
             if pd.notna(x.pems_lanes):
                 if pd.notna(x.osm_min_lanes):
                     if x.pems_lanes >= x.osm_min_lanes:
                         if x.pems_lanes <= x.osm_max_lanes:
                             if x.roadway == "motorway":
-                                heuristic_num = 3
-                                return pd.Series([int(x.pems_lanes), heuristic_num])
+                                return int(x.pems_lanes)
             # heuristic 4
             if x.roadway in ["motorway", "motorway_link"]:
                 if pd.notna(x.osm_min_lanes):
                     if x.osm_min_lanes <= x.tom_lanes:
                         if x.osm_max_lanes >= x.tom_lanes:
-                            heuristic_num = 4
-                            return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                            return int(x.osm_min_lanes)
             # heuristic 5
             if x.county != "San Francisco":
                 if pd.notna(x.osm_min_lanes):
@@ -357,8 +431,7 @@ def determine_number_of_lanes(
                         if x.tm2_lanes > 0:
                             if x.osm_min_lanes <= x.tm2_lanes:
                                 if x.osm_max_lanes >= x.tm2_lanes:
-                                    heuristic_num = 5
-                                    return pd.Series([int(x.tm2_lanes), heuristic_num])
+                                    return int(x.tm2_lanes)
             # heuristic 6
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
@@ -366,79 +439,114 @@ def determine_number_of_lanes(
                         if x.sfcta_min_lanes == x.sfcta_max_lanes:
                             if x.roadway != "motorway":
                                 if x.roadway != "motorway_link":
-                                    heuristic_num = 6
-                                    return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
+                                    return int(x.sfcta_min_lanes)
             # heuristic 7
             if x.roadway in ["motorway", "motorway_link"]:
-                if pd.notna(x.osm_min_lanes):
+                if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                     if x.osm_min_lanes == x.osm_max_lanes:
-                        heuristic_num = 7
-                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                        return int(x.osm_min_lanes)
             # heuristic 8
             if x.roadway in ["motorway", "motorway_link"]:
-                if pd.notna(x.osm_min_lanes):
+                if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                     if (x.osm_max_lanes - x.osm_min_lanes) == 1:
-                        heuristic_num = 8
-                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                        return int(x.osm_min_lanes)
             # heuristic 9
             if x.roadway == "motorway":
                 if pd.notna(x.pems_lanes):
-                    heuristic_num = 9
-                    return pd.Series([int(x.pems_lanes), heuristic_num])
+                    return int(x.pems_lanes)
             # heuristic 10
             if x.county == "San Francisco":
                 if pd.notna(x.sfcta_min_lanes):
                     if x.sfcta_min_lanes > 0:
                         if x.roadway != "motorway":
                             if x.roadway != "motorway_link":
-                                heuristic_num = 10
-                                return pd.Series([int(x.sfcta_min_lanes), heuristic_num])
+                                return int(x.sfcta_min_lanes)
+            # heuristic 3
+            if (x.sj_lanes_min > 0):
+                return x.sj_lanes_min
             # heuristic 11
-            if pd.notna(x.osm_min_lanes):
+            if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                 if x.osm_min_lanes == x.osm_max_lanes:
-                    heuristic_num = 11
-                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                    return int(x.osm_min_lanes)
             # heuristic 12
-            if pd.notna(x.osm_min_lanes):
+            if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                 if x.roadway in ["motorway", "motorway_link"]:
                     if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
-                        heuristic_num = 12
-                        return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                        return int(x.osm_min_lanes)
             # heuristic 13
-            if pd.notna(x.osm_min_lanes):
+            if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                 if (x.osm_max_lanes - x.osm_min_lanes) == 1:
-                    heuristic_num = 13
-                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                    return int(x.osm_min_lanes)
             # heuristic 14
-            if pd.notna(x.osm_min_lanes):
+            if (pd.notna(x.osm_min_lanes)) & (x.osm_min_lanes>0):
                 if (x.osm_max_lanes - x.osm_min_lanes) >= 2:
-                    heuristic_num = 14
-                    return pd.Series([int(x.osm_min_lanes), heuristic_num])
+                    return int(x.osm_min_lanes)
             # heuristic 15
             if pd.notna(x.tm2_lanes):
                 if x.tm2_lanes > 0:
-                    heuristic_num = 15
-                    return pd.Series([int(x.tm2_lanes), heuristic_num])
+                    return int(x.tm2_lanes)
             # heuristic 16
             if pd.notna(x.tom_lanes):
                 if x.tom_lanes > 0:
-                    heuristic_num = 16
-                    return pd.Series([int(x.tom_lanes), heuristic_num])
+                    return int(x.tom_lanes)
             # heuristic 17
             if x.roadway in ["residential", "service"]:
-                heuristic_num = 17
-                return pd.Series([int(1), heuristic_num])
+                return int(1)
             # heuristic 18
-            heuristic_num = 18
-            return pd.Series([int(1), heuristic_num])
+            return int(1)
 
-    join_gdf[[network_variable, 'heuristic_num']] = join_gdf.apply(lambda x: _determine_lanes(x), axis = 1)
+    join_gdf[network_variable] = join_gdf.apply(lambda x: _determine_lanes(x), axis = 1)
 
     roadway_network.links_df[network_variable] = join_gdf[network_variable]
-    roadway_network.links_df['heuristic_num'] = join_gdf['heuristic_num']
 
     WranglerLogger.info(
         "Finished determining number of lanes using variable: {}".format(network_variable)
+    )
+
+    return roadway_network
+
+def calculate_bike(
+    roadway_network=None,
+    parameters=None,
+    actc_bike_file: str=None,
+):
+    """
+    Add bike info from ACTC planning network
+    """
+    actc_bike_file = (
+        actc_bike_file
+        if actc_bike_file
+        else parameters.actc_bike_file
+    )
+    actc_bike_df = pd.read_csv(actc_bike_file)
+    
+    join_gdf = pd.merge(
+        roadway_network.links_df,
+        actc_bike_df,
+        how = 'left',
+        on = 'shstReferenceId'
+    )
+    
+    def _calculate_nmt2010(x):
+        if pd.notna(x.nmt2010_min):
+            return x.nmt2010_min
+        else:
+            return 0
+    
+    def _calculate_nmt2020(x):
+        if pd.notna(x.nmt2020_min):
+            return x.nmt2020_min
+        else:
+            return 0
+    
+    join_gdf['nmt2010'] = join_gdf.apply(lambda x: _calculate_nmt2010(x), axis = 1)
+    join_gdf['nmt2020'] = join_gdf.apply(lambda x: _calculate_nmt2020(x), axis = 1)
+    
+    roadway_network.links_df['nmt2010'] = join_gdf['nmt2010']
+    roadway_network.links_df['nmt2020'] = join_gdf['nmt2020']
+
+    WranglerLogger.info(
+        "Finished determining variable: {}".format('nmt2010, nmt2020')
     )
 
     return roadway_network
@@ -1037,7 +1145,7 @@ def calculate_farezone(
         sort = False,
         ignore_index = True
     )
-    
+
     # drop duplicates, i.e. stops serving more than one agency
     final_model_node_zone_df = final_model_node_zone_df.drop_duplicates(
         subset = ["model_node_id", network_variable]

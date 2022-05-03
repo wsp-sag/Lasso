@@ -637,10 +637,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         )
 
         var_shst_df = pd.read_csv(var_shst_csvdata)
-        # there are aadt = 0 in the counts, drop them
-        var_shst_df = var_shst_df[var_shst_df[shst_csv_variable] > 0].copy()
-        # count station to shared street match - there are many-to-one matches, keep just one match
-        var_shst_df.drop_duplicates(subset = ["shstReferenceId"], inplace = True)
 
         if "shstReferenceId" not in var_shst_df.columns:
             msg = "'shstReferenceId' required but not found in {}".format(var_shst_data)
@@ -664,7 +660,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         join_gdf[shst_csv_variable].fillna(0, inplace=True)
 
         if network_variable in self.links_df.columns and not overwrite:
-            join_gdf.loc[join_gdf[network_variable] == 0, network_variable] = join_gdf[
+            join_gdf.loc[join_gdf[network_variable] > 0, network_variable] = join_gdf[
                 shst_csv_variable
             ].astype(network_var_type)
         else:
@@ -674,28 +670,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         self.links_df[network_variable] = join_gdf[network_variable]
 
-        # MN and WI counts are vehicles using the segment in both directions, no directional counts
-        # we will make sure both direction has the same daily AADT
-        dir_link_count_df = self.links_df[
-            (self.links_df[network_variable] > 0) &
-            (self.links_df["drive_access"] == 1)
-        ][["A", "B", network_variable]].copy()
-        reverse_dir_link_count_df = dir_link_count_df.rename(columns = {"A":"B", "B":"A"}).copy()
-
-        link_count_df = pd.concat(
-            [dir_link_count_df, reverse_dir_link_count_df],
-            sort = False,
-            ignore_index = True
-        )
-        link_count_df.drop_duplicates(subset = ["A", "B"], inplace = True)
-
-        self.links_df = pd.merge(
-            self.links_df.drop(network_variable, axis = 1),
-            link_count_df[["A", "B", network_variable]],
-            how = "left",
-            on = ["A", "B"]
-        )
-        self.links_df[network_variable].fillna(0, inplace = True)
         WranglerLogger.info(
             "Added variable: {} using Shared Streets Reference".format(network_variable)
         )
@@ -810,7 +784,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         self.links_df["count_NT"] = self.links_df[network_variable] / 4
 
         self.links_df["count_daily"] = self.links_df[network_variable]
-        # add COUNTYEAR
         self.links_df["count_year"] = 2017
 
         WranglerLogger.info(
@@ -1233,8 +1206,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
             if centroidconnect_only:
                 msg = "No variable specified for centroid connector, calculating centroidconnect first"
                 WranglerLogger.error(msg)
-                raise ValueError(msg)           
+                raise ValueError(msg)
         #/MC
+
         """
         Start actual process
         """
@@ -1638,8 +1612,7 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 "tollbooth"     : "int:2",
                 "tollseg"       : "int:2",
                 "segment_id"    : "int:4",
-                "lanes_EA"      : "int:2",                
-                "heuristic_num" : "int:2",
+                "lanes_EA"      : "int:2",
                 "lanes_AM"      : "int:2",
                 "lanes_MD"      : "int:2",
                 "lanes_PM"      : "int:2",
@@ -1648,7 +1621,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 "useclass_AM"   : "int:2",
                 "useclass_MD"   : "int:2",
                 "useclass_PM"   : "int:2",
-                "useclass_EV"   : "int:2"
+                "useclass_EV"   : "int:2",
+                "nmt2010"       : "int:2",
+                "nmt2020"       : "int:2",
             },
             "geometry": "LineString"
         }

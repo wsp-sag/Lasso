@@ -25,6 +25,7 @@ from network_wrangler import TransitNetwork
 
 from .logger import WranglerLogger
 from .parameters import Parameters
+from .mtc import _is_express_bus
 
 class CubeTransit(object):
     """Class for storing information about transit defined in Cube line
@@ -914,7 +915,6 @@ class StandardTransit(object):
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
 
         l = trip_cube_df["LIN"].tolist()
-        l = [";;<<PT>><<LINE>>;;"] + l
 
         with open(outpath, "w") as f:
             f.write("\n".join(l))
@@ -979,41 +979,23 @@ class StandardTransit(object):
             self.parameters.cube_time_periods_name
         )
 
-        # add shape_id to name when N most common pattern is used for routes*tod*direction
-        trip_df["shp_id"] = trip_df.groupby(["route_id", "tod_name", "direction_id"]).cumcount()
-        trip_df["shp_id"] = trip_df["shp_id"].astype(str)
-        trip_df["shp_id"] = "shp" + trip_df["shp_id"]
-
-        trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.replace(",", "_").str.slice(stop = 50)
-
-        trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
-
         trip_df["NAME"] = trip_df.apply(
             lambda x: x.agency_id
             + "_"
             + x.route_id
             + "_"
-            + x.tod_name
+            + x.route_short_name
             + "_"
-            + "d"
-            + str(x.direction_id)
-            + "_s"
-            + x.shape_id,
+            + x.tod_name
+            + str(x.direction_id),
             axis=1,
         )
 
-        # CUBE max string length
-        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
-
         trip_df["LONGNAME"] = trip_df["route_long_name"]
-        # CUBE max string length
-        trip_df["LONGNAME"] = trip_df["LONGNAME"].str.slice(stop = 30)
-
         trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
         trip_df["MODE"] = trip_df.apply(self.calculate_cube_mode, axis=1)
         trip_df["ONEWAY"] = "T"
         trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
-        trip_df["SHORTNAME"] = trip_df["route_short_name"].str.slice(stop = 30)
 
         return trip_df
 
@@ -1135,229 +1117,6 @@ class StandardTransit(object):
 
         return this_tp_num
 
-    def shape_gtfs_to_dict_list(self, trip_id: str, shape_id: str, add_nntime: bool):
-        """
-        This is a copy of StandardTransit.shape_gtfs_to_cube() because we need the same logic of
-        stepping through the routed nodes and corresponding them with shape nodes.
-
-        TODO: eliminate this necessity by tagging the stop nodes in the shapes to begin with when
-        the transit routing on the roadway network is first performed.
-
-        As such, I'm copying the code from StandardTransit.shape_gtfs_to_cube() with minimal modifications.
-
-        Args: 
-            trip_id of the trip in question
-            shape_id of the trip in question
-        Returns:
-            list of dict records with columns:
-              trip_id
-              shape_id
-              shape_pt_sequence
-              shape_mode_node_id
-              is_stop
-              access
-              stop_sequence
-        """
-        # get the stop times for this route
-        # https://developers.google.com/transit/gtfs/reference#stop_timestxt
-        trip_stop_times_df = self.feed.stop_times.loc[ self.feed.stop_times.trip_id == trip_id,
-            ['trip_id','arrival_time','departure_time','stop_id','stop_sequence','pickup_type','drop_off_type']].copy()
-        trip_stop_times_df.sort_values(by='stop_sequence', inplace=True)
-        trip_stop_times_df.reset_index(drop=True, inplace=True)
-        # print("trip_stop_times_df:\n{}".format(trip_stop_times_df))
-        # print("trip_stop_times_df.dtypes:\n{}".format(trip_stop_times_df.dtypes))
-        # trip_stop_times_df:
-        #    trip_id arrival_time departure_time stop_id  stop_sequence pickup_type drop_off_type
-        # 0    10007            0              0    7781              1           0           NaN
-        # 1    10007          120            120    7845              2           0           NaN
-        # 2    10007          300            300    7790              3           0           NaN
-        # 3    10007          360            360    7854              4           0           NaN
-        # 4    10007          390            390    7951              5           0           NaN
-        # 5    10007          720            720    7950              6           0           NaN
-        # 6    10007          810            810    7850              7           0           NaN
-        # 7    10007          855            855    7945              8           0           NaN
-        # 8    10007          900            900    7803              9           0           NaN
-        # 9    10007          930            930    7941             10           0           NaN
-        # trip_stop_times_df.dtypes:
-        # trip_id           object
-        # arrival_time      object
-        # departure_time    object
-        # stop_id           object
-        # stop_sequence      int64
-        # pickup_type       object
-        # drop_off_type     object
-
-        # get the shapes for this route
-        # https://developers.google.com/transit/gtfs/reference#shapestxt
-        trip_node_df = self.feed.shapes.loc[self.feed.shapes.shape_id == shape_id].copy()
-        trip_node_df.sort_values(by="shape_pt_sequence", inplace = True)
-        trip_node_df.reset_index(drop=True, inplace=True)
-        # print("trip_node_df.head(20):\n{}".format(trip_node_df.head(20)))
-        # print("trip_node_df.dtypes:\n{}".format(trip_node_df.dtypes))
-        # trip_node_df:
-        #    shape_id  shape_pt_sequence shape_osm_node_id                shape_shst_node_id shape_model_node_id shape_pt_lat shape_pt_lon
-        # 0       696                  1        1429334016  35cb440c505534e8aedbd3a286b70eab             2139625          NaN          NaN
-        # 1       696                  2         444242480  39e263722d5849b3c732b48734671400             2164862          NaN          NaN
-        # 2       696                  3        5686705779  4c41c608c35f457079fd673bce5556e5             2169898          NaN          NaN
-        # 3       696                  4        3695761874  d0f5b2173189bbb1b5dbaa78a004e8c4             2021876          NaN          NaN
-        # 4       696                  5        1433982749  60726971f0fb359a57e9d8df30bf384b             2002078          NaN          NaN
-        # 5       696                  6        1433982740  634c301424647d5883191edf522180e3             2156807          NaN          NaN
-        # 6       696                  7        4915736746  f03c3d7f1aa0358a91c165f53dac1e20             2145185          NaN          NaN
-        # 7       696                  8          65604864  68b8df24f1572d267ecf834107741393             2120788          NaN          NaN
-        # 8       696                  9          65604866  e412a013ad45af6649fa1b396f74c127             2066513          NaN          NaN
-        # 9       696                 10         956664242  657e1602aa8585383ed058f28f7811ed             2006476          NaN          NaN
-        # 10      696                 11         291642561  726b03cced023a6459d7333885927208             2133933          NaN          NaN
-        # 11      696                 12         291642583  709a0c00811f213f7476349a2c002003             2159991          NaN          NaN
-        # 12      696                 13         291642745  c5aaab62e0c78c34d93ee57795f06953             2165343          NaN          NaN
-        # 13      696                 14        5718664845  c7f1f4aa88887071a0d28154fc84604b             2007965          NaN          NaN
-        # 14      696                 15         291642692  0ef007a79b391e8ba98daf4985f26f9b             2160569          NaN          NaN
-        # 15      696                 16        5718664843  2ce63288e77747abc3a4124f0e28efcf             2047955          NaN          NaN
-        # 16      696                 17        3485537279  ec0c8eb524f41072a9fd87ecfd45e15f             2169094          NaN          NaN
-        # 17      696                 18        5718664419  57ca23828db4adea39355a92fb0fc3ff             2082102          NaN          NaN
-        # 18      696                 19        5718664417  4aba41268ada1058ee58e99a84e28d37             2019974          NaN          NaN
-        # 19      696                 20          65545418  d4f815a2f6da6c95d2f032a3cd61020c             2025374          NaN          NaN        # trip_node_df.dtypes:
-        # shape_id               object
-        # shape_pt_sequence       int64
-        # shape_osm_node_id      object
-        # shape_shst_node_id     object
-        # shape_model_node_id    object
-        # shape_pt_lat           object
-        # shape_pt_lon           object
-        
-        # we only need: shape_id, shape_pt_sequence, shape_model_node_id
-        trip_node_df = trip_node_df[['shape_id','shape_pt_sequence','shape_model_node_id']]
-
-        if 'trip_id' in self.feed.stops.columns:
-            trip_stop_times_df = pd.merge(
-                trip_stop_times_df, self.feed.stops, how="left", on=['trip_id', "stop_id"]
-            )
-        else:
-            trip_stop_times_df = pd.merge(
-                trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
-            )
-        # print("trip_stop_times_df:\n{}".format(trip_stop_times_df))
-        # print("trip_stop_times_df.dtypes:\n{}".format(trip_stop_times_df.dtypes))
-        # trip_stop_times_df.dtypes:
-        # trip_id                 object
-        # arrival_time            object
-        # departure_time          object
-        # stop_id                 object
-        # stop_sequence            int64
-        # pickup_type             object
-        # drop_off_type           object
-        # stop_name               object
-        # stop_lat               float64
-        # stop_lon               float64
-        # zone_id                 object
-        # agency_raw_name         object
-        # stop_code               object
-        # location_type          float64
-        # parent_station          object
-        # stop_desc               object
-        # stop_url                object
-        # stop_timezone           object
-        # wheelchair_boarding    float64
-        # platform_code           object
-        # position                object
-        # direction               object
-        # * used by routes        object
-        # osm_node_id             object
-        # shst_node_id            object
-        # model_node_id           object
-
-        trip_stop_times_df["model_node_id"] = pd.to_numeric(trip_stop_times_df["model_node_id"]).astype(int)
-        trip_node_df["shape_model_node_id"] = pd.to_numeric(trip_node_df["shape_model_node_id"]).astype(int)
-
-        stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
-        trip_node_list = trip_node_df["shape_model_node_id"].tolist()
-
-        # sometimes GTFS `stop_sequence` does not start with 1, e.g. SFMTA light rails
-        trip_stop_times_df["internal_stop_sequence"] = range(1, 1+len(trip_stop_times_df))
-        # sometimes GTFS `departure_time` is not recorded for every stop, e.g. VTA light rails
-        trip_stop_times_df["departure_time"].fillna(method = "ffill", inplace = True)
-        trip_stop_times_df["departure_time"].fillna(0, inplace = True)
-        trip_stop_times_df["NNTIME"] = trip_stop_times_df["departure_time"].diff() / 60
-        # CUBE NNTIME takes 2 decimals
-        trip_stop_times_df["NNTIME"] = trip_stop_times_df["NNTIME"].round(2)
-        trip_stop_times_df["NNTIME"].fillna(-1, inplace = True)
-
-        # ACCESS
-        def _access_type(x):
-            if (x.pickup_type in [1, "1"]):
-                return 2
-            elif (x.drop_off_type in [1, "1"]):
-                return 1
-            else:
-                return 0
-
-        trip_stop_times_df["ACCESS"] = trip_stop_times_df.apply(lambda x: _access_type(x), axis = 1)
-
-        # this is the same as shape_gtfs_to_cube but we'll build up a list of dicts with shape/stop information
-        shape_stop_dict_list = []
-
-        # node list
-        node_list_str = ""
-        stop_seq = 0
-        for nodeIdx in range(len(trip_node_list)):
-            if trip_node_list[nodeIdx] in stop_node_id_list:
-                # in case a route stops at a stop more than once, e.g. circular route
-                stop_seq += 1
-
-                if (add_nntime) & (stop_seq > 1):
-                    if len(trip_stop_times_df[
-                        trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]]) > 1:
-                        nntime_v = trip_stop_times_df.loc[
-                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]) &
-                            (trip_stop_times_df["internal_stop_sequence"] == stop_seq),
-                            "NNTIME"].iloc[0]
-                    else:
-                        nntime_v = trip_stop_times_df.loc[
-                            (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"NNTIME"].iloc[0]
-
-                    if nntime_v > 0:
-                        nntime = ", NNTIME=%s" % (nntime_v)
-                    else:
-                        nntime = ""
-                else:
-                    nntime = ""
-
-                access_v = trip_stop_times_df.loc[
-                    (trip_stop_times_df["model_node_id"] == trip_node_list[nodeIdx]),"ACCESS"].iloc[0]
-                if access_v > 0:
-                    access = ", ACCESS=%s" % (access_v)
-                else:
-                    access = ""
-
-                node_list_str += "\n %s%s%s" % (trip_node_list[nodeIdx], nntime, access)
-                # add this stop to shape_stop_df 
-                node_dict = trip_node_df.iloc[nodeIdx].to_dict()
-                node_dict['trip_id'      ] = trip_id
-                node_dict['is_stop'      ] = True
-                node_dict['access'       ] = access_v
-                node_dict['stop_sequence'] = stop_seq
-                shape_stop_dict_list.append(node_dict)
-
-                if nodeIdx < (len(trip_node_list) - 1):
-                    node_list_str += ","
-                    if ((add_nntime) & (stop_seq > 1) & (len(nntime) > 0)) | (len(access) > 0):
-                        node_list_str += " N="
-            else:
-                node_list_str += "\n -%s" % (trip_node_list[nodeIdx])
-                # add this stop to shape_stop_df 
-                node_dict = trip_node_df.iloc[nodeIdx].to_dict()
-                node_dict['trip_id'] = trip_id
-                node_dict['is_stop'] = False
-                shape_stop_dict_list.append(node_dict)
-                if nodeIdx < (len(trip_node_list) - 1):
-                    node_list_str += ","
-
-        # remove NNTIME = 0
-        node_list_str = node_list_str.replace(" NNTIME=0.0, N=", "")
-        node_list_str = node_list_str.replace(" NNTIME=0.0,", "")
-
-        # print("node_list_str: {}".format(node_list_str))
-        return shape_stop_dict_list
-
     def shape_gtfs_to_cube(self, row, add_nntime = False):
         """
         Creates a list of nodes that for the route in appropriate
@@ -1370,19 +1129,58 @@ class StandardTransit(object):
             for a route in cube format.
 
         """
+        agency_raw_name = row.agency_raw_name
+        shape_id = row.shape_id
+        trip_id = row.trip_id
+
         trip_stop_times_df = self.feed.stop_times.copy()
+
+        if 'agency_raw_name' in trip_stop_times_df.columns:
+            trip_stop_times_df.drop('agency_raw_name', axis = 1, inplace = True)
+
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df,
+            self.feed.trips[['trip_id', 'agency_raw_name']],
+            how = 'left',
+            on = ['trip_id']
+        )
+
         trip_stop_times_df = trip_stop_times_df[
-            trip_stop_times_df.trip_id == row.trip_id
+            (trip_stop_times_df.trip_id == row.trip_id) &
+            (trip_stop_times_df.agency_raw_name == agency_raw_name)
         ]
 
         trip_node_df = self.feed.shapes.copy()
-        trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
+        if 'agency_raw_name' in trip_node_df.columns:
+            trip_node_df.drop('agency_raw_name', axis = 1, inplace = True)
+
+        trip_node_df = pd.merge(
+            trip_node_df,
+            self.feed.trips[['shape_id', 'agency_raw_name']].drop_duplicates(),
+            how = 'left',
+            on = ['shape_id']
+        )
+
+        trip_node_df = trip_node_df[
+            (trip_node_df.shape_id == shape_id) &
+            (trip_node_df.agency_raw_name == agency_raw_name)
+        ]
+
         trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
         if 'trip_id' in self.feed.stops.columns:
-            trip_stop_times_df = pd.merge(
-                trip_stop_times_df, self.feed.stops, how="left", on=['trip_id', "stop_id"]
-            )
+            stops_df = self.feed.stops.copy()
+            if agency_raw_name != 'sjrtd_2015_0127':
+                stops_df = stops_df[stops_df.agency_raw_name != 'sjrtd_2015_0127']
+                trip_stop_times_df = pd.merge(
+                    trip_stop_times_df, stops_df.drop('trip_id', axis = 1), how="left", on=["stop_id"]
+                )
+            else:
+                stops_df = stops_df[stops_df.agency_raw_name == 'sjrtd_2015_0127']
+                stops_df['trip_id'] = stops_df['trip_id'].astype(float).astype(int).astype(str)
+                trip_stop_times_df = pd.merge(
+                    trip_stop_times_df, stops_df, how="left", on=['agency_raw_name', 'trip_id',"stop_id"]
+                )
         else:
             trip_stop_times_df = pd.merge(
                 trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
@@ -1484,7 +1282,6 @@ class StandardTransit(object):
         s += "\n MODE={},".format(row.MODE)
         s += "\n ONEWAY={},".format(row.ONEWAY)
         s += "\n OPERATOR={},".format(row.OPERATOR)
-        s += '\n SHORTNAME="{}",'.format(row.SHORTNAME)
         s += "\n NODES={}".format(self.shape_gtfs_to_cube(row))
 
         return s
@@ -1620,8 +1417,6 @@ class StandardTransit(object):
         trip_df = pd.merge(trip_df, self.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
 
         # identify express bus
-        # moved this here from top since this StandardTransit shouldn't depend on mtc...
-        from .mtc import _is_express_bus
         trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
         trip_df.drop("agency_name", axis = 1 , inplace = True)
 

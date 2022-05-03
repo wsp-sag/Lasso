@@ -316,9 +316,8 @@ class Parameters:
             ::
                 r"tests/scratch/make_complete_network_from_fixed_width_file.s
 
-        zones (int): Number of travel analysis zones in the network. Default:
-            ::
-                3061
+
+
     """
 
     def __init__(self, **kwargs):
@@ -437,6 +436,7 @@ class Parameters:
             'Napa':7,
             'Sonoma':8,
             'Marin':9,
+            'San Joaquin':11,
             'External':10,
             }
 
@@ -791,6 +791,10 @@ class Parameters:
             "bike_facility",
             "mrcc_id",
             "ROUTE_SYS",  # mrcc functional class
+            ####
+            #bi-county
+            "nmt2010",
+            "nmt2020",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -898,6 +902,10 @@ class Parameters:
             "tollbooth",
             "farezone",
             "tap_id",
+            ####
+            #bi-county
+            "nmt2010",
+            "nmt2020",
         ]
 
         self.float_col = [
@@ -921,7 +929,5 @@ class Parameters:
             "access_NT",
             "ROUTE_SYS",
         ]
-
-        self.zones = 3061
 
         self.__dict__.update(kwargs)

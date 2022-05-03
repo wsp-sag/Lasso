@@ -892,30 +892,7 @@ class Project(object):
                 on=["A", "B"],
             )
 
-        link_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
-        ].copy()
-        link_changes_df['A_B'] = link_changes_df['A'].astype(str) + '_' + link_changes_df['B'].astype(str)
-
-        link_additions_df = roadway_changes[
-            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "A")
-        ].copy()
-
-        if len(link_additions_df) > 0:
-            link_additions_df['A_B'] = link_additions_df['A'].astype(str) + '_' + link_additions_df['B'].astype(str)
-
-            link_changes_df = link_changes_df[
-                ~(link_changes_df['A_B'].isin(link_additions_df['A_B'].tolist()))
-            ].copy()
-
-        link_merge_df = pd.merge(
-            link_changes_df[["A", "B"]].astype(str),
-            base_roadway_network.links_df[["A", "B", "model_link_id"]].astype(str),
-            how="left",
-            on=["A", "B"],
-        )
-
-        missing_links = link_merge_df.loc[link_merge_df["model_link_id"].isna()]
+            missing_links = link_merge_df.loc[link_merge_df["model_link_id"].isna()]
 
             if missing_links.shape[0]:
                 msg = "Network missing the following AB links:\n{}".format(missing_links)
@@ -924,30 +901,22 @@ class Project(object):
 
         # for links "N"  that change "C",
         # find locations where there isn't a base roadway node
-        node_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
-        ].copy()
-        
-        node_additions_df = roadway_changes[
-            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "A")
-        ].copy()
+        if len(roadway_node_changes) > 0:
+            node_changes_df = roadway_node_changes[
+                roadway_node_changes["operation_final"] == "C"
+            ].copy()
 
-        if len(node_additions_df) > 0:
-            node_changes_df = node_changes_df[
-                ~(node_changes_df['model_node_id'].isin(node_additions_df['model_node_id'].tolist()))
-            ]
-
-        node_merge_df = pd.merge(
-            node_changes_df[["model_node_id"]],
-            base_roadway_network.nodes_df[["model_node_id", "geometry"]],
-            how="left",
-            on=["model_node_id"],
-        )
-        missing_nodes = node_merge_df.loc[node_merge_df["geometry"].isna()]
-        if missing_nodes.shape[0]:
-            msg = "Network missing the following nodes:\n{}".format(missing_nodes)
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+            node_merge_df = pd.merge(
+                node_changes_df[["model_node_id"]],
+                base_roadway_network.nodes_df[["model_node_id", "geometry"]],
+                how="left",
+                on=["model_node_id"],
+            )
+            missing_nodes = node_merge_df.loc[node_merge_df["geometry"].isna()]
+            if missing_nodes.shape[0]:
+                msg = "Network missing the following nodes:\n{}".format(missing_nodes)
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
 
     def evaluate_changes(self):
         """
@@ -962,11 +931,18 @@ class Project(object):
         if (not self.roadway_link_changes.empty) | (not self.roadway_node_changes.empty):
             highway_change_list = self.add_highway_changes()
 
-        if (not self.transit_changes.empty)  or (
-            self.base_cube_transit_network is not None
-            and self.build_cube_transit_network is not None
-        ):
-            transit_change_list = self.add_transit_changes()
+        if self.transit_changes is not None:
+            if (not self.transit_changes.empty)  or (
+                self.base_cube_transit_network is not None
+                and self.build_cube_transit_network is not None
+            ):
+                transit_change_list = self.add_transit_changes()
+
+        if (
+                self.base_cube_transit_network is not None
+                and self.build_cube_transit_network is not None
+            ):
+                transit_change_list = self.add_transit_changes()
 
         self.card_data = {
             "project": self.project_name,
@@ -1071,7 +1047,6 @@ class Project(object):
             """"""
             WranglerLogger.debug("Processing link additions")
             cube_add_df = link_changes_df[link_changes_df["operation_final"] == "A"]
-
             if len(cube_add_df) == 0:
                 WranglerLogger.debug("No link additions processed")
                 return {}
@@ -1355,10 +1330,6 @@ class Project(object):
                 log_df["operation_final"] = log_df.apply(lambda x: Project._final_op(x), axis=1)
 
             return log_df[changeable_col + ["operation_final"]]
-
-        delete_link_dict = None
-        add_link_dict = None
-        change_link_dict_list = []
 
         delete_link_dict = None
         add_link_dict = None
