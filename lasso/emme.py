@@ -48,11 +48,11 @@ def create_emme_network(
     nodes_df: Optional[GeoDataFrame]=None,
     name: Optional[str]="",
     path: Optional[str]="",
-    write_drive_network: bool = True,
+    write_drive_network: bool = False,
     write_taz_drive_network: bool = False,
     write_maz_drive_network: bool = False,
-    write_maz_active_modes_network: bool = True,
-    write_tap_transit_network: bool = True,
+    write_maz_active_modes_network: bool = False,
+    write_tap_transit_network: bool = False,
     write_taz_transit_network: bool = True,
     parameters: Union[Parameters, dict] = {},
     polygon_file_to_split_active_modes_network: Optional[str] = None,
@@ -132,6 +132,10 @@ def create_emme_network(
     )
 
     WranglerLogger.info("Make sure the CRS of input network is correct")
+
+    # problem: reprojection causes inf in lat/long when converting from WGS 4326
+    links_df.crs = CRS("epsg:4269")  
+    nodes_df.crs = CRS("epsg:4269")
     links_df = links_df.to_crs(parameters.output_proj)
     nodes_df = nodes_df.to_crs(parameters.output_proj)
 
@@ -687,7 +691,7 @@ def prepare_table_for_taz_transit_network(
 
     rail_nodes_id_list = transit_network.feed.stops[
         transit_network.feed.stops.stop_id.isin(rail_stops_df.stop_id.tolist())
-    ]['model_node_id'].astype(int).tolist()
+    ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
 
     ###############
     # temporary fix
@@ -793,14 +797,266 @@ def prepare_table_for_taz_transit_network(
         links_df = pd.concat([links_df, new_link_gdf], sort = False, ignore_index = True)
         
         links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+
+    ### PNR edits -- create PNR dummy links, pnr/knr/walk connectors, transfer links
+
+    ### 1. create PNR dummy links
+    # read pnr parking location
+    pnr_nodes_df = pd.read_csv(parameters.pnr_node_location)[['Zone','Station_Type','X','Y','Vehicle_Cap','Headway']]
+    pnr_nodes_df = gpd.GeoDataFrame(
+        pnr_nodes_df, 
+        geometry=gpd.points_from_xy(pnr_nodes_df['X'], pnr_nodes_df['Y']),
+        crs=parameters.output_proj)
+    pnr_nodes_df = pnr_nodes_df.to_crs(parameters.output_proj)
+    pnr_nodes_df["X"] = pnr_nodes_df["geometry"].apply(lambda g: g.x)
+    pnr_nodes_df["Y"] = pnr_nodes_df["geometry"].apply(lambda g: g.y)
+
+    # reformat pnr_nodes_df, add missing columns
+    for c in nodes_df.columns:
+        if c not in pnr_nodes_df.columns:
+            if c not in ['county']:
+                pnr_nodes_df[c] = 0
+            else:
+                pnr_nodes_df[c] = ''
+                
+    # assign a node id "N" to pnr parking node
+    pnr_nodes_df['N'] = pnr_nodes_df['Zone']+nodes_df.N.max()
+
+    # add pnr parking nodes to node_df
+    nodes_df = pd.concat([nodes_df, pnr_nodes_df.drop(['Zone','Station_Type','Vehicle_Cap','Headway'], axis=1)], 
+        sort = False, 
+        ignore_index = True)
+
+    # pnr vehicle type, will be added to the vehicle_table later
+    pnr_vehicle_table = []
+    for i in pnr_nodes_df.Vehicle_Cap.unique():
+        mode_dict = {}
+        mode_dict['id'] = 500+i
+        mode_dict['mode'] = "p"
+        mode_dict['total_capacity'] = i+1
+        mode_dict['seated_capacity'] = i
+        mode_dict['auto_equivalent'] = 2.5 
+        pnr_vehicle_table.append(mode_dict)
+
+    # select rail stops by route type, save to separate lists
+    pnr_rail_routes_df = transit_network.feed.routes[
+        transit_network.feed.routes.route_type.isin([0,1,2,4])
+    ].copy() # 0-light rail, 1-heavey rail, 2-commuter rail, 4-ferry
+
+    pnr_rail_trips_df = transit_network.feed.trips.copy()
+    pnr_rail_trips_df = pnr_rail_trips_df.merge(pnr_rail_routes_df[['route_id','route_type']], on='route_id', how='inner')
+
+    pnr_rail_stops_df = transit_network.feed.stop_times.copy()
+    pnr_rail_stops_df =  pnr_rail_stops_df.merge(pnr_rail_trips_df[['trip_id','route_type']], on='trip_id', how='inner')
+
+    lr_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df[pnr_rail_stops_df['route_type']==0].stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
+
+    hr_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df[pnr_rail_stops_df['route_type']==1].stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
+
+    cr_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df[pnr_rail_stops_df['route_type']==2].stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
+
+    fy_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df[pnr_rail_stops_df['route_type']==4].stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
+
+    pnr_rail_nodes_df = nodes_df.copy()
+    pnr_rail_nodes_df = pnr_rail_nodes_df.to_crs(CRS('epsg:26915'))
+    pnr_rail_nodes_df['X'] = pnr_rail_nodes_df.geometry.map(lambda g:g.x)
+    pnr_rail_nodes_df['Y'] = pnr_rail_nodes_df.geometry.map(lambda g:g.y)
+
+    lr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(lr_nodes_id_list)]
+    hr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(hr_nodes_id_list)]
+    cr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(cr_nodes_id_list)]
+    fy_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(fy_nodes_id_list)]
+
+    # for each pnr parking node, search for its nearest rail stop, 
+    # save the parking node id and rail stop id, create a two-way dummy link between them
+    lr_tree = cKDTree(lr_rail_nodes_df[['X', 'Y']].values)
+    hr_tree = cKDTree(hr_rail_nodes_df[['X', 'Y']].values)
+    cr_tree = cKDTree(cr_rail_nodes_df[['X', 'Y']].values)
+    fy_tree = cKDTree(fy_rail_nodes_df[['X', 'Y']].values)
+
+    pnr_nodes_df = pnr_nodes_df.to_crs(CRS('epsg:26915'))
+    pnr_nodes_df['X'] = pnr_nodes_df['geometry'].apply(lambda p: p.x)
+    pnr_nodes_df['Y'] = pnr_nodes_df['geometry'].apply(lambda p: p.y)
+
+    for index, row in pnr_nodes_df.iterrows():
+        point = row[['X', 'Y']].values
+
+        if row['Station_Type'] == 'L':
+            dd, ii = lr_tree.query(point, k = 1)
+            if (len(lr_rail_nodes_df)>0) & (dd<=1609.34*parameters.walk_buffer):
+                pnr_nodes_df.loc[index,'A'] = lr_rail_nodes_df.iloc[ii].N 
+                    
+        elif row['Station_Type'] == 'H':
+            dd, ii = hr_tree.query(point, k = 1)  
+            if (len(hr_rail_nodes_df)>0) & (dd<=1609.34*parameters.walk_buffer):
+                pnr_nodes_df.loc[index,'A'] = hr_rail_nodes_df.iloc[ii].N  
+            
+        elif row['Station_Type'] == 'C':
+            dd, ii = cr_tree.query(point, k = 1)
+            if (len(cr_rail_nodes_df)>0) & (dd<=1609.34*parameters.walk_buffer):
+                pnr_nodes_df.loc[index,'A'] = cr_rail_nodes_df.iloc[ii].N 
+            
+        elif row['Station_Type'] == 'F':
+            dd, ii = fy_tree.query(point, k = 1) 
+            if (len(fy_rail_nodes_df)>0) & (dd<=1609.34*parameters.walk_buffer):
+                pnr_nodes_df.loc[index,'A'] = fy_rail_nodes_df.iloc[ii].N 
+            
+    if len(pnr_nodes_df)>0 and ('A' in pnr_nodes_df.columns): #'A' is the nearest rail stop
+        pnr_nodes_df = pnr_nodes_df[pnr_nodes_df['A'].notna()]
+        pnr_dummy_link_gdf = pnr_nodes_df[['A', 'N']].copy()
+        pnr_dummy_link_gdf.rename(columns = {'N' : 'B'}, inplace = True)
         
+    # add the opposite_direction
+        pnr_dummy_link_gdf = add_opposite_direction_to_link(pnr_dummy_link_gdf, nodes_df=nodes_df, links_df=links_df)
+
+        # update pnr dummy link attributes
+        pnr_dummy_link_gdf['lanes_EA'] = 1
+        pnr_dummy_link_gdf['lanes_AM'] = 1
+        pnr_dummy_link_gdf['lanes_MD'] = 1
+        pnr_dummy_link_gdf['lanes_PM'] = 1
+        pnr_dummy_link_gdf['lanes_EV'] = 1
+        pnr_dummy_link_gdf['ft'] = 99
+        pnr_dummy_link_gdf['distance'] = 0.02
+        pnr_dummy_link_gdf["geometry_wkt"] = pnr_dummy_link_gdf["geometry"].apply(lambda x: x.wkt)
+        pnr_dummy_link_gdf['drive_access'] = 4
+
+        # add pnr dummy links to link_df
+        links_df = pd.concat([links_df, pnr_dummy_link_gdf], 
+            sort = False, 
+            ignore_index = True)
+        links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+    else:
+        pnr_dummy_link_gdf = None
+
+
+
+    ### 2. create PNR/KNR/walk connectors
+    # select centroids
+    centroids_df = nodes_df[nodes_df.N.isin(parameters.taz_N_list)]
+    centroids_df = centroids_df.to_crs(CRS('epsg:26915')) 
+
+    # for each centroid, draw a buffer,
+    # connect the centroid to all pnr parking nodes that fall in the buffer
+    # since we've already created the dummy pnr links,
+    # the pnr connector will be connected to the parking node
+    # while the knr connector will be connected to the pnr rail station
+    centroid_node_id = []
+    pnr_node_id = []
+    knr_node_id = []
+
+    for index, row in centroids_df.iterrows():
+        buffer = row.geometry.buffer(parameters.drive_buffer*1609.34)
+        pnr_in_buffer = pnr_nodes_df[pnr_nodes_df.geometry.within(buffer)]
+        
+        if len(pnr_in_buffer)>0 and ('A' in pnr_nodes_df.columns): #'A' is the nearest rail stop
+            for i in range(len(pnr_in_buffer)):
+                centroid_node_id.append(row.N)
+                pnr_node_id.append(pnr_in_buffer.iloc[i].N) # pnr connector will be connected to the parking node
+                knr_node_id.append(pnr_in_buffer.iloc[i].A) # knr connector will be connected to the pnr rail station
+
+    # update pnr dummy link attributes
+    # pnr connector: drive_access = 2
+    # knr connector: drive_access = 3
+    # might need to create a new attribute here ??
+    if len(centroid_node_id)>0 and len(pnr_node_id)>0 and len(knr_node_id)>0:
+        pnr_connector_gdf = pd.DataFrame(list(zip(centroid_node_id, pnr_node_id)), columns=['A','B'])
+        pnr_connector_gdf = add_opposite_direction_to_link(pnr_connector_gdf, nodes_df=nodes_df, links_df=links_df)
+        pnr_connector_gdf['drive_access'] = 2
+        pnr_connector_gdf["geometry_wkt"] = pnr_connector_gdf["geometry"].apply(lambda x: x.wkt)
+        
+        knr_connector_gdf = pd.DataFrame(list(zip(centroid_node_id, knr_node_id)), columns=['A','B'])
+        knr_connector_gdf = add_opposite_direction_to_link(knr_connector_gdf, nodes_df=nodes_df, links_df=links_df) 
+        knr_connector_gdf['drive_access'] = 3
+        knr_connector_gdf["geometry_wkt"] = knr_connector_gdf["geometry"].apply(lambda x: x.wkt)
+        
+        # add pnr, knr connectors to connectors_df
+        connectors_df = pd.concat([pnr_connector_gdf, knr_connector_gdf], 
+            sort = False, 
+            ignore_index = True)
+        connectors_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+
+    # select all transit stops
+    transit_nodes_id_list = transit_network.feed.stops['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
+    transit_nodes_df = nodes_df[nodes_df.N.isin(transit_nodes_id_list)].copy()
+    transit_nodes_df = transit_nodes_df.to_crs(CRS('epsg:26915'))
+    # for each centroid, draw a buffer,
+    # connect the centroid to all transit stops that fall in the buffer
+    centroid_node_id = []
+    walk_node_id = []
+
+    for index, row in centroids_df.iterrows():
+        buffer = row.geometry.buffer(parameters.walk_buffer*1609.24)
+        walk_in_buffer = transit_nodes_df[transit_nodes_df.geometry.within(buffer)]
+        
+        for i in range(len(walk_in_buffer)):
+        
+            centroid_node_id.append(row.N)
+            walk_node_id.append(walk_in_buffer.iloc[i].N)
+
+    # update pnr dummy link attributes       
+    if len(centroid_node_id)>0 and len(walk_node_id)>0:
+        walk_connector_gdf = pd.DataFrame(list(zip(centroid_node_id, walk_node_id)), columns=['A','B'])
+        walk_connector_gdf = add_opposite_direction_to_link(walk_connector_gdf, nodes_df=nodes_df, links_df=links_df)
+        walk_connector_gdf['walk_access'] = 1
+        walk_connector_gdf["geometry_wkt"] = walk_connector_gdf["geometry"].apply(lambda x: x.wkt)
+        
+        # add walk connectors to connectors_df
+        connectors_df = pd.concat([connectors_df, walk_connector_gdf], 
+            sort = False, 
+            ignore_index = True)
+        connectors_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+
+
+
+
+    ### 3. create transfer links
+    # for each transit stop, draw a buffer,
+    # connect the transit stop to all other transit stops that fall in the buffer
+    A_node_id = []
+    B_node_id = []
+
+    transit_rail_nodes_df = transit_nodes_df[transit_nodes_df['agency_raw_name'].notnull()].copy() # create transfer links among rail stations. update it later
+    for index, row in transit_rail_nodes_df.iterrows():
+        buffer = row.geometry.buffer(parameters.transfer_buffer*1609.24)
+        candidate = transit_rail_nodes_df[~transit_rail_nodes_df.index.isin([index])].copy()
+        station_in_buffer = candidate[candidate.geometry.within(buffer)]
+        
+        if len(station_in_buffer)>0:
+            for i in range(len(station_in_buffer)):
+                A_node_id.append(row.N)
+                B_node_id.append(station_in_buffer.iloc[i].N)
+                
+    if len(A_node_id)>0 and len(B_node_id)>0:
+        transfer_gdf = pd.DataFrame(list(zip(A_node_id, B_node_id)), columns=['A','B'])
+        transfer_gdf = add_opposite_direction_to_link(transfer_gdf, nodes_df=nodes_df, links_df=links_df)
+        transfer_gdf['walk_access'] = 1
+        transfer_gdf["geometry_wkt"] = transfer_gdf["geometry"].apply(lambda x: x.wkt)   
+        transfer_gdf.drop_duplicates(subset = ['A', 'B'], inplace = True)
+        
+        # add transfer links to link_df
+        links_df = pd.concat([links_df, transfer_gdf], 
+            sort = False, 
+            ignore_index = True)
+        links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+
+
     # /temporary fix
     ###############
 
     transit_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
         ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
-        ((links_df.drive_access == 1) | (links_df.bus_only == 1) | (links_df.rail_only == 1))
+        ((links_df.drive_access == 1) | (links_df.bus_only == 1) | (links_df.rail_only == 1) | 
+        (links_df.A.isin(pnr_nodes_df.N.tolist())) | (links_df.B.isin(pnr_nodes_df.N.tolist()))  # add pnr dummy links
+        )
     ].copy()
 
     model_tables["link_table"] = transit_links_df.to_dict('records')
@@ -812,6 +1068,8 @@ def prepare_table_for_taz_transit_network(
 
     model_tables["node_table"] = transit_nodes_df.to_dict('records')
 
+    model_tables["connector_table"] = connectors_df.to_dict('records')
+
     # read vehicle type table
     veh_cap_crosswalk = pd.read_csv(parameters.veh_cap_crosswalk_file)
 
@@ -822,6 +1080,59 @@ def prepare_table_for_taz_transit_network(
         output_dir = output_dir
         )
 
+    ### PNR edits -- add PNR transit routes
+    # create line_id
+    # add vechile_cap, headway, and tod
+    if pnr_dummy_link_gdf is not None:
+        pnr_trips_ref = pnr_nodes_df[['Zone','Vehicle_Cap','Headway','N']].copy()
+        pnr_trips_ref['vehicle_type'] = pnr_trips_ref['Vehicle_Cap']+500
+
+        pnr_trips_df = pnr_dummy_link_gdf.copy()
+
+        for index, row in pnr_trips_df.iterrows():
+
+            if row['A'] in (pnr_trips_ref.N.to_list()):
+                pnr_trips_df.loc[index,'N_ref'] = row['A']
+            
+            if row['B'] in (pnr_trips_ref.N.to_list()):
+                pnr_trips_df.loc[index,'N_ref'] = row['B']
+                
+            pnr_trips_df.loc[index,'line_id'] = f'pnr_dummy_route_{index}'
+
+        pnr_trips_df = pnr_trips_df.merge(pnr_trips_ref[['N','vehicle_type','Headway']], left_on='N_ref', right_on='N', how='left')
+        pnr_trips_df['headway_minutes'] = pnr_trips_df['Headway']
+        pnr_trips_df['tod_name'] = 'EA'
+        pnr_trips_df = pnr_trips_df[['line_id','headway_minutes','vehicle_type','tod_name', 'A','B']]
+
+        # add routes in all time periods
+        for index, row in pnr_trips_df.iterrows():
+            for t in ['AM', 'MD', 'PM', 'EV']:
+                row['tod_name'] = t
+                pnr_trips_df = pnr_trips_df.append([row])
+
+        # update line_id
+        pnr_trips_df["line_id"] = pnr_trips_df.apply(
+            lambda x: str(x.line_id)
+            + "_"
+            + str(x.tod_name),
+            axis=1,
+        )
+
+        pnr_trips_df["TM2_mode"]=1
+        pnr_trips_df["vehtype_num"]=1
+        pnr_trips_df["faresystem"]=99
+
+        for c in trips_df.columns:
+            if c not in pnr_trips_df.columns:
+                    pnr_trips_df[c] = ''
+
+        # add dummy transit routes to trips_df
+        trips_df = pd.concat([trips_df, pnr_trips_df.drop(['A','B'], axis=1)], 
+            sort = False, 
+            ignore_index = True)
+    else:
+        pnr_trips_df = None
+
     itinerary_df=pd.DataFrame()
     WranglerLogger.info("Creating itinerary table for each transit trip")
     for index, row in trips_df.iterrows():
@@ -831,13 +1142,49 @@ def prepare_table_for_taz_transit_network(
             trip_row=row
         )
         itinerary_df = itinerary_df.append(trip_itinerary_df, sort =False, ignore_index=True)
+   
+   ### PNR edits -- add PNR itinerary
+    if pnr_trips_df is not None:
+        # create itinerary for pnr dummy transit routes
+        line_id = []
+        node_id = []
+        stop_order = []
+
+        for index, row in pnr_trips_df.iterrows():
+            line_id.append(row['line_id'])
+            node_id.append(row['A'])
+            stop_order.append(1)
+            
+            line_id.append(row['line_id'])
+            node_id.append(row['B'])
+            stop_order.append(2)
+
+        # create itinerary dataframe
+        pnr_trip_node_dict = {'line_id': line_id, 'node_id': node_id, 'stop_order': stop_order} 
+        pnr_trip_node_df = pd.DataFrame(pnr_trip_node_dict)
+
+        # update attribute values
+        pnr_trip_node_df['allow_alightings'] = 1
+        pnr_trip_node_df['allow_boardings'] = 1
+        pnr_trip_node_df['time_minutes'] = 0
+
+        for c in itinerary_df.columns:
+            if c not in pnr_trip_node_df.columns:
+                    pnr_trip_node_df[c] = ''
+                    
+        # add dummy transit itinerary to itinerary_df
+        itinerary_df = pd.concat([itinerary_df, pnr_trip_node_df], 
+            sort = False, 
+            ignore_index = True)
+
+
     WranglerLogger.info("Finished creating itinerary table for each transit trip")
 
     model_tables["line_table"] = trips_df.to_dict('records')
 
     model_tables['itinerary_table'] = itinerary_df.to_dict('records')
 
-    model_tables["vehicle_table"] = veh_cap_crosswalk.to_dict('records')
+    # model_tables["vehicle_table"] = veh_cap_crosswalk.to_dict('records')
     model_tables["vehicle_table"] = [
         {
             "id": 1,
@@ -846,7 +1193,44 @@ def prepare_table_for_taz_transit_network(
             "seated_capacity": 35,
             "auto_equivalent": 2.5
         },
+        {
+            "id": 2,
+            "mode": "x",
+            "total_capacity": 90,
+            "seated_capacity": 45,
+            "auto_equivalent": 2.5
+        },
+        {
+            "id": 3,
+            "mode": "l",
+            "total_capacity": 800,
+            "seated_capacity": 224,
+            "auto_equivalent": 2.5
+        },
+        {
+            "id": 4,
+            "mode": "h",
+            "total_capacity": 2000,
+            "seated_capacity": 560,
+            "auto_equivalent": 2.5
+        },
+        {
+            "id": 5,
+            "mode": "r",
+            "total_capacity": 750,
+            "seated_capacity": 700,
+            "auto_equivalent": 2.5
+        },
+        {
+            "id": 6,
+            "mode": "f",
+            "total_capacity": 50,
+            "seated_capacity": 35,
+            "auto_equivalent": 2.5
+        },
     ]
+
+    model_tables["vehicle_table"].extend(pnr_vehicle_table)  # add pnr vehicle type to vehicle_table
 
     return model_tables
 
@@ -910,9 +1294,10 @@ def route_properties_gtfs_to_emme(
     """
     Add information from: routes, frequencies, and routetype to trips_df
     """
-    trip_df = pd.merge(trip_df, transit_network.feed.routes.drop("agency_raw_name", axis = 1), how="left", on="route_id")
+    # trip_df = pd.merge(trip_df, transit_network.feed.routes.drop("agency_raw_name", axis = 1), how="left", on="route_id")
+    trip_df = pd.merge(trip_df, transit_network.feed.routes, how="left", on=["route_id","agency_raw_name"]) # in case there are duplicate route_ids
 
-    trip_df = pd.merge(trip_df, transit_network.feed.frequencies, how="left", on="trip_id")
+    trip_df = pd.merge(trip_df, transit_network.feed.frequencies.drop(["direction_id",'trip_num','tod'], axis = 1), how="left", on=["trip_id",'agency_raw_name'])  # duplicate "direction_id", 'trip_num'
 
     trip_df["tod"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period, as_str = False)
     trip_df["tod_name"] = trip_df.start_time.apply(transit_network.time_to_cube_time_period)
@@ -940,16 +1325,17 @@ def route_properties_gtfs_to_emme(
 
     # identify express bus
     trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
-    trip_df.drop("agency_name", axis = 1 , inplace = True)
+    # trip_df.drop("agency_name", axis = 1 , inplace = True)
 
     trip_df = pd.merge(
         trip_df,
         mode_crosswalk.drop("agency_id", axis = 1),
         how = "left",
-        on = ["agency_raw_name", "route_type", "is_express_bus"]
+        on = ["agency_raw_name", "route_type", "is_express_bus",'agency_name'] # add 'agency name'
     )
 
-    trip_df['TM2_mode'].fillna(11, inplace = True)
+    # trip_df['TM2_mode'].fillna(11, inplace = True)
+    trip_df['TM2_mode'] = trip_df['TM2_mode'].fillna(11)
     trip_df['mode'] = trip_df['TM2_mode'].astype(int)
 
     trip_df["agency_id"].fillna("", inplace = True)
@@ -957,7 +1343,8 @@ def route_properties_gtfs_to_emme(
     trip_df["line_id"] = trip_df.apply(
         lambda x: str(x.TM2_operator)
         + "_"
-        + str(x.route_id)
+        # + str(x.route_id)
+        + str(x.service_id)[:8] # some route_ids are too long which will result in duplcate line_ids
         + "_"
         + x.tod_name
         + "_"
@@ -969,7 +1356,6 @@ def route_properties_gtfs_to_emme(
     )
 
     trip_df["line_id"] = trip_df["line_id"].str.slice(stop = 28)
-    
     # faresystem
     agency_fare_dict = faresystem_crosswalk[
         (faresystem_crosswalk.route_id.isnull()) |
@@ -995,13 +1381,22 @@ def route_properties_gtfs_to_emme(
     
     # special vehicle types
     trip_df["VEHTYPE"] = trip_df.apply(lambda x: _special_vehicle_type(x), axis = 1)
-    trip_df["vehicle_type"] = 1
+
+    trip_df["vehicle_type"] = 1 # bus by default
+    trip_df.loc[trip_df["is_express_bus"]==1, "vehicle_type"] = 2
+    trip_df.loc[trip_df["route_type"]==0, "vehicle_type"] = 3  # route_type: 0-light rail, 1-heavey rail, 2-commuter rail, 4-ferry
+    trip_df.loc[trip_df["route_type"]==1, "vehicle_type"] = 4
+    trip_df.loc[trip_df["route_type"]==2, "vehicle_type"] = 5
+    trip_df.loc[trip_df["route_type"]==4, "vehicle_type"] = 6
+    
     # get vehicle capacity
     trip_df = pd.merge(trip_df, veh_cap_crosswalk, how = "left", on = "VEHTYPE")
+    trip_df["vehtype_num"] = 1 # check it later
 
     trip_df['USERA1'] = trip_df.apply(lambda row: row.agency_id if row.agency_id != "" else row.agency_raw_name, axis = 1)
     trip_df['USERA2'] = trip_df.apply(lambda row: row.TM2_line_haul_name, axis = 1)
-    trip_df['OPERATOR'] = trip_df.apply(lambda row: int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99, axis = 1)
+    # trip_df['OPERATOR'] = trip_df.apply(lambda row: int(row.TM2_operator) if ~math.isnan(row.TM2_operator) else 99, axis = 1)
+    trip_df['OPERATOR'] = 99  # check it later
 
     return trip_df
 
@@ -1019,16 +1414,19 @@ def shape_gtfs_to_emme(transit_network, trip_row):
         """
         trip_stop_times_df = transit_network.feed.stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[
-            trip_stop_times_df.trip_id == trip_row.trip_id
+            (trip_stop_times_df.trip_id == trip_row.trip_id) & 
+            (trip_stop_times_df.agency_raw_name == trip_row.agency_raw_name)  # trip_id is not unique
         ]
 
         trip_node_df = transit_network.feed.shapes.copy()
-        trip_node_df = trip_node_df[trip_node_df.shape_id == trip_row.shape_id]
+        # trip_node_df = trip_node_df[trip_node_df.shape_id == trip_row.shape_id]
+        trip_node_df = trip_node_df[(trip_node_df.shape_id == trip_row.shape_id) & 
+                                    (trip_node_df.agency_raw_name == trip_row.agency_raw_name)] # in case there are duplicate shape_ids
         trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
         trip_stop_times_df = pd.merge(
-            trip_stop_times_df, transit_network.feed.stops, how="left", on="stop_id"
-        )
+            trip_stop_times_df, transit_network.feed.stops, how="left", on=["stop_id",'agency_raw_name']
+        ) # in case there are duplicate stop_ids
 
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
@@ -1107,10 +1505,63 @@ def shape_gtfs_to_emme(transit_network, trip_row):
         trip_node_df['allow_boardings'] = allow_boardings
         trip_node_df['stop_name'] = stop_names
         trip_node_df['line_id'] = trip_row['line_id']
-        trip_node_df['node_id'] = trip_node_df['shape_model_node_id'].astype(int)
+        trip_node_df['node_id'] = trip_node_df['shape_model_node_id'].astype(float).astype(int) # in case model_node_id is string representation of a float
         trip_node_df['stop_order'] = trip_node_df['shape_pt_sequence']
 
         return trip_node_df
+
+### PNR edits -- add a function to create opposite direction of a link ###
+def add_opposite_direction_to_link(
+    link_gdf, 
+    nodes_df,
+    links_df):
+
+    link_gdf = pd.concat(
+        [
+            link_gdf,
+            link_gdf.rename(columns = {'A' : 'B', 'B' : 'A'})
+        ],
+        sort = False, 
+        ignore_index = True
+    )
+
+    link_gdf = pd.merge(
+        link_gdf,
+        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "A", "X": "A_X", "Y" : "A_Y"}),
+        how = "left",
+        on = "A"
+    )
+
+    link_gdf = pd.merge(
+        link_gdf,
+        nodes_df[["N", "X", "Y"]].rename(columns = {"N" : "B", "X": "B_X", "Y" : "B_Y"}),
+        how = "left",
+        on = "B"
+    )
+
+    link_gdf["geometry"] = link_gdf.apply(
+        lambda g: LineString([Point(g.A_X, g.A_Y), Point(g.B_X, g.B_Y)]),
+        axis = 1
+    )
+
+    link_gdf = gpd.GeoDataFrame(
+        link_gdf,
+        geometry = link_gdf['geometry'],
+        crs = links_df.crs
+    )
+    
+    for c in links_df.columns:
+        if c not in link_gdf.columns:
+            if c not in ['county', 'shstGeometryId', 'cntype']:
+                link_gdf[c] = 0
+            else:
+                link_gdf[c] = ''
+    
+    link_gdf['A'] = link_gdf['A'].astype(int)
+    link_gdf['B'] = link_gdf['B'].astype(int)
+    
+    return link_gdf
+
 
 class SetupEmme(object):
     """Class to run Emme import and data management operations."""
@@ -1261,7 +1712,7 @@ class SetupEmme(object):
 
         proc = ProcessNetwork(self._attrs)
         proc.process_base_network(
-                centroid_table, node_table, connector_table, link_table)
+                centroid_table, node_table, connector_table, link_table, drive_speed=40.0)  # add drive speed
         if self._include_transit:
             line_table = self._model_tables["line_table"]
             itinerary_table = self._model_tables["itinerary_table"]
@@ -1374,7 +1825,8 @@ class SetupEmme(object):
             "regular_nodes": totals["regular_nodes"],
             "links": totals["links"],
             "turn_entries": totals["turn_entries"],
-            "transit_vehicles": totals["transit_vehicles"],
+            # "transit_vehicles": totals["transit_vehicles"],
+            "transit_vehicles": 600,  # change it to 600 for PNR testing
             "transit_lines": totals["transit_lines"],
             "transit_segments": totals["transit_segments"],
             "extra_attribute_values": totals["extra_attribute_values"],
@@ -1450,7 +1902,7 @@ class ProcessNetwork(object):
         """Return the network object."""
         return self._network
 
-    def process_base_network(self, centroid_table, node_table, connector_table, link_table):
+    def process_base_network(self, centroid_table, node_table, connector_table, link_table, drive_speed=40): # add drive speed
         """Import network data from model_nodes and model_links tables."""
         zone_id_name = "N"
 
@@ -1504,9 +1956,30 @@ class ProcessNetwork(object):
         auto_mode = network.create_mode("AUTO", "c")
         auto_mode.description = "car"
 
+        # set pnr/knr connector as "d"
+        pnr_connector = network.create_mode("AUX_TRANSIT", "P")
+        pnr_connector.speed = drive_speed 
+        pnr_connector.description = 'pnr'
+
+        knr_connector = network.create_mode("AUX_TRANSIT", "K")
+        knr_connector.speed = drive_speed 
+        knr_connector.description = 'knr'
+
+        # set pnr dummy link as "p"
+        pnr_dummy = network.create_mode("TRANSIT", "p")
+        pnr_dummy.description = 'pnrdummy'
+
         # NOTE: could determin list of mode IDs from attribute dictionary
         def mode_map(row):
-            return {auto_mode}
+            if (row['drive_access'] == 2):
+                mode = pnr_connector
+            elif (row['drive_access'] == 3):
+                mode = knr_connector
+            elif (row['drive_access'] == 4):
+                mode = pnr_dummy
+            elif (row['rail_only'] !=1 ):
+                mode = auto_mode
+            return {mode}
 
         # Index errors if a link row references a node / centroid which does not exist
         links = {}
@@ -1569,13 +2042,13 @@ class ProcessNetwork(object):
         walk = network.create_mode("AUX_TRANSIT", "w")
         walk.speed = walk_speed
         for link in network.links():
-            link.modes |= set([walk])
+            if (link['@drive_link'] not in [2,3,4]) & (link['rail_link']!=1):  # pnr, knr, pnr dummy and rail link can only be used by p, k, P, and rail mode
+                link.modes |= set([walk])
         # set drive link and bus link as "b"
         bus = network.create_mode("TRANSIT", "b")
         for link in network.links():
             if (link['@drive_link'] == 1) | (link['@bus_only'] == 1):
                 link.modes |= set([bus])
-        # adding the transit modes to the network
         for vehicle_data in vehicle_table:
             mode = network.mode(vehicle_data["mode"])
             if mode is None:
@@ -1604,7 +2077,6 @@ class ProcessNetwork(object):
             mode = network.transit_vehicle(line_data["vehicle_type"]).mode
             # Get the sequence of stops for this line and sort by "stop_order"
             stop_data = all_stops[line_data["line_id"]]
-            
             stop_seq_iter = iter(sorted([(k, node_map[v["node_id"]]) for k, v in stop_data.items()]))
             seq_num, i_node = next(stop_seq_iter)
             node_seq = []

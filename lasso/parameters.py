@@ -316,9 +316,8 @@ class Parameters:
             ::
                 r"tests/scratch/make_complete_network_from_fixed_width_file.s
 
-        zones (int): Number of travel analysis zones in the network. Default:
-            ::
-                3061
+
+
     """
 
     def __init__(self, **kwargs):
@@ -810,6 +809,7 @@ class Parameters:
         )
         self.output_dir = os.path.join(self.scratch_location)
         self.output_proj = CRS("ESRI:102646")
+        # self.output_proj = CRS("epsg:4326")
         self.output_proj4 = '+proj=lcc +lat_1=32.78333333333333 +lat_2=33.88333333333333 +lat_0=32.16666666666666 +lon_0=-116.25 +x_0=2000000 +y_0=500000.0000000002 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs'
         self.prj_file = os.path.join(self.data_file_location, 'projection', '102646.prj')
         self.wkt_projection = 'PROJCS["NAD_1983_StatePlane_California_VI_FIPS_0406_Feet",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Lambert_Conformal_Conic_2SP"],PARAMETER["False_Easting",6561666.666666666],PARAMETER["False_Northing",1640416.666666667],PARAMETER["Central_Meridian",-116.25],PARAMETER["Standard_Parallel_1",32.78333333333333],PARAMETER["Standard_Parallel_2",33.88333333333333],PARAMETER["Latitude_Of_Origin",32.16666666666666],UNIT["Foot_US",0.30480060960121924],AUTHORITY["EPSG","102646"]]'
@@ -922,6 +922,12 @@ class Parameters:
             "ROUTE_SYS",
         ]
 
-        self.zones = 3061
+        # paramters added for PNR simulation
+        self.pnr_node_location = os.path.join(
+            self.data_file_location, "lookups", "pnr_stations.csv"
+        )
+        self.drive_buffer = 6
+        self.walk_buffer = 1.5
+        self.transfer_buffer = 0.1
 
         self.__dict__.update(kwargs)
