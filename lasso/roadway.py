@@ -1273,9 +1273,6 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 self.links_df[c] = self.links_df[c].replace(np.nan, 0)
                 self.links_df[c] = self.links_df[c].replace("", 0)
                 self.links_df[c] = self.links_df[c].astype(int)
-            except:
-                self.links_df[c] = self.links_df[c].astype(float)
-                self.links_df[c] = self.links_df[c].astype(int)
             except ValueError:
                 try:
                     self.links_df[c] = self.links_df[c].astype(float)
@@ -1284,6 +1281,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     msg = f"Could not convert column {c} to integer."
                     WranglerLogger.error(msg)
                     raise ValueError(msg)
+            except:
+                self.links_df[c] = self.links_df[c].astype(float)
+                self.links_df[c] = self.links_df[c].astype(int)
 
         for c in list(set(self.nodes_df.columns) & set(int_col_names)):
             self.nodes_df[c] = self.nodes_df[c].replace("", 0)

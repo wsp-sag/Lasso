@@ -25,7 +25,6 @@ from network_wrangler import TransitNetwork
 
 from .logger import WranglerLogger
 from .parameters import Parameters
-from .mtc import _is_express_bus
 
 class CubeTransit(object):
     """Class for storing information about transit defined in Cube line
@@ -1417,6 +1416,7 @@ class StandardTransit(object):
         trip_df = pd.merge(trip_df, self.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
 
         # identify express bus
+        from .mtc import _is_express_bus
         trip_df["is_express_bus"] = trip_df.apply(lambda x: _is_express_bus(x), axis = 1)
         trip_df.drop("agency_name", axis = 1 , inplace = True)
 
