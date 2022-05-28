@@ -933,7 +933,12 @@ def calculate_assign_group_and_roadway_class_from_reviewed_network(
         elif x.rail_only == 1:
             return 100
         elif x.drive_access == 0:
-            return 101
+            if x.roadway == 'cycleway':
+                return 101
+            elif x.roadway == 'footway':
+                return 102
+            else:
+                return 103 # cul-de-secs, edge roads, and others
         elif x.assgngrp_min > 0:
             if x.assgngrp_min == x.assgngrp_max:
                 return x.assgngrp_min
