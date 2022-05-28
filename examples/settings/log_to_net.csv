@@ -69,3 +69,5 @@ ML_LANES_NT,ML_lanes_NT
 MANAGED,managed
 BUS_ONLY,bus_only
 RAIL_ONLY,rail_only
+BIKE,bike
+WALK,walk

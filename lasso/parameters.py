@@ -682,6 +682,8 @@ class Parameters:
             "mrcc_id",
             "ROUTE_SYS",  #mrcc functional class
             "MNPASS_COD",
+            "bike",
+            "walk",
         ]
 
         self.output_link_shp = os.path.join(self.scratch_location, "links.shp")
@@ -753,6 +755,8 @@ class Parameters:
             "bus_only",
             "rail_only",
             "mrcc_id",
+            "bike",
+            "walk",
         ]
 
         self.float_col = ["distance", "ttime_assert", "price", "X", "Y"]

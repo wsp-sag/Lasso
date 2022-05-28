@@ -3,10 +3,10 @@ model_link_id,link_id
 shstGeometryId,geoId
 roadway_class,rdclass
 bike_facility, bike_fac
-bike_access,bike
+bike_access,bikeable
 transit_access,transit
-walk_access,walk
-drive_access,drive
+walk_access,walkable
+drive_access,drivable
 truck_access,truck
 trn_priority_AM,tp_AM
 trn_priority_MD,tp_MD
