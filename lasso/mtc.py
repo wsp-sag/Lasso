@@ -3277,7 +3277,7 @@ def create_nonmotor_skim(
         for to_zone in dest_zone_nodes_in_subgraph:
             # The result distance is in feet and include beginning/ending connectors (both are set to have max allowed distance)
             # True distance in mile will be:  (distance - 2 * buffer_mile*5280)/5280
-            path_dist = nx.shortest_path_length(net_graph, from_zone, to_zone, weight='distance')
+            path_dist = nx.shortest_path_length(subgraph, from_zone, to_zone, weight='distance')
             actual_dist = (path_dist - 2*max_mile*5280)/5280
             skim_mat[from_zone-1, to_zone-1] = actual_dist
 
