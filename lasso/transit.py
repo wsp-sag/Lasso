@@ -1166,6 +1166,17 @@ class StandardTransit(object):
                 how = 'left',
                 on = ['shst_node_id', 'osm_node_id']
             )
+        elif sum(self.feed.stops.model_node_id.isnull()) > 0:
+            self.feed.stops = self.feed.stops.drop('model_node_id', axis = 1)
+            self.feed.stops = pd.merge(
+                self.feed.stops,
+                roadway_nodes_df,
+                how = 'left',
+                on = ['shst_node_id', 'osm_node_id']
+            )
+        else:
+            None
+
         if 'shape_model_node_id' not in self.feed.shapes.columns:
             self.feed.shapes = pd.merge(
                 self.feed.shapes,
@@ -1179,6 +1190,22 @@ class StandardTransit(object):
                 how = 'left',
                 on = ['shape_shst_node_id', 'shape_osm_node_id']
             )
+        elif sum(self.feed.shapes.shape_model_node_id.isnull()) > 0:
+            self.feed.shapes = self.feed.shapes.drop('shape_model_node_id', axis = 1)
+            self.feed.shapes = pd.merge(
+                self.feed.shapes,
+                roadway_nodes_df.rename(
+                    columns = {
+                        'shst_node_id' : 'shape_shst_node_id',
+                        'osm_node_id' : 'shape_osm_node_id',
+                        'model_node_id' : 'shape_model_node_id',
+                    }
+                ),
+                how = 'left',
+                on = ['shape_shst_node_id', 'shape_osm_node_id']
+            )
+        else:
+            None
         
         trip_stop_times_df = self.feed.stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[
