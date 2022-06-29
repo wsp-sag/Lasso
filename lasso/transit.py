@@ -1129,19 +1129,58 @@ class StandardTransit(object):
             for a route in cube format.
 
         """
+        agency_raw_name = row.agency_raw_name
+        shape_id = row.shape_id
+        trip_id = row.trip_id
+
         trip_stop_times_df = self.feed.stop_times.copy()
+
+        if 'agency_raw_name' in trip_stop_times_df.columns:
+            trip_stop_times_df.drop('agency_raw_name', axis = 1, inplace = True)
+
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df,
+            self.feed.trips[['trip_id', 'agency_raw_name']],
+            how = 'left',
+            on = ['trip_id']
+        )
+
         trip_stop_times_df = trip_stop_times_df[
-            trip_stop_times_df.trip_id == row.trip_id
+            (trip_stop_times_df.trip_id == row.trip_id) &
+            (trip_stop_times_df.agency_raw_name == agency_raw_name)
         ]
 
         trip_node_df = self.feed.shapes.copy()
-        trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
+        if 'agency_raw_name' in trip_node_df.columns:
+            trip_node_df.drop('agency_raw_name', axis = 1, inplace = True)
+
+        trip_node_df = pd.merge(
+            trip_node_df,
+            self.feed.trips[['shape_id', 'agency_raw_name']].drop_duplicates(),
+            how = 'left',
+            on = ['shape_id']
+        )
+
+        trip_node_df = trip_node_df[
+            (trip_node_df.shape_id == shape_id) &
+            (trip_node_df.agency_raw_name == agency_raw_name)
+        ]
+
         trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
         if 'trip_id' in self.feed.stops.columns:
-            trip_stop_times_df = pd.merge(
-                trip_stop_times_df, self.feed.stops, how="left", on=['trip_id', "stop_id"]
-            )
+            stops_df = self.feed.stops.copy()
+            if agency_raw_name != 'sjrtd_2015_0127':
+                stops_df = stops_df[stops_df.agency_raw_name != 'sjrtd_2015_0127']
+                trip_stop_times_df = pd.merge(
+                    trip_stop_times_df, stops_df.drop('trip_id', axis = 1), how="left", on=["stop_id"]
+                )
+            else:
+                stops_df = stops_df[stops_df.agency_raw_name == 'sjrtd_2015_0127']
+                stops_df['trip_id'] = stops_df['trip_id'].astype(float).astype(int).astype(str)
+                trip_stop_times_df = pd.merge(
+                    trip_stop_times_df, stops_df, how="left", on=['agency_raw_name', 'trip_id',"stop_id"]
+                )
         else:
             trip_stop_times_df = pd.merge(
                 trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
