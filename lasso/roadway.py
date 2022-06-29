@@ -1610,7 +1610,9 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                 "useclass_AM"   : "int:2",
                 "useclass_MD"   : "int:2",
                 "useclass_PM"   : "int:2",
-                "useclass_EV"   : "int:2"
+                "useclass_EV"   : "int:2",
+                "nmt2010"       : "int:2",
+                "nmt2020"       : "int:2",
             },
             "geometry": "LineString"
         }
