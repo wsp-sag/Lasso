@@ -927,7 +927,7 @@ class Parameters:
             self.data_file_location, "lookups", "pnr_stations.csv"
         )
         self.drive_buffer = 6
-        self.walk_buffer = 1.5
+        self.walk_buffer = 0.75
         self.transfer_buffer = 0.1
 
         self.__dict__.update(kwargs)
