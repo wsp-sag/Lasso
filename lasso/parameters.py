@@ -930,4 +930,11 @@ class Parameters:
             "ROUTE_SYS",
         ]
 
+        # pnr parameters
+        self.pnr_node_location = os.path.join(
+            self.data_file_location, "lookups", "pnr_stations.csv"
+        )
+
+        self.drive_buffer =  6
+
         self.__dict__.update(kwargs)
