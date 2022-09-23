@@ -127,7 +127,7 @@ class Project(object):
             raise ValueError(msg)
 
         if base_roadway_network != None:
-            self.determine_roadway_network_changes_compatability(
+            self.determine_roadway_network_changes_compatibility(
                 self.base_roadway_network, 
                 self.roadway_link_changes,
                 self.roadway_node_changes, 
@@ -892,62 +892,31 @@ class Project(object):
                 on=["A", "B"],
             )
 
-        link_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "C")
-        ].copy()
-        link_changes_df['A_B'] = link_changes_df['A'].astype(str) + '_' + link_changes_df['B'].astype(str)
+            missing_links = link_merge_df.loc[link_merge_df["model_link_id"].isna()]
 
-        link_additions_df = roadway_changes[
-            (roadway_changes.OBJECT == "L") & (roadway_changes.OPERATION == "A")
-        ].copy()
-
-        if len(link_additions_df) > 0:
-            link_additions_df['A_B'] = link_additions_df['A'].astype(str) + '_' + link_additions_df['B'].astype(str)
-
-            link_changes_df = link_changes_df[
-                ~(link_changes_df['A_B'].isin(link_additions_df['A_B'].tolist()))
-            ].copy()
-
-        link_merge_df = pd.merge(
-            link_changes_df[["A", "B"]].astype(str),
-            base_roadway_network.links_df[["A", "B", "model_link_id"]].astype(str),
-            how="left",
-            on=["A", "B"],
-        )
-
-        missing_links = link_merge_df.loc[link_merge_df["model_link_id"].isna()]
-
-        if missing_links.shape[0]:
-            msg = "Network missing the following AB links:\n{}".format(missing_links)
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+            if missing_links.shape[0]:
+                msg = "Network missing the following AB links:\n{}".format(missing_links)
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
 
         # for links "N"  that change "C",
         # find locations where there isn't a base roadway node
-        node_changes_df = roadway_changes[
-            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "C")
-        ].copy()
-        
-        node_additions_df = roadway_changes[
-            (roadway_changes.OBJECT == "N") & (roadway_changes.OPERATION == "A")
-        ].copy()
+        if len(roadway_node_changes) > 0:
+            node_changes_df = roadway_node_changes[
+                roadway_node_changes["operation_final"] == "C"
+            ].copy()
 
-        if len(node_additions_df) > 0:
-            node_changes_df = node_changes_df[
-                ~(node_changes_df['model_node_id'].isin(node_additions_df['model_node_id'].tolist()))
-            ]
-
-        node_merge_df = pd.merge(
-            node_changes_df[["model_node_id"]],
-            base_roadway_network.nodes_df[["model_node_id", "geometry"]],
-            how="left",
-            on=["model_node_id"],
-        )
-        missing_nodes = node_merge_df.loc[node_merge_df["geometry"].isna()]
-        if missing_nodes.shape[0]:
-            msg = "Network missing the following nodes:\n{}".format(missing_nodes)
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
+            node_merge_df = pd.merge(
+                node_changes_df[["model_node_id"]],
+                base_roadway_network.nodes_df[["model_node_id", "geometry"]],
+                how="left",
+                on=["model_node_id"],
+            )
+            missing_nodes = node_merge_df.loc[node_merge_df["geometry"].isna()]
+            if missing_nodes.shape[0]:
+                msg = "Network missing the following nodes:\n{}".format(missing_nodes)
+                WranglerLogger.error(msg)
+                raise ValueError(msg)
 
     def evaluate_changes(self):
         """
