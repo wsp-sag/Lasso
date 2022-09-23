@@ -917,10 +917,10 @@ class Project(object):
 
         missing_links = link_merge_df.loc[link_merge_df["model_link_id"].isna()]
 
-            if missing_links.shape[0]:
-                msg = "Network missing the following AB links:\n{}".format(missing_links)
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
+        if missing_links.shape[0]:
+            msg = "Network missing the following AB links:\n{}".format(missing_links)
+            WranglerLogger.error(msg)
+            raise ValueError(msg)
 
         # for links "N"  that change "C",
         # find locations where there isn't a base roadway node
