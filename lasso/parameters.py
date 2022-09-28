@@ -925,7 +925,8 @@ class Parameters:
         self.pnr_node_location = os.path.join(
             self.data_file_location, "lookups", "pnr_stations.csv"
         )
-        self.drive_buffer = 20
+        self.pnr_buffer = 15
+        self.knr_buffer = 3
         self.walk_buffer = 0.75
         self.transfer_buffer = 0.1
         self.taz_list = os.path.join(

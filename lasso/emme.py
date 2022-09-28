@@ -819,6 +819,17 @@ def prepare_table_for_taz_transit_network(
     pnr_nodes_df["X"] = pnr_nodes_df["geometry"].apply(lambda g: g.x)
     pnr_nodes_df["Y"] = pnr_nodes_df["geometry"].apply(lambda g: g.y)
 
+    # create pnr parking dummy location
+    # will be used later to create pnr connectors
+    # used to avoid of drawing to many connetors to stations
+    pnr_dummy_nodes_df = pnr_nodes_df[['Zone','X','Y']].copy()
+    pnr_dummy_nodes_df["X_dummy"] =  pnr_dummy_nodes_df["X"] - 20
+    pnr_dummy_nodes_df["Y_dummy"] =  pnr_dummy_nodes_df["Y"] - 20
+    pnr_dummy_nodes_df = gpd.GeoDataFrame(
+        pnr_dummy_nodes_df, 
+        geometry=gpd.points_from_xy(pnr_dummy_nodes_df['X_dummy'], pnr_dummy_nodes_df['Y_dummy']),
+        crs=parameters.output_proj)    
+    
     # reformat pnr_nodes_df, add missing columns
     for c in nodes_df.columns:
         if c not in pnr_nodes_df.columns:
@@ -881,15 +892,31 @@ def prepare_table_for_taz_transit_network(
         transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df[pnr_rail_stops_df['route_type']==4].stop_id.tolist())
     ]['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
 
-    pnr_rail_nodes_df = nodes_df.copy()
-    pnr_rail_nodes_df = pnr_rail_nodes_df.to_crs(CRS('epsg:26915'))
-    pnr_rail_nodes_df['X'] = pnr_rail_nodes_df.geometry.map(lambda g:g.x)
-    pnr_rail_nodes_df['Y'] = pnr_rail_nodes_df.geometry.map(lambda g:g.y)
+    rail_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(pnr_rail_stops_df.stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()  
 
-    lr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(lr_nodes_id_list)]
-    hr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(hr_nodes_id_list)]
-    cr_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(cr_nodes_id_list)]
-    fy_rail_nodes_df = pnr_rail_nodes_df[pnr_rail_nodes_df.N.isin(fy_nodes_id_list)]
+    rail_nodes_df = nodes_df[nodes_df.N.isin(rail_nodes_id_list)].copy()
+
+    # create dummy rail stations
+    # will be used later to create knr connectors
+    # used to avoid of drawing to many connetors to stations
+    knr_dummy_nodes_df = rail_nodes_df.copy()
+    knr_dummy_nodes_df["X_dummy"] =  knr_dummy_nodes_df["X"] - 20
+    knr_dummy_nodes_df["Y_dummy"] =  knr_dummy_nodes_df["Y"] - 20
+    knr_dummy_nodes_df = gpd.GeoDataFrame(
+        knr_dummy_nodes_df, 
+        geometry=gpd.points_from_xy(knr_dummy_nodes_df['X_dummy'], knr_dummy_nodes_df['Y_dummy']),
+        crs=parameters.output_proj).reset_index() 
+
+    rail_nodes_df = rail_nodes_df.to_crs(CRS('epsg:26915'))
+    rail_nodes_df['X'] = rail_nodes_df.geometry.map(lambda g:g.x)
+    rail_nodes_df['Y'] = rail_nodes_df.geometry.map(lambda g:g.y)
+
+    lr_rail_nodes_df = rail_nodes_df[rail_nodes_df.N.isin(lr_nodes_id_list)]
+    hr_rail_nodes_df = rail_nodes_df[rail_nodes_df.N.isin(hr_nodes_id_list)]
+    cr_rail_nodes_df = rail_nodes_df[rail_nodes_df.N.isin(cr_nodes_id_list)]
+    fy_rail_nodes_df = rail_nodes_df[rail_nodes_df.N.isin(fy_nodes_id_list)]
 
     # for each pnr parking node, search for its nearest rail stop, 
     # save the parking node id and rail stop id, create a two-way dummy link between them
@@ -933,7 +960,6 @@ def prepare_table_for_taz_transit_network(
     # add the opposite_direction
         pnr_dummy_link_gdf = add_opposite_direction_to_link(pnr_dummy_link_gdf, nodes_df=nodes_df, links_df=links_df)
 
-
         for index, row in pnr_dummy_link_gdf.iterrows():
             if row['A'] in (pnr_nodes_df.N.to_list()):
                 pnr_dummy_link_gdf.loc[index,'N_ref'] = row['A']
@@ -966,57 +992,69 @@ def prepare_table_for_taz_transit_network(
     else:
         pnr_dummy_link_gdf = None
 
-    ### 2. create PNR parking dummy node and pnr/knr connections
-    # read pnr parking dummy location
-    pnr_dummy_nodes_df = pd.read_csv(parameters.pnr_node_location)[['Zone','X_dummy','Y_dummy']]
-    pnr_dummy_nodes_df = gpd.GeoDataFrame(
-        pnr_dummy_nodes_df, 
-        geometry=gpd.points_from_xy(pnr_dummy_nodes_df['X_dummy'], pnr_dummy_nodes_df['Y_dummy']),
-        crs=parameters.output_proj)
-    pnr_dummy_nodes_df = pnr_dummy_nodes_df.to_crs(parameters.output_proj)
-    pnr_dummy_nodes_df["X"] = pnr_dummy_nodes_df["geometry"].apply(lambda g: g.x)
-    pnr_dummy_nodes_df["Y"] = pnr_dummy_nodes_df["geometry"].apply(lambda g: g.y)
-
-    # reformat pnr_dummy_nodes_df, add missing columns
+    ### 2. create pnr/knr dummy nodes and pnr/knr connections
+    # pnr connection: drive_access = 2
+    # knr connection: drive_access = 3
+    # add pnr dummy nodes to node_df
     for c in nodes_df.columns:
         if c not in pnr_dummy_nodes_df.columns:
             if c not in ['county']:
                 pnr_dummy_nodes_df[c] = 0
             else:
                 pnr_dummy_nodes_df[c] = ''
-                
-    # assign a node id "N" to pnr parking dummy node
-    pnr_dummy_nodes_df['N'] = pnr_dummy_nodes_df['Zone']+nodes_df.N.max()
 
-    # add pnr parking dummy nodes to node_df
+    pnr_dummy_nodes_df['N'] = pnr_dummy_nodes_df['Zone']+nodes_df.N.max()
+    pnr_dummy_nodes_df["X"] = pnr_dummy_nodes_df["geometry"].apply(lambda g: g.x)
+    pnr_dummy_nodes_df["Y"] = pnr_dummy_nodes_df["geometry"].apply(lambda g: g.y)
     nodes_df = pd.concat([nodes_df, pnr_dummy_nodes_df.drop(['Zone','X_dummy','Y_dummy'], axis=1)], 
         sort = False, 
         ignore_index = True)
 
-    # create pnr/knr connections 
-    # connect pnr dummy nodes to parking lots and rail stations
-    # pnr connection: drive_access = 2
-    # knr connection: drive_access = 3
+    # creat little pnr/knr dummy connections
     pnr_dummy_nodes_df = pnr_dummy_nodes_df.rename(columns={"N":"N_dummy"})
     pnr_dummy_nodes_df = pnr_dummy_nodes_df.merge(pnr_nodes_df[['Zone','N','A']], on='Zone', how='left')
     pnr_dummy_nodes_df = pnr_dummy_nodes_df[pnr_dummy_nodes_df['A'].notna()]
-
-    knr_connection_gdf = pnr_dummy_nodes_df[['N_dummy', 'A']].copy()
-    knr_connection_gdf.rename(columns = {'N_dummy' : 'B'}, inplace = True)
-    knr_connection_gdf = add_opposite_direction_to_link(knr_connection_gdf, nodes_df=nodes_df, links_df=links_df)
-    knr_connection_gdf['drive_access'] = 3
 
     pnr_connection_gdf = pnr_dummy_nodes_df[['N_dummy', 'N']].copy()
     pnr_connection_gdf.rename(columns = {'N_dummy' : 'A', 'N' : 'B'}, inplace = True)
     pnr_connection_gdf = add_opposite_direction_to_link(pnr_connection_gdf, nodes_df=nodes_df, links_df=links_df)
     pnr_connection_gdf['drive_access'] = 2
 
+    knr_connection_gdf = pnr_dummy_nodes_df[['N_dummy', 'A']].copy()
+    knr_connection_gdf.rename(columns = {'N_dummy' : 'B'}, inplace = True)
+    knr_connection_gdf = add_opposite_direction_to_link(knr_connection_gdf, nodes_df=nodes_df, links_df=links_df)
+    knr_connection_gdf['drive_access'] = 3
+
+    # add knr dummy nodes to node_df
+    knr_dummy_nodes_df = knr_dummy_nodes_df[~knr_dummy_nodes_df['N'].isin(pnr_dummy_nodes_df.A.to_list())]
+    knr_dummy_nodes_df['N'] = knr_dummy_nodes_df.index + 1 + nodes_df.N.max()
+    knr_dummy_nodes_df['X'] = knr_dummy_nodes_df['geometry'].apply(lambda p: p.x)
+    knr_dummy_nodes_df['Y'] = knr_dummy_nodes_df['geometry'].apply(lambda p: p.y)
+
+    # add pnr parking nodes to node_df
+    nodes_df = pd.concat([nodes_df, knr_dummy_nodes_df.drop(['index', 'X_dummy','Y_dummy'], axis=1)], 
+        sort = False, 
+        ignore_index = True)
+
+    # creat little knr only dummy connections
+    knr_dummy_nodes_df = knr_dummy_nodes_df.rename(columns={"N":"N_dummy"})
+    knr_dummy_nodes_df = knr_dummy_nodes_df.merge(rail_nodes_df[['model_node_id','N']], on='model_node_id', how='left')
+
+    knr_only_connection_gdf = knr_dummy_nodes_df[['N_dummy', 'N']].copy()
+    knr_only_connection_gdf.rename(columns = {'N_dummy' : 'A', 'N' : 'B'}, inplace = True)
+    knr_only_connection_gdf = add_opposite_direction_to_link(knr_only_connection_gdf, nodes_df=nodes_df, links_df=links_df)
+    knr_only_connection_gdf['drive_access'] = 3
+
+
     pnr_knr_connection_df = pd.concat([pnr_connection_gdf, knr_connection_gdf], 
+        sort = False, 
+        ignore_index = True)
+
+    pnr_knr_connection_df = pd.concat([pnr_knr_connection_df, knr_only_connection_gdf], 
         sort = False, 
         ignore_index = True)
     pnr_knr_connection_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
 
-    # update link attributes  
     pnr_knr_connection_df['lanes_EA'] = 1
     pnr_knr_connection_df['lanes_AM'] = 1
     pnr_knr_connection_df['lanes_MD'] = 1
@@ -1026,7 +1064,7 @@ def prepare_table_for_taz_transit_network(
     pnr_knr_connection_df["geometry_wkt"] = pnr_knr_connection_df["geometry"].apply(lambda x: x.wkt)
     pnr_knr_connection_df['distance'] = 0.01
 
-    # add pnr/knr connections to link_df
+    # add pnr dummy links to link_df
     links_df = pd.concat([links_df, pnr_knr_connection_df], 
         sort = False, 
         ignore_index = True)
@@ -1038,14 +1076,17 @@ def prepare_table_for_taz_transit_network(
     centroids_df = nodes_df[nodes_df.N.isin(parameters.taz_N_list)]
     centroids_df = centroids_df.to_crs(CRS('epsg:26915')) 
     pnr_dummy_nodes_df = pnr_dummy_nodes_df.to_crs(CRS('epsg:26915'))
+    knr_dummy_nodes_df = knr_dummy_nodes_df.to_crs(CRS('epsg:26915'))
 
     # for each centroid, draw a buffer,
     # connect the centroid to all pnr parking dummy nodes that fall in the buffer
     centroid_node_id = []
+    knr_centroid_node_id = []
     pnr_dummy_node_id = []
+    knr_dummy_node_id = []
 
     for index, row in pnr_dummy_nodes_df.iterrows(): 
-        buffer = row.geometry.buffer(parameters.drive_buffer*1609.34)
+        buffer = row.geometry.buffer(parameters.pnr_buffer*1609.34)
         centroid_in_buffer = centroids_df[centroids_df.geometry.within(buffer)]
     
         if len(centroid_in_buffer)>0:
@@ -1053,18 +1094,36 @@ def prepare_table_for_taz_transit_network(
                 centroid_node_id.append(centroid_in_buffer.iloc[i].N)
                 pnr_dummy_node_id.append(row.N_dummy) 
 
+    for index, row in knr_dummy_nodes_df.iterrows():
+        buffer = row.geometry.buffer(parameters.knr_buffer*1609.34)
+        centroid_in_buffer = centroids_df[centroids_df.geometry.within(buffer)]
+
+        if len(centroid_in_buffer)>0:
+            for i in range(len(centroid_in_buffer)):
+                knr_centroid_node_id.append(centroid_in_buffer.iloc[i].N)
+                knr_dummy_node_id.append(row.N_dummy)
+
     # update pnr dummy link attributes
+    # pnr connector: drive_access = 2
+    # knr connector: drive_access = 3
     # drive connector: drive_access = 5
     # might need to create a new attribute here ??
-    if len(centroid_node_id)>0 and len(pnr_dummy_node_id)>0:
-        drive_connector_gdf = pd.DataFrame(list(zip(centroid_node_id, pnr_dummy_node_id)), columns=['A','B'])
-        drive_connector_gdf = add_opposite_direction_to_link(drive_connector_gdf, nodes_df=nodes_df, links_df=links_df)
-        drive_connector_gdf['drive_access'] = 5
-        drive_connector_gdf["geometry_wkt"] = drive_connector_gdf["geometry"].apply(lambda x: x.wkt)
+    pnr_connector_gdf = pd.DataFrame(list(zip(centroid_node_id, pnr_dummy_node_id)), columns=['A','B'])
+    pnr_connector_gdf = add_opposite_direction_to_link(pnr_connector_gdf, nodes_df=nodes_df, links_df=links_df)
+    pnr_connector_gdf['drive_access'] = 5
+    pnr_connector_gdf["geometry_wkt"] = pnr_connector_gdf["geometry"].apply(lambda x: x.wkt)
         
-        # add drive connectors to connectors_df
-        connectors_df = drive_connector_gdf.copy()
-        connectors_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
+    knr_only_connector_gdf = pd.DataFrame(list(zip(knr_centroid_node_id, knr_dummy_node_id)), columns=['A','B'])
+    knr_only_connector_gdf = add_opposite_direction_to_link(knr_only_connector_gdf, nodes_df=nodes_df, links_df=links_df)
+    knr_only_connector_gdf['drive_access'] = 3
+    knr_only_connector_gdf["geometry_wkt"] = knr_only_connector_gdf["geometry"].apply(lambda x: x.wkt)   
+
+        
+    # add drive connectors to connectors_df
+    connectors_df = pd.concat([pnr_connector_gdf, knr_only_connector_gdf], 
+        sort = False, 
+        ignore_index = True)
+    connectors_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
 
     # select all transit stops
     transit_nodes_id_list = transit_network.feed.stops['model_node_id'].astype(float).astype(int).tolist()   # in case model_node_id is string representation of a float
@@ -1146,7 +1205,8 @@ def prepare_table_for_taz_transit_network(
         ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
         ((links_df.drive_access == 1) | (links_df.bus_only == 1) | (links_df.rail_only == 1) | 
         (links_df.A.isin(pnr_nodes_df.N.tolist())) | (links_df.B.isin(pnr_nodes_df.N.tolist())) | 
-        (links_df.A.isin(pnr_dummy_nodes_df.N_dummy.tolist())) | (links_df.B.isin(pnr_dummy_nodes_df.N_dummy.tolist()))  # add pnr dummy links
+        (links_df.A.isin(pnr_dummy_nodes_df.N_dummy.tolist())) | (links_df.B.isin(pnr_dummy_nodes_df.N_dummy.tolist())) |
+        (links_df.A.isin(knr_dummy_nodes_df.N_dummy.tolist())) | (links_df.B.isin(knr_dummy_nodes_df.N_dummy.tolist()))
         )
     ].copy()
 
