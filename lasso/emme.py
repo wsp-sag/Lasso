@@ -898,10 +898,32 @@ def prepare_table_for_taz_transit_network(
 
     rail_nodes_df = nodes_df[nodes_df.N.isin(rail_nodes_id_list)].copy()
 
-    # create dummy rail stations
+    # create dummy rail/express bus stations
     # will be used later to create knr connectors
     # used to avoid of drawing to many connetors to stations
-    knr_dummy_nodes_df = rail_nodes_df.copy()
+    exp_bus_trips_df = transit_network.feed.trips.copy()
+    exp_bus_trips_df = pd.merge(exp_bus_trips_df, transit_network.feed.routes, how="left", on=["route_id","agency_raw_name"]) 
+    exp_bus_trips_df = pd.merge(exp_bus_trips_df, transit_network.feed.agency[["agency_name", "agency_raw_name", "agency_id"]], how = "left", on = ["agency_raw_name", "agency_id"])
+    exp_bus_trips_df["is_express_bus"] = exp_bus_trips_df.apply(lambda x: _is_express_bus(x), axis = 1)
+    exp_bus_trips_df= exp_bus_trips_df[exp_bus_trips_df["is_express_bus"]==1]
+
+    exp_bus_stops_df = transit_network.feed.stop_times.copy()
+    exp_bus_stops_df = exp_bus_stops_df[exp_bus_stops_df["trip_id"].isin(exp_bus_trips_df.trip_id.to_list())]
+
+    exp_nodes_id_list = transit_network.feed.stops[
+        transit_network.feed.stops.stop_id.isin(exp_bus_stops_df.stop_id.tolist())
+    ]['model_node_id'].astype(float).astype(int).tolist()
+
+    sf_county = gpd.read_file(parameters.sf_county)
+    sf_county = sf_county.to_crs(parameters.output_proj)
+
+    exp_nodes_df = nodes_df[nodes_df.N.isin(exp_nodes_id_list)].copy()
+    exp_nodes_df_inside = exp_nodes_df.sjoin(sf_county, how="inner")
+    exp_nodes_df_outside = exp_nodes_df[~exp_nodes_df["model_node_id"].isin(exp_nodes_df_inside.model_node_id.to_list())]
+    
+    knr_nodes_df = rail_nodes_df.copy()
+    knr_nodes_df = knr_nodes_df.append(exp_nodes_df_outside)
+    knr_dummy_nodes_df = knr_nodes_df.copy()
     knr_dummy_nodes_df["X_dummy"] =  knr_dummy_nodes_df["X"] - 20
     knr_dummy_nodes_df["Y_dummy"] =  knr_dummy_nodes_df["Y"] - 20
     knr_dummy_nodes_df = gpd.GeoDataFrame(
@@ -1038,7 +1060,7 @@ def prepare_table_for_taz_transit_network(
 
     # creat little knr only dummy connections
     knr_dummy_nodes_df = knr_dummy_nodes_df.rename(columns={"N":"N_dummy"})
-    knr_dummy_nodes_df = knr_dummy_nodes_df.merge(rail_nodes_df[['model_node_id','N']], on='model_node_id', how='left')
+    knr_dummy_nodes_df = knr_dummy_nodes_df.merge(knr_nodes_df[['model_node_id','N']], on='model_node_id', how='left')
 
     knr_only_connection_gdf = knr_dummy_nodes_df[['N_dummy', 'N']].copy()
     knr_only_connection_gdf.rename(columns = {'N_dummy' : 'A', 'N' : 'B'}, inplace = True)
@@ -1232,7 +1254,7 @@ def prepare_table_for_taz_transit_network(
     # create line_id
     # add vechile_cap, headway, and tod
     if pnr_dummy_link_gdf is not None:
-        pnr_trips_ref = pnr_nodes_df[['Zone','Vehicle_Cap','Headway','N','Station_Name','Fare_System']].copy()
+        pnr_trips_ref = pnr_nodes_df[['Zone','Vehicle_Cap','Headway','N','Station_Name']].copy()
         pnr_trips_ref['vehtype_num'] = pnr_trips_ref['Vehicle_Cap']+500
 
         pnr_trips_df = pnr_dummy_link_gdf.copy()
@@ -1250,7 +1272,7 @@ def prepare_table_for_taz_transit_network(
                     pnr_trips_df.loc[index,'N_ref'] = row['B']
                     pnr_trips_df.loc[index,'direction'] = 'egr'
                 
-        pnr_trips_df = pnr_trips_df.merge(pnr_trips_ref[['N','vehtype_num','Headway','Station_Name','Fare_System']], left_on='N_ref', right_on='N', how='left')
+        pnr_trips_df = pnr_trips_df.merge(pnr_trips_ref[['N','vehtype_num','Headway','Station_Name']], left_on='N_ref', right_on='N', how='left')
         pnr_trips_df["line_id"] = pnr_trips_df.apply(
                                                         lambda x: str('pnr')
                                                         + "_"
@@ -1260,11 +1282,10 @@ def prepare_table_for_taz_transit_network(
                                                         axis=1,
                                                         )
         pnr_trips_df['vehtype_num'] = np.where(pnr_trips_df['direction']=='egr', 555, pnr_trips_df['vehtype_num'])  # 555 is the vechile with very large capactity to simulate pnr egress 
-        pnr_trips_df['faresystem'] = np.where(pnr_trips_df['direction']=='egr', 99, pnr_trips_df['Fare_System'])
         pnr_trips_df['headway_minutes'] = pnr_trips_df['Headway']
         pnr_trips_df['route_long_name'] = pnr_trips_df['Station_Name']
         pnr_trips_df['tod_name'] = 'AM'
-        pnr_trips_df = pnr_trips_df[['line_id','headway_minutes','vehtype_num','route_long_name','tod_name','faresystem','A','B']]
+        pnr_trips_df = pnr_trips_df[['line_id','headway_minutes','vehtype_num','route_long_name','tod_name','A','B']]
 
         # add routes in all time periods
         for index, row in pnr_trips_df.iterrows():
@@ -1286,7 +1307,7 @@ def prepare_table_for_taz_transit_network(
 
         pnr_trips_df["TM2_mode"]= 11 # fix it later
         pnr_trips_df["vehicle_type"]= pnr_trips_df["vehtype_num"]  # vehtype_num will be used to get the vechile capcity information, might not need vehicle_type any more
-        pnr_trips_df["faresystem"].fillna(99, inplace = True)
+        pnr_trips_df["faresystem"]=99
 
         for c in trips_df.columns:
             if c not in pnr_trips_df.columns:
@@ -1533,7 +1554,7 @@ def route_properties_gtfs_to_emme(
     # faresystem
     agency_fare_dict = faresystem_crosswalk[
         (faresystem_crosswalk.route_id.isnull()) |
-        (faresystem_crosswalk.route_id==0)
+        (faresystem_crosswalk.route_id=="0")
     ].copy()
     agency_fare_dict = dict(zip(agency_fare_dict.agency_raw_name, agency_fare_dict.faresystem))
 

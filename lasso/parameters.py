@@ -711,6 +711,7 @@ class Parameters:
 
         # https://app.asana.com/0/12291104512575/1200287255197808/f
         self.fare_2015_to_2010_deflator = 0.927
+        self.fare_2015_to_2000_deflator = 180.20/258.27
         ####
         #MC
         self.widot_count_variable_shp = "AADT_wi"
@@ -925,11 +926,14 @@ class Parameters:
         self.pnr_node_location = os.path.join(
             self.data_file_location, "lookups", "pnr_stations.csv"
         )
-        self.pnr_buffer = 15
-        self.knr_buffer = 3
+        self.pnr_buffer = 20
+        self.knr_buffer = 2.5
         self.walk_buffer = 0.75
         self.transfer_buffer = 0.1
         self.taz_list = os.path.join(
             self.data_file_location, "lookups", "taz_lists.csv"
+        )
+        self.sf_county = os.path.join(
+            self.data_file_location, "lookups", "SFcounty.shp"
         )
         self.__dict__.update(kwargs)
