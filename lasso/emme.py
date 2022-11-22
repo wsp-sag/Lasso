@@ -2097,7 +2097,8 @@ class ProcessNetwork(object):
                 if link is None:
                     raise Exception("No link from {} to {} on transit line {}".format(i_node, j_node, line_data["line_id"]))
                 link.modes |= set([mode])
-                link.modes -= set([network.mode('c'), network.mode('D')]) 
+                if link.modes.intersection(set([network.mode('h'), network.mode('l'), network.mode('r'), network.mode('f')])):
+                    link.modes -= set([network.mode('c'), network.mode('D')]) 
                 node_seq.append(link.i_node)
                 node_data[len(node_seq)] = stop_data[seq_num]
                 i_node = j_node
