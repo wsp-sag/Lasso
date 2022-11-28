@@ -93,11 +93,11 @@ def create_emme_network(
 
     if roadway_network:
         links_df = roadway_network.links_mtc_df.copy()
-        nodes_df = roadway_network.nodes_mtc_df.copy()
+        nodes_df = roadway_network.nodes_mtc_df.sort_values("N").reset_index(drop=True).copy()
 
     elif (len(links_df)>0) & (len(nodes_df)>0):
         links_df = links_df.copy()
-        nodes_df = nodes_df.copy()
+        nodes_df = nodes_df.sort_values("N").reset_index(drop=True).copy()
 
     else:
         msg = "Missing roadway network to write to emme, please specify either model_net or links_df and nodes_df."
