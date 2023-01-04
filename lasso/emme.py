@@ -710,6 +710,19 @@ def prepare_table_for_taz_transit_network(
     ] = 1
     rail_nodes_df = nodes_df[nodes_df.N.isin(rail_nodes_id_list)].copy()
 
+
+    ### label walk and bike links within 1 mile buffer area of rail stations
+    rail_nodes_union = rail_nodes_df.geometry.unary_union
+    rail_nodes_buffer = rail_nodes_union.buffer(parameters.transfer_buffer*5280) # mile to feet
+    rail_nodes_buffer = gpd.GeoDataFrame(geometry= [rail_nodes_buffer], crs='EPSG:2875') 
+    rail_nodes_buffer['added_walk_link'] = 1
+
+    links_df = gpd.sjoin(links_df, rail_nodes_buffer, how='left').drop(columns='index_right')
+    links_df.loc[(~((links_df.drive_access.isin([1,2,3])) | 
+                (links_df.bus_only == 1) | 
+                (links_df.rail_only == 1)) & 
+                (links_df.added_walk_link == 1)), "walk_access"] = 2 # walk_access=2 walk transfer only links
+
     ### PNR edits -- create PNR dummy links, walk connectors, transfer links
 
     ### 1. create PNR dummy links
@@ -1009,7 +1022,7 @@ def prepare_table_for_taz_transit_network(
     walk_node_id = []
 
     for index, row in centroids_df.iterrows():
-        buffer = row.geometry.buffer(parameters.walk_buffer*1609.24)
+        buffer = row.geometry.buffer(parameters.walk_buffer*1609.34)
         walk_in_buffer = transit_nodes_df[transit_nodes_df.geometry.within(buffer)]
         
         for i in range(len(walk_in_buffer)):
@@ -1038,37 +1051,6 @@ def prepare_table_for_taz_transit_network(
         connectors_df['distance'] = length_gdf['distance']
         connectors_df["geometry_wkt"] = connectors_df["geometry"].apply(lambda x: x.wkt)
 
-
-    ### 3. create transfer links
-    # for each transit stop, draw a buffer,
-    # connect the transit stop to all other transit stops that fall in the buffer
-    A_node_id = []
-    B_node_id = []
-
-    transit_rail_nodes_df = transit_nodes_df[transit_nodes_df['rail_only']==1].copy() # create transfer links among rail stations. update it later
-    for index, row in transit_rail_nodes_df.iterrows():
-        buffer = row.geometry.buffer(parameters.transfer_buffer*1609.24)
-        candidate = transit_rail_nodes_df[~transit_rail_nodes_df.index.isin([index])].copy()
-        station_in_buffer = candidate[candidate.geometry.within(buffer)]
-        
-        if len(station_in_buffer)>0:
-            for i in range(len(station_in_buffer)):
-                A_node_id.append(row.N)
-                B_node_id.append(station_in_buffer.iloc[i].N)
-                
-    if len(A_node_id)>0 and len(B_node_id)>0:
-        transfer_gdf = pd.DataFrame(list(zip(A_node_id, B_node_id)), columns=['A','B'])
-        transfer_gdf = add_opposite_direction_to_link(transfer_gdf, nodes_df=nodes_df, links_df=links_df)
-        transfer_gdf['walk_access'] = 1
-        transfer_gdf["geometry_wkt"] = transfer_gdf["geometry"].apply(lambda x: x.wkt)   
-        transfer_gdf.drop_duplicates(subset = ['A', 'B'], inplace = True)
-        
-        # add transfer links to link_df
-        links_df = pd.concat([links_df, transfer_gdf], 
-            sort = False, 
-            ignore_index = True)
-        links_df.drop_duplicates(subset = ['A', 'B'], inplace = True)
-
     # make sure distance is in miles
     length_gdf = links_df.copy()
     length_gdf = length_gdf.to_crs(epsg=26915)
@@ -1079,10 +1061,13 @@ def prepare_table_for_taz_transit_network(
     # /temporary fix
     ###############
 
+    # drive_access = 1 : drive link
+    # drive_access = 2 : pnr link
+    # drive_access = 3 : knr link
     transit_links_df = links_df[
         ~(links_df.A.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
         ~(links_df.B.isin(parameters.taz_N_list + parameters.tap_N_list + parameters.maz_N_list)) & 
-        ((links_df.drive_access.isin([1,2,3])) | (links_df.bus_only == 1) | (links_df.rail_only == 1))
+        ((links_df.drive_access.isin([1,2,3])) | (links_df.bus_only == 1) | (links_df.rail_only == 1) | (links_df.added_walk_link == 1))
     ].copy()
 
     model_tables["link_table"] = transit_links_df.to_dict('records')
@@ -1385,13 +1370,6 @@ def route_properties_gtfs_to_emme(
     # special vehicle types
     trip_df["VEHTYPE"] = trip_df.apply(lambda x: _special_vehicle_type(x), axis = 1)
 
-    # trip_df["vehicle_type"] = 1 # bus by default
-    # trip_df.loc[trip_df["is_express_bus"]==1, "vehicle_type"] = 2
-    # trip_df.loc[trip_df["route_type"]==0, "vehicle_type"] = 3  # route_type: 0-light rail, 1-heavey rail, 2-commuter rail, 4-ferry
-    # trip_df.loc[trip_df["route_type"]==1, "vehicle_type"] = 4
-    # trip_df.loc[trip_df["route_type"]==2, "vehicle_type"] = 5
-    # trip_df.loc[trip_df["route_type"]==4, "vehicle_type"] = 6
-    
     # get vehicle capacity
     trip_df = pd.merge(trip_df, veh_cap_crosswalk[['VEHTYPE','veh_mode']], how = "left", on = "VEHTYPE")
     trip_df['VEHTYPE'] = np.where(
@@ -1401,7 +1379,7 @@ def route_properties_gtfs_to_emme(
         (trip_df['is_express_bus']==1) & (trip_df['veh_mode']=="b"), "x", trip_df['veh_mode']
         )
     trip_df = pd.merge(trip_df, veh_cap_crosswalk[['VEHTYPE','vehtype_num']], how = "left", on = "VEHTYPE")
-    trip_df['vehtype_num'] = trip_df['vehtype_num'].fillna(36) # check it later, for those don't have vehtype, assign 36-Motor Articulated Bus
+    trip_df['vehtype_num'] = trip_df['vehtype_num'].fillna(36) # For those don't have vehtype, assign 36-Motor Articulated Bus
     trip_df["vehicle_type"] = trip_df["vehtype_num"]
 
     trip_df['USERA1'] = trip_df.apply(lambda row: row.agency_id if row.agency_id != "" else row.agency_raw_name, axis = 1)
@@ -1831,8 +1809,7 @@ class SetupEmme(object):
             "regular_nodes": totals["regular_nodes"],
             "links": totals["links"],
             "turn_entries": totals["turn_entries"],
-            # "transit_vehicles": totals["transit_vehicles"],
-            "transit_vehicles": 600,  # change it to 600 for PNR testing
+            "transit_vehicles": 600,  # change it to 600 for PNR buses
             "transit_lines": totals["transit_lines"],
             "transit_segments": totals["transit_segments"],
             "extra_attribute_values": totals["extra_attribute_values"],
@@ -2059,6 +2036,10 @@ class ProcessNetwork(object):
         for link in network.links():
             if (link['@drive_link'] == 1) | (link['@bus_only'] == 1):
                 link.modes |= set([bus])
+        # walk transfer links
+        for link in network.links():
+            if (link['@walk_link'] == 2):
+                link.modes -= set([network.mode('c'), network.mode('D'), network.mode('b')])
         for vehicle_data in vehicle_table:
             mode = network.mode(vehicle_data["mode"])
             if mode is None:

@@ -929,7 +929,7 @@ class Parameters:
         self.pnr_buffer = 20
         self.knr_buffer = 2.5
         self.walk_buffer = 0.75
-        self.transfer_buffer = 0.1
+        self.transfer_buffer = 1
         self.taz_list = os.path.join(
             self.data_file_location, "lookups", "taz_lists.csv"
         )
