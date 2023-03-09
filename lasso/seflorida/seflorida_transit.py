@@ -114,17 +114,57 @@ class SEFloridaTransit(object):
             for a route in cube format.
 
         """
+        agency_raw_name = row.agency_raw_name
+        shape_id = row.shape_id
+        trip_id = row.trip_id
         trip_stop_times_df = self.feed.stop_times.copy()
-        trip_stop_times_df = trip_stop_times_df[trip_stop_times_df.trip_id == row.trip_id]
+
+        if "agency_raw_name" in trip_stop_times_df.columns:
+            trip_stop_times_df.drop("agency_raw_name", axis=1, inplace=True)
+
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df,
+            self.feed.trips[["trip_id", "agency_raw_name"]],
+            how="left",
+            on="trip_id",
+        )
+        trip_stop_times_df = trip_stop_times_df[
+            (trip_stop_times_df.trip_id == row.trip_id)
+            & (trip_stop_times_df.agency_raw_name == agency_raw_name)
+        ]
 
         trip_node_df = self.feed.shapes.copy()
-        trip_node_df = trip_node_df[trip_node_df.shape_id == row.shape_id]
+        if "agency_raw_name" in trip_node_df.columns:
+            trip_node_df.drop("agency_raw_name", axis=1, inplace=True)
+
+        trip_node_df = pd.merge(
+            trip_node_df,
+            self.feed.trips[["shape_id", "agency_raw_name"]].drop_duplicates(),
+            how="left",
+            on=["shape_id"],
+        )
+
+        trip_node_df = trip_node_df[
+            (trip_node_df.shape_id == shape_id) & (trip_node_df.agency_raw_name == agency_raw_name)
+        ]
         trip_node_df.sort_values(by=["shape_pt_sequence"], inplace=True)
 
-        trip_stop_times_df = pd.merge(trip_stop_times_df, self.feed.stops, how="left", on="stop_id")
+        trip_stop_times_df = pd.merge(
+            trip_stop_times_df,
+            self.feed.stops,
+            how="left",
+            on=["agency_raw_name", "trip_id", "stop_id"],
+        )
 
-        stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
-        trip_node_list = trip_node_df["shape_model_node_id"].tolist()
+        try:
+            trip_stop_times_df["model_node_id"] = (
+                trip_stop_times_df["model_node_id"].astype(float).astype(int)
+            )
+            stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
+            trip_node_list = trip_node_df["shape_model_node_id"].astype(float).astype(int).tolist()
+        except:
+            stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
+            trip_node_list = trip_node_df["shape_model_node_id"].tolist()
 
         trip_stop_times_df.sort_values(by=["stop_sequence"], inplace=True)
         # sometimes GTFS `stop_sequence` does not start with 1, e.g. SFMTA light rails
@@ -337,22 +377,9 @@ class SEFloridaTransit(object):
 
         trip_cube_df = self.route_properties_gtfs_to_cube(parameters)
 
-        print("trip_cube_df colnames:")
-        print(trip_cube_df.columns)
-
-        na_operator = trip_cube_df[trip_cube_df["SERPM_operator"].isnull()]
-        print("head of na_operator:")
-        print(na_operator.head())
-
-        unique_agency_mode = trip_cube_df[["agency_raw_name", "SERPM_mode"]].drop_duplicates()
-        print("unique_agency_mode:")
-        print(unique_agency_mode)
-
         trip_cube_df[["SERPM_operator"]] = trip_cube_df[["SERPM_operator"]].fillna(99)
 
-        print("trip_cube_df:")
-        print(trip_cube_df.head())
-
+        trip_cube_df = trip_cube_df.fillna("")
         trip_cube_df["LIN"] = trip_cube_df.apply(lambda x: self.cube_format(x), axis=1)
 
         l = trip_cube_df["LIN"].tolist()
