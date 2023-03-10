@@ -1,0 +1,11 @@
+agency_raw_name,operator_code,route_type,SERPM_operator,SERPM_mode,is_express_bus
+Broward County Transit,BCT_local,3,31,31,0
+Broward County Transit,BCT_express,3,15,15,1
+Miami-Dade Transit,MDT_local,3,41,31,0
+Miami-Dade Transit,MDT_inter_county_express,3,15,15,1
+Miami-Dade Transit,MDT_intra_county_express,3,44,15,1
+Miami-Dade Transit,Metrorail,2,45,21,0
+Miami-Dade Transit,Metromover,0,46,24,0
+Palm Tran,Palm_Tran_local,3,21,31,0
+Tri-Rail,Tri-Rail,2,11,11,0
+Tri-Rail,Tri-Rail_shuttle,3,12,12,0
