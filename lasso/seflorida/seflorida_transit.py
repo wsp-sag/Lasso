@@ -116,34 +116,31 @@ class SEFloridaTransit(object):
         """
         agency_raw_name = row.agency_raw_name
         shape_id = row.shape_id
-        trip_id = row.trip_id
-        trip_stop_times_df = self.feed.stop_times.copy()
 
-        if "agency_raw_name" in trip_stop_times_df.columns:
-            trip_stop_times_df.drop("agency_raw_name", axis=1, inplace=True)
+        agency_stops = self.feed.stops[
+            self.feed.stops["agency_raw_name"] == agency_raw_name
+        ].reset_index(drop=True)
+        agency_stop_times = self.feed.stop_times[
+            self.feed.stop_times["agency_raw_name"] == agency_raw_name
+        ].reset_index(drop=True)
 
-        trip_stop_times_df = pd.merge(
-            trip_stop_times_df,
-            self.feed.trips[["trip_id", "agency_raw_name"]],
-            how="left",
-            on="trip_id",
+        agency_stops["stop_id"] = agency_stops["stop_id"].astype(int)
+        agency_stop_times["stop_id"] = agency_stop_times["stop_id"].astype(int)
+        agency_stops["trip_id"] = (
+            agency_stops["trip_id"].astype(str).str.replace(".0", "", regex=False)
         )
+        agency_stop_times["trip_id"] = (
+            agency_stop_times["trip_id"].astype(str).str.replace(".0", "", regex=False)
+        )
+
+        trip_stop_times_df = agency_stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[
             (trip_stop_times_df.trip_id == row.trip_id)
             & (trip_stop_times_df.agency_raw_name == agency_raw_name)
         ]
 
         trip_node_df = self.feed.shapes.copy()
-        if "agency_raw_name" in trip_node_df.columns:
-            trip_node_df.drop("agency_raw_name", axis=1, inplace=True)
-
-        trip_node_df = pd.merge(
-            trip_node_df,
-            self.feed.trips[["shape_id", "agency_raw_name"]].drop_duplicates(),
-            how="left",
-            on=["shape_id"],
-        )
-
+        trip_node_df["shape_model_node_id"] = trip_node_df["shape_model_node_id"].astype(int)
         trip_node_df = trip_node_df[
             (trip_node_df.shape_id == shape_id) & (trip_node_df.agency_raw_name == agency_raw_name)
         ]
@@ -151,7 +148,7 @@ class SEFloridaTransit(object):
 
         trip_stop_times_df = pd.merge(
             trip_stop_times_df,
-            self.feed.stops,
+            agency_stops,
             how="left",
             on=["agency_raw_name", "trip_id", "stop_id"],
         )
