@@ -372,10 +372,21 @@ class SEFloridaTransit(object):
         if not outpath:
             outpath = os.path.join(parameters.scratch_location, "outtransit.lin")
 
+        # preprocessing
+        self.feed.shapes, self.feed.trips = self.create_unique_consecutive_shape_id()
+        self.feed.routes, self.feed.trips = self.create_consecutive_route_id()
+        self.feed.routes = self.define_operator_code(route_id_field="route_id_original")
+        # extra cleanup
+        self.feed.trips = self.feed.trips.drop(columns=["trip_num_x", "trip_num_y"])
+        self.feed.trips["trip_num"] = self.feed.trips["trip_num"].astype(float).astype(int)
+        self.feed.frequencies = self.feed.frequencies[
+            ["trip_id", "headway_secs", "start_time", "end_time"]
+        ]
+        self.feed.trips["agency_id"] = self.feed.trips["agency_raw_name"]
+        self.feed.agency["agency_id"] = self.feed.agency["agency_raw_name"]
+
         trip_cube_df = self.route_properties_gtfs_to_cube(parameters)
-
         trip_cube_df[["SERPM_operator"]] = trip_cube_df[["SERPM_operator"]].fillna(99)
-
         trip_cube_df = trip_cube_df.fillna("")
         trip_cube_df["LIN"] = trip_cube_df.apply(lambda x: self.cube_format(x), axis=1)
 
@@ -384,3 +395,108 @@ class SEFloridaTransit(object):
 
         with open(outpath, "w") as f:
             f.write("\n".join(l))
+
+    def define_operator_code(self, route_id_field):
+        std_routes = self.feed.routes.copy()
+        std_routes["operator_code"] = ""
+
+        # Broward County Transit
+        std_routes.loc[
+            std_routes["agency_raw_name"] == "Broward County Transit", "operator_code"
+        ] = "BCT_local"  # most general code for BCT
+        std_routes.loc[
+            std_routes[route_id_field].isin(["BCT106", "BCT108", "BCT109", "BCT110", "BCT114"]),
+            "operator_code",
+        ] = "BCT_express"
+
+        # Miami-Dade Transit
+        std_routes.loc[
+            (std_routes["agency_raw_name"] == "Miami-Dade Transit")
+            & (std_routes["route_type"] == 3),
+            "operator_code",
+        ] = "MDT_local"  # most general code for MDT
+        std_routes.loc[
+            (std_routes[route_id_field] == "20886")
+            & (std_routes["agency_raw_name"] == "Miami-Dade Transit"),
+            "operator_code",
+        ] = "MDT_inter_county_express"
+        std_routes.loc[
+            (std_routes["route_short_name"].isin(["110", "112", "113"]))
+            & (std_routes["agency_raw_name"] == "Miami-Dade Transit"),
+            "operator_code",
+        ] = "MDT_intra_county_express"
+        std_routes.loc[
+            (std_routes["agency_raw_name"] == "Miami-Dade Transit")
+            & (std_routes["route_type"] == 2),
+            "operator_code",
+        ] = "Metrorail"
+        std_routes.loc[
+            (std_routes["agency_raw_name"] == "Miami-Dade Transit")
+            & (std_routes["route_type"] == 0),
+            "operator_code",
+        ] = "Metromover"
+
+        # Palm Tran
+        std_routes.loc[
+            std_routes["agency_raw_name"] == "Palm Tran", "operator_code"
+        ] = "Palm_Tran_local"
+
+        # Tri-Rail
+        std_routes.loc[
+            (std_routes["agency_raw_name"] == "Tri-Rail") & (std_routes["route_type"] == 2),
+            "operator_code",
+        ] = "Tri-Rail"
+        std_routes.loc[
+            (std_routes["agency_raw_name"] == "Tri-Rail") & (std_routes["route_type"] == 3),
+            "operator_code",
+        ] = "Tri-Rail_shuttle"
+
+        return std_routes
+
+    def create_unique_consecutive_shape_id(self):
+        # create unique, consecutive shape_id
+        unique_shape_ids = self.feed.trips.copy()
+        unique_shape_ids = (
+            unique_shape_ids.groupby(["agency_raw_name", "shape_id"])["trip_id"]
+            .count()
+            .reset_index()
+            .drop(["trip_id"], axis=1)
+        )
+        unique_shape_ids["shape_id_original"] = unique_shape_ids["shape_id"]
+        unique_shape_ids["shape_id"] = range(1, len(unique_shape_ids) + 1)
+        unique_shape_ids["shape_id"] = unique_shape_ids["shape_id"].astype(str)
+
+        updated_shapes = self.feed.shapes.copy()
+        updated_shapes = updated_shapes.rename(columns={"shape_id": "shape_id_original"})
+        updated_shapes = pd.merge(
+            updated_shapes,
+            unique_shape_ids,
+            how="left",
+            on=["agency_raw_name", "shape_id_original"],
+        )
+
+        updated_trips = self.feed.trips.copy().rename(columns={"shape_id": "shape_id_original"})
+        updated_trips = pd.merge(
+            updated_trips,
+            updated_shapes[["shape_id_original", "shape_id"]].drop_duplicates(),
+            how="left",
+            on="shape_id_original",
+        )
+
+        return updated_shapes, updated_trips
+
+    def create_consecutive_route_id(self):
+        # create numeric, consecutive route_id
+        updated_routes = self.feed.routes.copy().drop(columns="agency_id")
+        updated_routes = updated_routes.rename(columns={"route_id": "route_id_original"})
+        updated_routes["route_id"] = range(1, len(updated_routes) + 1)
+
+        updated_trips = self.feed.trips.copy().rename(columns={"route_id": "route_id_original"})
+        updated_trips = pd.merge(
+            updated_trips,
+            updated_routes[["route_id_original", "route_id"]].drop_duplicates(),
+            how="left",
+            on="route_id_original",
+        )
+
+        return updated_routes, updated_trips
