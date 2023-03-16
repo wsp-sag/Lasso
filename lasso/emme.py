@@ -140,6 +140,10 @@ def create_emme_network(
 
     WranglerLogger.info("Converting geometry into wkt geometry")
     # geometry to wkt geometry
+    length_gdf = links_df.copy()
+    length_gdf = length_gdf.to_crs(epsg=26915)
+    length_gdf['distance'] = length_gdf.geometry.length / 1609.34
+    links_df["length"] = length_gdf["distance"]
     links_df["geometry_wkt"] = links_df["geometry"].apply(lambda x: x.wkt)
 
     # create taz_zone_id field
