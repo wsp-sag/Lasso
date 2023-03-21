@@ -1413,6 +1413,9 @@ def shape_gtfs_to_emme(transit_network, trip_row):
             trip_stop_times_df, transit_network.feed.stops, how="left", on="stop_id"
         )
 
+        trip_stop_times_df["model_node_id"] = pd.to_numeric(trip_stop_times_df["model_node_id"]).astype(int)
+        trip_node_df["shape_model_node_id"] = pd.to_numeric(trip_node_df["shape_model_node_id"]).astype(int)
+
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
 
