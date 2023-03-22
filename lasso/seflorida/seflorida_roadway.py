@@ -1,6 +1,10 @@
+import copy
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+from pyproj import CRS
+from scipy.spatial import cKDTree
+from shapely.geometry import Point, LineString
 
 from network_wrangler import RoadwayNetwork
 
@@ -8,8 +12,7 @@ from ..parameters import Parameters
 from ..model_roadway import ModelRoadwayNetwork
 from ..logger import WranglerLogger
 
-# TODO: update class to inherit from ModelRoadwayNetwork instead of RoadwayNetwork
-class SEFloridaRoadwayNetwork(RoadwayNetwork):
+class SEFloridaRoadwayNetwork(ModelRoadwayNetwork):
     """SE Florida specific methods for :py:class:`ModelRoadwayNetwork`
 
     .. highlight:: python
@@ -877,6 +880,264 @@ class SEFloridaRoadwayNetwork(RoadwayNetwork):
         )
 
         WranglerLogger.info("Finished adding centroid and centroid connectors")
+
+        return roadway_network
+
+    def add_opposite_direction_to_link(self, link_gdf, nodes_df, links_df):
+
+        """
+        create and add the opposite direction of links to a dataframe
+
+        Args:
+            links_gdf: Input link dataframe with A and B node information
+            nodes_df: Input Wrangler roadway network nodes_df
+            links_df: Input Wrangler roadway network links_df
+
+        Returns:
+            roadway object
+        """
+
+        link_gdf = pd.concat(
+            [link_gdf, link_gdf.rename(columns={"A": "B", "B": "A"})], sort=False, ignore_index=True
+        )
+
+        link_gdf = pd.merge(
+            link_gdf,
+            nodes_df[["model_node_id", "X", "Y"]].rename(
+                columns={"model_node_id": "A", "X": "A_X", "Y": "A_Y"}
+            ),
+            how="left",
+            on="A",
+        )
+
+        link_gdf = pd.merge(
+            link_gdf,
+            nodes_df[["model_node_id", "X", "Y"]].rename(
+                columns={"model_node_id": "B", "X": "B_X", "Y": "B_Y"}
+            ),
+            how="left",
+            on="B",
+        )
+
+        link_gdf["geometry"] = link_gdf.apply(
+            lambda g: LineString([Point(g.A_X, g.A_Y), Point(g.B_X, g.B_Y)]), axis=1
+        )
+
+        link_gdf = gpd.GeoDataFrame(link_gdf, geometry=link_gdf["geometry"], crs=links_df.crs)
+
+        for c in links_df.columns:
+            if c not in link_gdf.columns:
+                if c not in ["county", "shstGeometryId", "cntype"]:
+                    link_gdf[c] = 0
+                else:
+                    link_gdf[c] = ""
+
+        link_gdf["A"] = link_gdf["A"].astype(int)
+        link_gdf["B"] = link_gdf["B"].astype(int)
+        link_gdf = link_gdf.drop(["A_X", "A_Y", "B_X", "B_Y"], axis=1)
+
+        return link_gdf
+
+    def build_pnr_connections(
+        self,
+        roadway_network=None,
+        pnr_nodes: gpd.GeoDataFrame = None,
+        parameters=None,
+        build_taz_walk_connector: bool = True,
+        output_proj=None,
+    ):
+        """
+        (1) add pnr nodes;
+        (2) build links connecting pnr nodes and nearest walk and drive nodes;
+        (3) build taz walk access/egress connectors.
+
+        Args:
+            roadway_network (RoadwayNetwork): Input Wrangler roadway network
+            parameters (Parameters): Lasso parameters object
+            build_taz_walk_connector (Bool): True if building taz walk access/egress connectors
+            output_epsg (int): epsg number of output network.
+
+        Returns:
+            roadway object
+        """
+
+        WranglerLogger.info("Building PNR connections")
+
+        """
+        Verify inputs
+        """
+
+        output_proj = output_proj if output_proj else parameters.output_proj
+
+        """
+        Start actual process
+        """
+
+        orig_crs = roadway_network.nodes_df.crs  # record original crs
+        interim_crs = CRS("epsg:2236")  # crs for nearest calculation
+
+        roadway_network.links_df = roadway_network.links_df.to_crs(interim_crs)
+        roadway_network.shapes_df = roadway_network.shapes_df.to_crs(interim_crs)
+        roadway_network.nodes_df = roadway_network.nodes_df.to_crs(interim_crs)
+        roadway_network.nodes_df["X"] = roadway_network.nodes_df["geometry"].x
+        roadway_network.nodes_df["Y"] = roadway_network.nodes_df["geometry"].y
+
+        # (1) add pnr nodes
+        # read pnr parking location
+        print("read pnr parking location")
+        pnr_nodes_df = pnr_nodes.copy()
+        pnr_nodes_df = pnr_nodes_df.to_crs(interim_crs)
+        pnr_nodes_df["X"] = pnr_nodes_df["geometry"].x
+        pnr_nodes_df["Y"] = pnr_nodes_df["geometry"].y
+
+        # assign a model_node_id to pnr parking node
+        pnr_nodes_df["model_node_id"] = (
+            roadway_network.nodes_df.model_node_id.max() + pnr_nodes_df.index + 1
+        )
+        pnr_nodes_df["pnr"] = 1
+
+        # add pnr parking nodes to node_df
+        print("add pnr parking nodes to node_df")
+        roadway_network.nodes_df = pd.concat(
+            [roadway_network.nodes_df, pnr_nodes_df],
+            sort=False,
+            ignore_index=True,
+        )
+        roadway_network.nodes_df["pnr"] = roadway_network.nodes_df["pnr"].fillna(0).astype(int)
+
+        # (2) build links connecting pnr nodes and nearest walk and drive nodes
+        # select walk and drive nodes, save to separate lists
+        print("build links connecting pnr nodes and nearest walk and drive nodes")
+        dr_wlk_nodes_df = roadway_network.nodes_df[
+            ((roadway_network.nodes_df.drive_access == 1) & (roadway_network.nodes_df.walk_access == 1))
+            & ~(roadway_network.nodes_df.model_node_id.isin(pnr_nodes_df["model_node_id"].to_list()))
+            # exclude taz/maz/external nodes
+            & (roadway_network.nodes_df.model_node_id > 20000)  # TODO: add zone list to parameter
+        ].copy()
+
+        # for each pnr nodes, search for the nearest walk and drive nodes
+        dr_wlk_node_ref = dr_wlk_nodes_df[["X", "Y"]].values
+        tree = cKDTree(dr_wlk_node_ref)
+
+        for index, row in pnr_nodes_df.iterrows():
+            point = row[["X", "Y"]].values
+            dd, ii = tree.query(point, k=1)
+            pnr_nodes_df.loc[index, "A"] = dr_wlk_nodes_df.iloc[ii].model_node_id
+
+        # create links between pnr nodes and their nearest walk and drive nodes
+        print("create links between pnr nodes and their nearest walk and drive nodes")
+        if len(pnr_nodes_df) > 0 and (
+            "A" in pnr_nodes_df.columns
+        ):  #'A' is the nearest walk and drive node
+            pnr_nodes_df = pnr_nodes_df[pnr_nodes_df["A"].notna()].reset_index(drop=True)
+            pnr_link_gdf = pnr_nodes_df[["A", "model_node_id"]].copy()
+            pnr_link_gdf.rename(columns={"model_node_id": "B"}, inplace=True)
+
+            pnr_link_gdf = self.add_opposite_direction_to_link(
+                pnr_link_gdf, nodes_df=roadway_network.nodes_df, links_df=roadway_network.links_df
+            )
+
+            # specify link variables
+            pnr_link_gdf["model_link_id"] = (
+                roadway_network.links_df["model_link_id"].max() + pnr_link_gdf.index + 1
+            )
+            pnr_link_gdf["shstGeometryId"] = range(1, 1 + len(pnr_link_gdf))
+            pnr_link_gdf["shstGeometryId"] = pnr_link_gdf["shstGeometryId"].apply(
+                lambda x: "pnr" + str(x)
+            )
+            pnr_link_gdf["id"] = pnr_link_gdf["shstGeometryId"]
+            pnr_link_gdf["roadway"] = "pnr"
+            pnr_link_gdf["lanes"] = 1
+            pnr_link_gdf["walk_access"] = 1
+            pnr_link_gdf["drive_access"] = 1
+            pnr_link_gdf["ftype"] = 9
+
+            roadway_network.links_df = pd.concat(
+                [roadway_network.links_df, pnr_link_gdf], sort=False, ignore_index=True
+            )
+            roadway_network.links_df.drop_duplicates(subset=["A", "B"], inplace=True)
+
+            # update shapes_df
+            pnr_shapes_df = pnr_link_gdf.copy()
+            pnr_shapes_df = pnr_shapes_df[["id", "geometry"]]
+            roadway_network.shapes_df = pd.concat(
+                [roadway_network.shapes_df, pnr_shapes_df]
+            ).reset_index(drop=True)
+
+        # (3) build TAZ walk connectors
+        if build_taz_walk_connector:
+            print("build taz walk connector")
+            # select TAZ centroids
+            centroids_df = roadway_network.nodes_df[
+                roadway_network.nodes_df.model_node_id <= 6400  # TODO: add TAZ list to parameter
+            ].copy()
+
+            # for each TAZ centroid, make a connection to the nearest walkable node
+            wlk_nodes_df = roadway_network.nodes_df[
+                (roadway_network.nodes_df.walk_access == 1)
+                # exclude pnr nodes
+                & ~(
+                    roadway_network.nodes_df.model_node_id.isin(pnr_nodes_df["model_node_id"].to_list())
+                )
+                # exclude taz/maz/external nodes
+                & (roadway_network.nodes_df.model_node_id > 20000)  # TODO: add zone list to parameter
+            ].copy()
+
+            wlk_node_ref = wlk_nodes_df[["X", "Y"]].values
+            walk_tree = cKDTree(wlk_node_ref)
+
+            for index, row in centroids_df.iterrows():
+                point = row[["X", "Y"]].values
+                dd, ii = walk_tree.query(point, k=1)
+                centroids_df.loc[index, "A"] = wlk_nodes_df.iloc[ii].model_node_id
+
+            # create links between tazs and nearest walk nodes
+            print("create links between tazs and nearest walk nodes")
+            if len(centroids_df) > 0 and (
+                "A" in centroids_df.columns
+            ):  #'A' is the nearest walk and drive node
+
+                taz_walk_access_df = centroids_df[centroids_df["A"].notna()].reset_index(drop=True)
+                taz_walk_access_gdf = taz_walk_access_df[["A", "model_node_id"]].copy()
+                taz_walk_access_gdf.rename(columns={"model_node_id": "B"}, inplace=True)
+
+                taz_walk_access_gdf = self.add_opposite_direction_to_link(
+                    taz_walk_access_gdf,
+                    nodes_df=roadway_network.nodes_df,
+                    links_df=roadway_network.links_df,
+                )
+
+                # specify link variables
+                taz_walk_access_gdf["model_link_id"] = (
+                    roadway_network.links_df["model_link_id"].max() + taz_walk_access_gdf.index + 1
+                )
+                taz_walk_access_gdf["shstGeometryId"] = range(1, 1 + len(taz_walk_access_gdf))
+                taz_walk_access_gdf["shstGeometryId"] = taz_walk_access_gdf["shstGeometryId"].apply(
+                    lambda x: "taz" + str(x)
+                )
+                taz_walk_access_gdf["id"] = taz_walk_access_gdf["shstGeometryId"]
+                taz_walk_access_gdf["roadway"] = "taz"
+                taz_walk_access_gdf["lanes"] = 1
+                taz_walk_access_gdf["walk_access"] = 1
+                taz_walk_access_gdf["ftype"] = 9
+
+                roadway_network.links_df = pd.concat(
+                    [roadway_network.links_df, taz_walk_access_gdf], sort=False, ignore_index=True
+                )
+                roadway_network.links_df.drop_duplicates(subset=["A", "B"], inplace=True)
+
+                # update shapes_df
+                taz_walk_access_shapes = taz_walk_access_gdf.copy()
+                taz_walk_access_shapes = taz_walk_access_shapes[["id", "geometry"]]
+                roadway_network.shapes_df = pd.concat(
+                    [roadway_network.shapes_df, taz_walk_access_shapes]
+                ).reset_index(drop=True)
+
+        roadway_network.links_df = roadway_network.links_df.to_crs(orig_crs)
+        roadway_network.shapes_df = roadway_network.shapes_df.to_crs(orig_crs)
+        roadway_network.nodes_df = roadway_network.nodes_df.to_crs(orig_crs)
+        roadway_network.nodes_df["X"] = roadway_network.nodes_df["geometry"].x
+        roadway_network.nodes_df["Y"] = roadway_network.nodes_df["geometry"].y
 
         return roadway_network
 
