@@ -1124,10 +1124,11 @@ def prepare_table_for_taz_transit_network(
         pnr_trips_df['route_long_name'] = pnr_trips_df['Station_Name']
         pnr_trips_df['tod_name'] = 'AM'
         pnr_trips_df = pnr_trips_df[['line_id','headway_minutes','vehtype_num','route_long_name','tod_name','A','B']]
+        pnr_trips_df_temp = pnr_trips_df.copy()
 
         # add routes in all time periods
-        for index, row in pnr_trips_df.iterrows():
-            for t in ['EA', 'MD', 'PM', 'EV']:
+        for t in ['EA','MD','PM','EV']:
+            for index, row in pnr_trips_df_temp.iterrows():
                 if t == "PM":
                     row['tod_name'] = t
                 else:  # PNR parking capacity should be unlimited for the off peak hours
