@@ -639,6 +639,9 @@ class Project(object):
             for col in changeable_col:
                 WranglerLogger.debug("Assessing Column: {}".format(col))
                 # if it is the same as before, or a static value, don't process as a change
+                if isinstance(base_row[col], bool):
+                    if int(change_row[col]) == base_row[col]:
+                        continue
                 if str(change_row[col]).strip('"\'') == str(base_row[col]).strip('"\''):
                     continue
                 if (col == "roadway_class") & (change_row[col] == 0):
@@ -688,9 +691,21 @@ class Project(object):
                     managed_lane,
                 ) = column_name_to_parts(c, self.parameters)
 
+                # make the type of set value consistent with the base value
+                set_value = change_row[c]
+                if base_row[c] is not None:
+                    if isinstance(base_row[c], int):
+                        set_value = int(set_value)
+                    elif isinstance(base_row[c], float):
+                        set_value = float(set_value)
+                    else:
+                        None
+                    if isinstance(base_row[c], bool):
+                        set_value = bool(int(set_value))
+
                 _d = {
                     "existing": base_row[c],
-                    "set": change_row[c],
+                    "set": set_value,
                 }
                 if c in Project.CALCULATED_VALUES:
                     _d = {
