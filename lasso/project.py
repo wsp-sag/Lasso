@@ -686,7 +686,7 @@ class Project(object):
                     p_time_period,
                     p_category,
                     managed_lane,
-                ) = column_name_to_parts(c)
+                ) = column_name_to_parts(c, self.parameters)
 
                 _d = {
                     "existing": base_row[c],
@@ -755,7 +755,6 @@ class Project(object):
 
             for index, row in cube_change_df.iterrows():
                 card_df = _process_single_link_change(row, changeable_col)
-
                 change_link_dict_df = pd.concat(
                     [change_link_dict_df, card_df], ignore_index=True, sort=False
                 )
@@ -786,7 +785,7 @@ class Project(object):
             # WranglerLogger.debug('change_link_dict_df 3: {}'.format(change_link_dict_df))
             change_link_dict_df["properties"] = change_link_dict_df["properties"].apply(
                 lambda x: json.loads(
-                    x.replace("'\"", "'").replace("\"'", "'").replace("'", '"')
+                    x.replace("'\"", "'").replace("\"'", "'").replace("'", '"').replace("False","false").replace("True","true")
                 )
             )
 
