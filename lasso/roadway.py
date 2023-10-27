@@ -367,12 +367,20 @@ class ModelRoadwayNetwork(RoadwayNetwork):
                     )
                 )
             else:
-                WranglerLogger.info(
-                    "Area Type Variable '{}' already in network. Returning without overwriting.".format(
-                        network_variable
+                # check if some links miss area type
+                if self.links_df[network_variable].isnull().values.any():
+                    WranglerLogger.info(
+                        "Area Type Variable '{}' already in network. But some records are missing. Calcualting the missing values without overwriting existing.".format(
+                            network_variable
+                        )
                     )
-                )
-                return
+                else:
+                    WranglerLogger.info(
+                        "Area Type Variable '{}' already in network. Returning without overwriting.".format(
+                            network_variable
+                        )
+                    )
+                    return
 
         WranglerLogger.info(
             "Calculating Area Type from Spatial Data and adding as roadway network variable: {}".format(
@@ -454,9 +462,10 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         downtown_gdf = gpd.read_file(downtown_area_type_shape)
         downtown_gdf = downtown_gdf.to_crs(epsg=RoadwayNetwork.CRS)
 
-        joined_gdf = gpd.sjoin(
-            centroids_gdf, area_type_gdf, how="left", op="intersects"
-        )
+        if (int(gpd.__version__.split('.')[0]) == 0) & (int(gpd.__version__.split('.')[1]) < 10):
+            joined_gdf = gpd.sjoin(centroids_gdf, area_type_gdf, how="left", op="intersects")
+        else:
+            joined_gdf = gpd.sjoin(centroids_gdf, area_type_gdf, how="left", predicate="intersects")
 
         joined_gdf[area_type_shape_variable] = (
             joined_gdf[area_type_shape_variable]
@@ -467,9 +476,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Area Type Codes Used: {}".format(area_type_codes_dict))
 
-        d_joined_gdf = gpd.sjoin(
-            centroids_gdf, downtown_gdf, how="left", op="intersects"
-        )
+        if (int(gpd.__version__.split('.')[0]) == 0) & (int(gpd.__version__.split('.')[1]) < 10):
+            d_joined_gdf = gpd.sjoin(centroids_gdf, downtown_gdf, how="left", op="intersects")
+        else:
+            d_joined_gdf = gpd.sjoin(centroids_gdf, downtown_gdf, how="left", predicate="intersects")
+
 
         d_joined_gdf['downtown_area_type'] = (
             d_joined_gdf['Id']
@@ -481,7 +492,15 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         WranglerLogger.debug("Downtown Area Type used boundary file: {}".format(downtown_area_type_shape))
 
-        self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
+        if overwrite:
+            self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
+        else:
+            # replace "" with na
+            self.links_df[network_variable] = self.links_df[network_variable].replace("", np.nan)
+            # update missing values
+            self.links_df[network_variable] = self.links_df[network_variable].fillna(
+                joined_gdf[area_type_shape_variable]
+            )
 
         WranglerLogger.info(
             "Finished Calculating Area Type from Spatial Data into variable: {}".format(
