@@ -494,6 +494,8 @@ class ModelRoadwayNetwork(RoadwayNetwork):
 
         if overwrite:
             self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
+        elif network_variable not in self.links_df.columns:
+            self.links_df[network_variable] = joined_gdf[area_type_shape_variable]
         else:
             # replace "" with na
             self.links_df[network_variable] = self.links_df[network_variable].replace("", np.nan)
