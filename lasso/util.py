@@ -1,4 +1,5 @@
 import re
+from .logger import WranglerLogger
 from unidecode import unidecode
 
 import numpy as np
