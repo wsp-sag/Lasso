@@ -71,3 +71,4 @@ BUS_ONLY,bus_only
 RAIL_ONLY,rail_only
 BIKE,bike
 WALK,walk
+LANES,lanes

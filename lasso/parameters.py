@@ -714,6 +714,15 @@ class Parameters:
             for t in self.cube_time_periods.keys()
         ]
 
+        self.bool_col = [
+            "rail_only",
+            "bus_only",
+            "drive_access",
+            "bike_access",
+            "walk_access",
+            "truck_access",
+        ]
+
         self.int_col = [
             "model_link_id",
             "model_node_id",

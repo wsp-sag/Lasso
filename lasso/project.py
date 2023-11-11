@@ -3,6 +3,7 @@ import os
 import re
 from typing import Any, Dict, Optional, Union, List
 from csv import reader
+import numpy as np
 
 import pandas as pd
 from pandas import DataFrame
@@ -287,7 +288,12 @@ class Project(object):
             )
             base_roadway_network.split_properties_by_time_period_and_category()
         elif base_roadway_network:
-            pass
+            if not isinstance(base_roadway_network, ModelRoadwayNetwork):
+                base_roadway_network = ModelRoadwayNetwork.from_RoadwayNetwork(
+                    roadway_network_object=base_roadway_network, 
+                    parameters=parameters
+                )
+            base_roadway_network.split_properties_by_time_period_and_category()
         else:
             msg = "No base roadway network."
             WranglerLogger.info(msg)
@@ -566,7 +572,48 @@ class Project(object):
                 ]
                 # can leave out "OPERATION_final" from writing out, is there a reason to write it out?
 
-            add_link_properties = cube_add_df[add_col].to_dict("records")
+            # convert column types
+            for bc in list(set(self.parameters.bool_col) & set(cube_add_df.columns)):
+                cube_add_df[bc] = cube_add_df[bc].astype(bool)
+            for bc in list(set(self.parameters.int_col) & set(cube_add_df.columns)):
+                cube_add_df[bc] = cube_add_df[bc].astype(int)
+            for bc in list(set(self.parameters.float_col) & set(cube_add_df.columns)):
+                cube_add_df[bc] = cube_add_df[bc].astype(float)
+            for bc in list(set(self.parameters.string_col) & set(cube_add_df.columns)):
+                cube_add_df[bc] = cube_add_df[bc].astype(str)
+            
+            add_col_final = add_col.copy()
+            # properties that are split by time period and category
+            for c in add_col:
+                if "_" not in c:
+                    continue
+                # WranglerLogger.debug("Processing Column: {}".format(c))
+                (
+                    p_base_name,
+                    p_time_period,
+                    p_category,
+                    managed_lane,
+                ) = column_name_to_parts(c, self.parameters) 
+
+                if p_base_name not in self.parameters.properties_to_split.keys():
+                    continue
+
+                if (p_base_name in cube_add_df.columns):
+                    if cube_add_df[p_base_name].equals(cube_add_df[c]):
+                        add_col_final.remove(c)
+                        continue
+                    else:
+                        msg = "Detected different changes for split-property variables on regular roadway links: "
+                        msg += "conflicting \"{}\" values \"{}\", \"{}\"".format(p_base_name, cube_add_df[p_base_name], cube_add_df[c])
+                        WranglerLogger.error(msg)
+                        raise ValueError(msg)
+
+                else:
+                    cube_add_df[p_base_name] = cube_add_df[c]
+                    add_col_final.remove(c)
+                    add_col_final.append(p_base_name)
+
+            add_link_properties = cube_add_df[add_col_final].to_dict("records")
 
             # WranglerLogger.debug("Add Link Properties: {}".format(add_link_properties))
             WranglerLogger.debug("{} Links Added".format(len(add_link_properties)))
@@ -615,7 +662,7 @@ class Project(object):
             base_df = self.base_roadway_network.links_df[
                 (self.base_roadway_network.links_df["A"] == change_row.A)
                 & (self.base_roadway_network.links_df["B"] == change_row.B)
-            ]
+            ].copy()
 
             if not base_df.shape[0]:
                 msg = "No match found in network for AB combination: ({},{}). Incompatible base network.".format(
@@ -631,6 +678,9 @@ class Project(object):
                     )
                 )
 
+            for bc in list(set(self.parameters.bool_col) & set(base_df.columns)):
+                base_df[bc] = base_df[bc].astype(bool)
+
             base_row = base_df.iloc[0]
             # WranglerLogger.debug("Properties with changes: {}".format(changeable_col))
 
@@ -639,7 +689,7 @@ class Project(object):
             for col in changeable_col:
                 WranglerLogger.debug("Assessing Column: {}".format(col))
                 # if it is the same as before, or a static value, don't process as a change
-                if isinstance(base_row[col], bool):
+                if isinstance(base_row[col], bool) | isinstance(base_row[col], np.bool_):
                     if int(change_row[col]) == base_row[col]:
                         continue
                 if str(change_row[col]).strip('"\'') == str(base_row[col]).strip('"\''):
