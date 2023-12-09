@@ -64,6 +64,11 @@ class ModelRoadwayNetwork(RoadwayNetwork):
         ##todo also write to file
         # WranglerLogger.debug("Used PARAMS\n", '\n'.join(['{}: {}'.format(k,v) for k,v in self.parameters.__dict__.items()]))
 
+        # for numeric columns, convert "" to nan
+        for c in self.links_df.columns:
+            if c in (self.parameters.int_col + self.parameters.float_col):
+                self.links_df[c] = self.links_df[c].replace("", np.nan)
+
     @staticmethod
     def read(
         link_file: str,
