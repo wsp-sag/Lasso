@@ -574,7 +574,12 @@ class Project(object):
 
             # convert column types
             for bc in list(set(self.parameters.bool_col) & set(cube_add_df.columns)):
-                cube_add_df[bc] = cube_add_df[bc].astype(bool)
+                try:
+                    cube_add_df[bc] = pd.to_numeric(cube_add_df[bc]).astype(int).astype(bool)
+                except ValueError:
+                    msg = "Cannot convert column \"{}\" with values \"{}\" to boolean.".format(bc, cube_add_df[bc].unique())
+                    WranglerLogger.error(msg)
+                    raise ValueError(msg)
             for bc in list(set(self.parameters.int_col) & set(cube_add_df.columns)):
                 cube_add_df[bc] = cube_add_df[bc].astype(int)
             for bc in list(set(self.parameters.float_col) & set(cube_add_df.columns)):
