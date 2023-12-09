@@ -71,7 +71,13 @@ def column_name_to_parts(c, parameters=None):
     category = None
 
     if c.split("_")[0] not in parameters.properties_to_split.keys():
-        return c, None, None, managed
+        if c.split("_")[-1] in parameters.time_period_to_time.keys():
+            time_period = c.split("_")[-1]
+            base_name = c.split(time_period)[-2][:-1]
+            if base_name not in parameters.properties_to_split.keys():
+                return c, None, None, managed
+        else:
+            return c, None, None, managed
 
     tps = parameters.time_period_to_time.keys()
     cats = parameters.categories.keys()
