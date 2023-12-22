@@ -1735,6 +1735,8 @@ def roadway_standard_to_mtc_network(
         on = "id"
     )
 
+    roadway_network.links_mtc_df = gpd.GeoDataFrame(roadway_network.links_mtc_df, geometry=roadway_network.links_mtc_df.geometry)
+    roadway_network.nodes_mtc_df = gpd.GeoDataFrame(roadway_network.nodes_mtc_df, geometry=roadway_network.nodes_mtc_df.geometry)
     roadway_network.links_mtc_df.crs = roadway_network.crs
     roadway_network.nodes_mtc_df.crs = roadway_network.crs
     WranglerLogger.info("Setting Coordinate Reference System to {}".format(output_proj))
@@ -1865,12 +1867,12 @@ def route_properties_gtfs_to_cube(
         + "_"
         + str(x.route_id)
         + "_"
-        + x.tod_name
+        + str(x.tod_name)
         + "_"
         + "d"
         + str(int(x.direction_id))
         + "_s"
-        + x.shape_id,
+        + str(x.shape_id),
         axis=1,
     )
 
@@ -2151,7 +2153,9 @@ def _is_express_bus(x):
         if (x.route_short_name.startswith("J")) | (x.route_short_name.startswith("Lynx")):
             return 1
     if x.agency_name == "SolTrans":
-        if (x.route_short_name in ["80", "92", "78"]) | (x.route_long_name in ["80", "92", "78"]):
+        if ((x.route_short_name in ["80", "92", "78","Green","Blue","Red"]) | 
+            (x.route_long_name in ["80", "92", "78","Green","Blue","Red"])
+        ):
             return 1
     if x.agency_name == "Vine (Napa County)":
         if x.route_short_name in ["29"]:

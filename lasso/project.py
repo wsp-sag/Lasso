@@ -165,6 +165,7 @@ class Project(object):
         roadway_node_changes: Optional[DataFrame] = None,
         transit_changes: Optional[CubeTransit] = None,
         base_roadway_network: Optional[RoadwayNetwork] = None,
+        base_transit_network: Optional[StandardTransit] = None,
         base_cube_transit_network: Optional[CubeTransit] = None,
         build_cube_transit_network: Optional[CubeTransit] = None,
         project_name: Optional[str] = None,
@@ -403,6 +404,8 @@ class Project(object):
                 gtfs_feed_dir=base_transit_dir,
                 parameters=parameters
             )
+        elif base_transit_network:
+            base_transit_network = base_transit_network
         else:
             msg = "No base transit network."
             WranglerLogger.info(msg)
@@ -695,7 +698,7 @@ class Project(object):
 
             # get new emme nodes
             new_emme_node_id_list = [
-                n for n in emme_node_change_df['emme_id'] if n not in emme_node_id_crosswalk_df['emme_node_id']
+                n for n in emme_node_change_df['emme_id'].to_list() if n not in emme_node_id_crosswalk_df['emme_node_id'].to_list()
             ]
             WranglerLogger.info('New emme node id list {}'.format(new_emme_node_id_list))
             new_wrangler_node = emme_node_id_crosswalk_df['model_node_id'].max()

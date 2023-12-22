@@ -1167,8 +1167,11 @@ class StandardTransit(object):
 
         trip_node_df.sort_values(by = ["shape_pt_sequence"], inplace = True)
 
+        stops_df = self.feed.stops.copy()
+        stops_df['stop_id'] = stops_df['stop_id'].astype(float).astype(int)
+        trip_stop_times_df['stop_id'] = trip_stop_times_df['stop_id'].astype(float).astype(int)
+
         if 'trip_id' in self.feed.stops.columns:
-            stops_df = self.feed.stops.copy()
             if agency_raw_name != 'sjrtd_2015_0127':
                 stops_df = stops_df[stops_df.agency_raw_name != 'sjrtd_2015_0127']
                 trip_stop_times_df = pd.merge(
@@ -1182,7 +1185,7 @@ class StandardTransit(object):
                 )
         else:
             trip_stop_times_df = pd.merge(
-                trip_stop_times_df, self.feed.stops, how="left", on="stop_id"
+                trip_stop_times_df, stops_df, how="left", on="stop_id"
             )
 
         trip_stop_times_df["model_node_id"] = pd.to_numeric(trip_stop_times_df["model_node_id"]).astype(int)
