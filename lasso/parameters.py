@@ -339,18 +339,19 @@ class Parameters:
             self.time_periods_to_time = kwargs.get("time_periods_to_time")
         else:
             self.time_period_to_time = {
-                "AM": ("6:00", "9:00"),  ##TODO FILL IN with real numbers
-                "MD": ("9:00", "16:00"),
-                "PM": ("16:00", "19:00"),
-                "NT": ("19:00", "6:00"),
+                "EA": ("3:00", "6:00"),
+                "AM": ("6:00", "10:00"),  ##TODO FILL IN with real numbers
+                "MD": ("10:00", "15:00"),
+                "PM": ("15:00", "19:00"),
+                "NT": ("19:00", "3:00"),
             }
 
         self.route_type_bus_mode_dict = {"Urb Loc": 5, "Sub Loc": 6, "Express": 7}
 
         self.route_type_mode_dict = {0: 8, 2: 9}
 
-        self.cube_time_periods = {"1": "AM", "2": "MD"}
-        self.cube_time_periods_name = {"AM": "pk", "MD": "op"}
+        self.cube_time_periods = {"1": "EA", "2": "AM", "3": "MD", "4": "PM", "5": "NT"}
+        self.cube_time_periods_name = {"EA": "EA", "AM": "AM", "MD": "MD", "PM": "PM", "NT": "NT"} # PK, OP
 
         if "categories" in kwargs:
             self.categories = kwargs.get("categories")

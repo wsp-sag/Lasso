@@ -894,7 +894,7 @@ class StandardTransit(object):
         """
         return StandardTransit(ptg.load_feed(gtfs_feed_dir), parameters=parameters)
 
-    def write_as_cube_lin(self, outpath: str = None):
+    def write_as_cube_lin(self, outpath: str = None, line_name_xwalk: str = None):
         """
         Writes the gtfs feed as a cube line file after
         converting gtfs properties to MetCouncil cube properties.
@@ -905,7 +905,7 @@ class StandardTransit(object):
         """
         if not outpath:
             outpath = os.path.join(self.parameters.scratch_location, "outtransit.lin")
-        trip_cube_df = self.route_properties_gtfs_to_cube(self)
+        trip_cube_df = self.route_properties_gtfs_to_cube(self, line_name_xwalk)
 
         trip_cube_df["LIN"] = trip_cube_df.apply(self.cube_format, axis=1)
 
@@ -916,7 +916,7 @@ class StandardTransit(object):
             f.write("\n".join(l))
 
     @staticmethod
-    def route_properties_gtfs_to_cube(self):
+    def route_properties_gtfs_to_cube(self, line_name_xwalk: str = None):
         """
         Prepare gtfs for cube lin file.
 
@@ -981,30 +981,34 @@ class StandardTransit(object):
         )
 
         # add shape_id to name when N most common pattern is used for routes*tod*direction
-        trip_df["shp_id"] = trip_df.groupby(['agency_raw_name', "route_id", "tod_name", "direction_id"]).cumcount()
-        trip_df["shp_id"] = trip_df["shp_id"].astype(str)
-        trip_df["shp_id"] = "shp" + trip_df["shp_id"]
+        # trip_df["shp_index"] = trip_df.groupby(['agency_raw_name', "route_id", "tod_name", "direction_id"]).cumcount()+1
+        # trip_df["shp_index"] = trip_df["shp_index"].astype(str)
+        # trip_df["shp_index"] = "shp" + trip_df["shp_index"]
+        trip_df['shp_index'] = trip_df['shape_id'].rank(method='dense').astype(int)
+
 
         trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.replace(",", "_").str.slice(stop = 50)
 
         trip_df["route_long_name"] = trip_df["route_long_name"].str.replace(",", "_").str.slice(stop = 50)
 
-        trip_df["NAME"] = trip_df.apply(
-            lambda x: x.agency_id
-            + "_"
-            + x.route_id
-            + "_"
-            + x.tod_name
-            + "_"
-            + "d"
-            + str(x.direction_id)
-            + "_s"
-            + x.shape_id,
-            axis=1,
-        )
+        # trip_df["NAME"] = trip_df.apply(
+        #     lambda x: str(x.agency_id)
+        #     + "_"
+        #     + str(x.route_id)
+        #     + "_"
+        #     + str(x.tod_name)
+        #     + "_"
+        #     + "d"
+        #     + str(x.direction_id)
+        #     + "_"
+        #     + str(x.shp_index),
+        #     # + "_s"
+        #     # + str(x.shape_id),
+        #     axis=1,
+        # )
 
         # CUBE max string length
-        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
+        # trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
 
         trip_df["LONGNAME"] = trip_df["route_long_name"]
         # CUBE max string length
@@ -1015,6 +1019,39 @@ class StandardTransit(object):
         trip_df["ONEWAY"] = "T"
         trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
         trip_df["SHORTNAME"] = trip_df["route_short_name"].str.slice(stop = 30)
+        # trip_df['TOD'] = trip_df.groupby(['agency_id','route_id','direction_id','shp_index'])['tod_name'].transform(lambda x: '_'.join(sorted(x)))
+
+        def create_dict(group_df, key_col, value_col):
+            group_dict = {key: value for key, value in zip(group_df[key_col], group_df[value_col])}
+            sorted_dict = {key: group_dict[key] for key in sorted(group_dict)}
+            return sorted_dict
+
+        group_tod_hdw_df = trip_df.groupby(['agency_id','route_id','direction_id','shp_index']).apply(lambda x: create_dict(x, 'tod_num', 'HEADWAY')).reset_index(name='TOD_HDW')
+        trip_df = pd.merge(trip_df, group_tod_hdw_df, on=['agency_id','route_id','direction_id','shp_index'], how='left')
+
+        group_tod_name_df = trip_df.groupby(['agency_id','route_id','direction_id','shp_index']).apply(lambda x: create_dict(x, 'tod_num', 'tod_name')).reset_index(name='TOD')
+        trip_df = pd.merge(trip_df, group_tod_name_df, on=['agency_id','route_id','direction_id','shp_index'], how='left')
+        
+        trip_df["NAME"] = trip_df.apply(
+            lambda x: 
+            # str(x.agency_id)
+            # + "_"
+            str(x.route_id)
+            + "_"
+            + "d"
+            + str(x.direction_id)
+            + "_"
+            + str("_".join(x.TOD.values()))
+            + "_"
+            + str(x.shp_index),
+            axis=1,
+        )
+        # CUBE max string length
+        trip_df["NAME"] = trip_df["NAME"].str.slice(stop = 28)
+
+        trip_df[['agency_id','route_id','tod_name','tod_num','direction_id','shape_id','shp_index','NAME','SHORTNAME']].to_csv(line_name_xwalk,index=False)
+
+        trip_df.drop_duplicates(subset=['agency_id','route_id','direction_id','shp_index'], inplace=True)
 
         return trip_df
 
@@ -1060,7 +1097,7 @@ class StandardTransit(object):
         cube_mode = route_type_to_cube_mode[row["route_type"]]
 
         if not cube_mode:
-            if "express" in row["route_long_name"].lower():
+            if "express" in str(row["route_long_name"]).lower():
                 cube_mode = 7  # Express
             elif int(row["route_id"].split("-")[0]) > 99:
                 cube_mode = 6  # Suburban Local
@@ -1237,7 +1274,8 @@ class StandardTransit(object):
 
         s = '\nLINE NAME="{}",'.format(row.NAME)
         s += '\n LONGNAME="{}",'.format(row.LONGNAME)
-        s += "\n HEADWAY[{}]={},".format(row.tod_num, row.HEADWAY)
+        for key, value in row.TOD_HDW.items():
+            s += "\n HEADWAY[{}]={},".format(key, value)
         s += "\n MODE={},".format(row.MODE)
         s += "\n ONEWAY={},".format(row.ONEWAY)
         s += "\n OPERATOR={},".format(row.OPERATOR)
