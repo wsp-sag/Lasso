@@ -1180,6 +1180,7 @@ class StandardTransit(object):
             else:
                 stops_df = stops_df[stops_df.agency_raw_name == 'sjrtd_2015_0127']
                 stops_df['trip_id'] = stops_df['trip_id'].astype(float).astype(int).astype(str)
+                trip_stop_times_df['trip_id'] = trip_stop_times_df['trip_id'].astype(float).astype(int).astype(str)
                 trip_stop_times_df = pd.merge(
                     trip_stop_times_df, stops_df, how="left", on=['agency_raw_name', 'trip_id',"stop_id"]
                 )
@@ -1215,6 +1216,8 @@ class StandardTransit(object):
                 return 0
 
         trip_stop_times_df["ACCESS"] = trip_stop_times_df.apply(lambda x: _access_type(x), axis = 1)
+
+        trip_runtime = round(trip_stop_times_df[trip_stop_times_df['NNTIME'] > 0]['NNTIME'].sum(),2)
 
         # node list
         node_list_str = ""
@@ -1263,7 +1266,7 @@ class StandardTransit(object):
         node_list_str = node_list_str.replace(" NNTIME=0.0, N=", "")
         node_list_str = node_list_str.replace(" NNTIME=0.0,", "")
 
-        return node_list_str
+        return node_list_str, trip_runtime
 
 
     def cube_format(self, row):

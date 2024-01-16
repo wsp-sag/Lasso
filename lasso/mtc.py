@@ -1862,6 +1862,8 @@ def route_properties_gtfs_to_cube(
 
     trip_df["agency_id"].fillna("", inplace = True)
 
+    trip_df['dir_shp_index'] = trip_df.groupby(["TM2_operator", "route_id", "tod_name"]).cumcount()
+
     trip_df["NAME"] = trip_df.apply(
         lambda x: str(x.TM2_operator)
         + "_"
@@ -1870,9 +1872,9 @@ def route_properties_gtfs_to_cube(
         + str(x.tod_name)
         + "_"
         + "d"
-        + str(int(x.direction_id))
+        + str(int(x.dir_shp_index))
         + "_s"
-        + str(x.shape_id),
+        + str(x.shape_id),       
         axis=1,
     )
 
@@ -1935,7 +1937,10 @@ def cube_format(transit_network, row):
         add_nntime = True
     else:
         add_nntime = False
-    s += "\n N={}".format(transit_network.shape_gtfs_to_cube(row, add_nntime))
+    nodes, runtime = transit_network.shape_gtfs_to_cube(row, add_nntime)
+    if add_nntime:
+        s += '\n RUNTIME={},'.format(runtime)
+    s += "\n N={}".format(nodes)
 
     # TODO: need NNTIME, ACCESS_C
 
@@ -1954,6 +1959,19 @@ def write_as_cube_lin(
         outpath: File location for output cube line file.
 
     """
+
+    transit_network.feed.trips['trip_id'] = transit_network.feed.trips['trip_id'].astype(int)
+    transit_network.feed.trips['shape_id'] = transit_network.feed.trips['shape_id'].astype(int)
+
+    transit_network.feed.stop_times['trip_id'] = transit_network.feed.stop_times['trip_id'].astype(int)
+    transit_network.feed.stop_times['stop_id'] = transit_network.feed.stop_times['stop_id'].astype(float).astype(int)
+
+    transit_network.feed.shapes['shape_id'] = transit_network.feed.shapes['shape_id'].astype(int)
+    
+    transit_network.feed.stops['stop_id'] =  transit_network.feed.stops['stop_id'].astype(float).astype(int)
+
+    transit_network.feed.frequencies['trip_id'] =  transit_network.feed.frequencies['trip_id'].astype(int)
+    
     if not outpath:
         outpath  = os.path.join(parameters.scratch_location,"outtransit.lin")
     trip_cube_df = route_properties_gtfs_to_cube(transit_network, parameters, outpath)
