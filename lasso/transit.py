@@ -938,24 +938,6 @@ class StandardTransit(object):
         WranglerLogger.info(
             "Converting GTFS Standard Properties to MetCouncil's Cube Standard"
         )
-        metro_operator_dict = {
-            "0": 3,
-            "1": 3,
-            "2": 3,
-            "3": 4,
-            "4": 2,
-            "5": 5,
-            "6": 8,
-            "7": 1,
-            "8": 1,
-            "9": 10,
-            "10": 3,
-            "11": 9,
-            "12": 3,
-            "13": 4,
-            "14": 4,
-            "15": 3,
-        }
 
         shape_df = self.feed.shapes.copy()
         trip_df = self.feed.trips.copy()
@@ -1017,7 +999,10 @@ class StandardTransit(object):
         trip_df["HEADWAY"] = (trip_df["headway_secs"] / 60).astype(int)
         trip_df["MODE"] = trip_df.apply(self.calculate_cube_mode, axis=1)
         trip_df["ONEWAY"] = "T"
-        trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
+        # trip_df["OPERATOR"] = trip_df["agency_id"].map(metro_operator_dict)
+        trip_df["OPERATOR"] = trip_df.apply(lambda row: self.parameters.mvta_operator_dict.get(row['agency_id']) if row['agency_raw_name'] == 'mvta' 
+                                            else self.parameters.metro_operator_dict.get(row['agency_id']), 
+                                            axis=1)
         trip_df["SHORTNAME"] = trip_df["route_short_name"].str.slice(stop = 30)
         # trip_df['TOD'] = trip_df.groupby(['agency_id','route_id','direction_id','shp_index'])['tod_name'].transform(lambda x: '_'.join(sorted(x)))
 

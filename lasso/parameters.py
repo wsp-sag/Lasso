@@ -785,4 +785,27 @@ class Parameters:
 
         self.zones = 3061
 
+        self.metro_operator_dict = {
+            "0": 3,
+            "1": 3,
+            "2": 3,
+            "3": 4,
+            "4": 2,
+            "5": 5,
+            "6": 8,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 3,
+            "11": 9,
+            "12": 7,
+            "13": 7,
+            "14": 7,
+            "15": 7,
+        }
+
+        self.mvta_operator_dict = {
+            "0": 4
+        }
+
         self.__dict__.update(kwargs)
