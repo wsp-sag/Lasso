@@ -955,7 +955,7 @@ def calculate_assign_group_and_roadway_class_from_reviewed_network(
         elif x.roadway =="":
             return 7 # in case any link added via project cards doesn't have roadway
         else:
-            return 101
+            return 50
 
     join_gdf[assign_group_variable_name] = join_gdf.apply(lambda x: _set_asgngrp(x), axis=1)
 
