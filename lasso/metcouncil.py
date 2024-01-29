@@ -952,8 +952,6 @@ def calculate_assign_group_and_roadway_class_from_reviewed_network(
                 return x.assgngrp_max
         elif x.assignment_group_osm > 0:
             return x.assignment_group_osm
-        elif x.roadway =="":
-            return 7 # in case any link added via project cards doesn't have roadway
         else:
             return 50
 
@@ -981,6 +979,8 @@ def calculate_assign_group_and_roadway_class_from_reviewed_network(
                 return x.rdclass_max
         elif x.roadway_class_osm > 0:
             return x.roadway_class_osm
+        else:
+            return 50
 
     join_gdf[road_class_variable_name] = join_gdf.apply(lambda x: _set_roadway_class(x), axis=1)
 
