@@ -671,10 +671,10 @@ class Parameters:
             "geometry",
             "X",
             "Y",
-            #"ML_lanes_AM",
-            #"ML_lanes_MD",
-            #"ML_lanes_PM",
-            #"ML_lanes_NT",
+            "ML_lanes_AM",
+            "ML_lanes_MD",
+            "ML_lanes_PM",
+            "ML_lanes_NT",
             "segment_id",
             "managed",
             "bus_only",
@@ -682,7 +682,9 @@ class Parameters:
             "bike_facility",
             "mrcc_id",
             "ROUTE_SYS",  #mrcc functional class
-            "MNPASS_COD",
+            # "MNPASS_COD",
+            "MNPASS_CODE",
+            "MNPASS_PAY",
             "bike",
             "walk",
         ]
@@ -767,6 +769,8 @@ class Parameters:
             "mrcc_id",
             "bike",
             "walk",
+            "MNPASS_CODE",
+            "MNPASS_PAY",
         ]
 
         self.float_col = ["distance", "ttime_assert", "price", "X", "Y"]
