@@ -980,7 +980,7 @@ def calculate_assign_group_and_roadway_class_from_reviewed_network(
         elif x.roadway_class_osm > 0:
             return x.roadway_class_osm
         else:
-            101
+            return 101
 
     join_gdf[road_class_variable_name] = join_gdf.apply(lambda x: _set_roadway_class(x), axis=1)
 
