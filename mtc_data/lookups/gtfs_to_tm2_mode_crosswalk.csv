@@ -50,3 +50,4 @@ Wheels_2016_7_13,Wheels Bus,LAVTA,24,3,17,Local bus,7,0,Motor Standard Bus
 commuteDOTorg_GTFSImportExport_20160127_final_mj,Commute.org Shuttle,alliance,17,3,14,Local bus,0,0,Motor Small Bus
 sjrtd_2015_0127,San Joaquin Regional Transit District (RTD),,100,3,96,Local bus,0,0,Motor Standard Bus
 sjrtd_2015_0127,San Joaquin Regional Transit District (RTD),,100,3,97,Express bus,0,1,Motor Standard Bus
+SMART,Sonoma Marin Area Rail Transit,SMART,101,2,135,Commuter rail,101,0,Unknown Train
