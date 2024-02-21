@@ -103,6 +103,7 @@ def calculate_facility_type(
     join_gdf["oneWay"].fillna("", inplace = True)
     join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: "NA" if x in [None, np.nan, float('nan')] else x)
     join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: str(x) if type(x) == bool else x)
+    join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: str(x) if type(x) == int else x)
     join_gdf["oneWay"] = join_gdf["oneWay"].apply(lambda x: x if type(x) == str else ','.join(map(str, x)))
     join_gdf["oneWay_binary"] = join_gdf["oneWay"].apply(lambda x: 0 if "False" in x else 1)
 
@@ -1710,7 +1711,7 @@ def roadway_standard_to_mtc_network(
         roadway_network.links_df["assignable"]
     )
 
-    roadway_network = calculate_cntype(roadway_network, parameters)
+    roadway_network = calculate_cntype(roadway_network, parameters, overwrite=True)
     roadway_network = calculate_transit(roadway_network, parameters)
     roadway_network = calculate_useclass(roadway_network, parameters)
     roadway_network = calculate_facility_type(roadway_network, parameters, update_network_variable = True)
