@@ -230,17 +230,6 @@ class CubeTransit(object):
                 base_transit.line_properties[line]
             )
 
-            try:
-                assert len(base_cube_time_period_numbers) == 1
-            except:
-                msg = "Base network line {} should only have one time period per route, but {} found".format(
-                    line, base_cube_time_period_numbers
-                )
-                WranglerLogger.error(msg)
-                raise ValueError(msg)
-
-            base_cube_time_period_number = base_cube_time_period_numbers[0]
-
             build_cube_time_period_numbers = CubeTransit.get_time_period_numbers_from_cube_properties(
                 self.line_properties[line]
             )
@@ -267,18 +256,21 @@ class CubeTransit(object):
             updated_properties = self.evaluate_route_property_differences(
                 self.line_properties[line],
                 base_transit.line_properties[line],
-                base_cube_time_period_number,
             )
             updated_shapes = self.evaluate_route_shape_changes(
                 self.shapes[line], base_transit.shapes[line]
             )
             if updated_properties:
-                update_prop_card_dict = self.create_update_route_card_dict(
-                    line, updated_properties
-                )
-                project_card_changes.append(update_prop_card_dict)
+                for updates in updated_properties:
+                    update_prop_card_dict = self.create_update_route_card_dict(
+                        line, updates
+                    )
+                    project_card_changes.append(update_prop_card_dict)
 
             if updated_shapes:
+                for updates in updated_shapes:
+                    if (len(updates.get("existing"))==0) or (len(updates.get("set"))==0):
+                        WranglerLogger.info("Review transit routing project, manual correction needed for line {}!".format(line))
                 update_shape_card_dict = self.create_update_route_card_dict(
                     line, updated_shapes
                 )
@@ -414,17 +406,26 @@ class CubeTransit(object):
         Returns:
             A project card change-formatted dictionary for the attribute update.
         """
-        base_start_time_str, base_end_time_str = self.calculate_start_end_times(
+        time_period_list = self.calculate_start_end_times(
             self.line_properties[line]
         )
+
+        if "start_time" in updated_properties_dict:
+            time_period_list=[
+                (updated_properties_dict["start_time"], updated_properties_dict["end_time"])
+            ]
+            updated_properties_dict.pop("start_time")
+            updated_properties_dict.pop("end_time")
 
         update_card_dict = {
             "category": "Transit Service Property Change",
             "facility": {
-                "route_id": line.split("_")[1],
-                "direction_id": int(line.strip('"')[-1]),
-                "start_time": base_start_time_str,
-                "end_time": base_end_time_str,
+                "route_id": line.split("_")[0].strip('"'),
+                "direction_id": int(line.split("_")[1].strip('d')[-1]),
+                "shape_id": line.split("_")[-1].strip('"'),
+                "time_periods": [
+                    {"start_time": tp[0], "end_time": tp[1]} for tp in time_period_list
+                ],
             },
             "properties": updated_properties_dict,
         }
@@ -611,6 +612,8 @@ class CubeTransit(object):
             )
         )
 
+        time_period_list = []
+
         for tp in current_cube_time_period_numbers:
             time_period_name = self.parameters.cube_time_periods[tp]
             WranglerLogger.debug("time_period_name:{}".format(time_period_name))
@@ -618,30 +621,8 @@ class CubeTransit(object):
                 time_period_name
             ]
 
-            # change from "HH:MM" to integer # of seconds
-            _start_time_m = (int(_start_time.split(":")[0]) * 60) + int(
-                _start_time.split(":")[1]
-            )
-            _end_time_m = (int(_end_time.split(":")[0]) * 60) + int(
-                _end_time.split(":")[1]
-            )
-
-            # find bounding start and end times
-            if _start_time_m < start_time_m:
-                start_time_m = _start_time_m
-            if _end_time_m > end_time_m:
-                end_time_m = _end_time_m
-
-        if start_time_m > end_time_m:
-            msg = "Start time ({}) is after end time ({})".format(
-                start_time_m, end_time_m
-            )
-            WranglerLogger.error(msg)
-            raise ValueError(msg)
-
-        start_time_str = "{:02d}:{:02d}".format(*divmod(start_time_m, 60))
-        end_time_str = "{:02d}:{:02d}".format(*divmod(end_time_m, 60))
-        return start_time_str, end_time_str
+            time_period_list.append((_start_time, _end_time))
+        return time_period_list
 
     @staticmethod
     def cube_properties_to_standard_properties(cube_properties_dict: dict) -> list:
@@ -677,7 +658,6 @@ class CubeTransit(object):
         self,
         properties_build: dict,
         properties_base: dict,
-        time_period_number: str,
         absolute: bool = True,
         validate_base: bool = False,
     ):
@@ -688,7 +668,6 @@ class CubeTransit(object):
         Args:
             properties_build: ::<property_name>: <property_value>
             properties_base: ::<property_name>: <property_value>
-            time_period_number: time period to evaluate
             absolute: if True, will use `set` command rather than a change.  If false, will automatically check the base value.  Note that this only applies to the numeric values of frequency/headway
             validate_base: if True, will add the `existing` line in the project card
 
@@ -703,24 +682,11 @@ class CubeTransit(object):
 
         """
 
-        # Remove time period specific values for things that aren't part of the time period in question
-        this_time_period_properties_list = [
-            p + "[" + str(time_period_number) + "]"
-            ##todo parameterize all time period specific variables
-            for p in ["HEADWAY", "FREQ"]
-        ]
-
-        not_this_tp_properties_list = list(
-            set(self.parameters.time_period_properties_list)
-            - set(this_time_period_properties_list)
-        )
-
-        for k in not_this_tp_properties_list:
-            properties_build.pop(k, None)
-            properties_base.pop(k, None)
+        properties_base_dict = copy.deepcopy(properties_base)
+        properties_build_dict = copy.deepcopy(properties_build)
 
         difference_dict = dict(
-            set(properties_build.items()) ^ set(properties_base.items())
+            set(properties_build_dict.items()) - set(properties_base_dict.items())
         )
 
         # Iterate through properties list to build difference project card list
@@ -730,6 +696,9 @@ class CubeTransit(object):
             change_item = {}
             if any(i in k for i in ["HEADWAY", "FREQ"]):
                 change_item["property"] = "headway_secs"
+                tp_name = self.parameters.cube_time_periods[
+                    k.split("[")[1][0]
+                ]
 
                 if absolute:
                     change_item["set"] = (
@@ -737,15 +706,18 @@ class CubeTransit(object):
                     )  # project cards are in secs, cube is in minutes
                 else:
                     change_item["change"] = (
-                        properties_build[k] - properties_base[k]
+                        properties_build_dict[k] - properties_base_dict[k]
                     ) * 60
                 if validate_base or not absolute:
-                    change_item["existing"] = properties_base[k] * 60
+                    change_item["existing"] = properties_base_dict[k] * 60
+                
+                change_item["start_time"] = self.parameters.time_period_to_time[tp_name][0]
+                change_item["end_time"] = self.parameters.time_period_to_time[tp_name][1]
             else:
                 change_item["property"] = k
                 change_item["set"] = v
                 if validate_base:
-                    change_item["existing"] = properties_base[k]
+                    change_item["existing"] = properties_base_dict[k]
 
             properties_list.append(change_item)
         WranglerLogger.debug(
@@ -776,8 +748,8 @@ class CubeTransit(object):
 
         shape_change_list = []
 
-        base_node_list = shape_build.node.tolist()
-        build_node_list = shape_base.node.tolist()
+        base_node_list = shape_base.node.tolist()
+        build_node_list = shape_build.node.tolist()
 
         sort_len = max(len(base_node_list), len(build_node_list))
 
