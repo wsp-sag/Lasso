@@ -1163,11 +1163,17 @@ class StandardTransit(object):
             on = ['shst_node_id', 'osm_node_id']
         )
 
-        if 'shape_model_node_id' in self.feed.shapes.columns:
-            self.feed.shapes = self.feed.shapes.drop('shape_model_node_id', axis = 1)
-        
-        self.feed.shapes = pd.merge(
-            self.feed.shapes,
+        shapes_df = self.feed.shapes.copy()
+        # rail shapes missing shape_model_node_id
+        shapes_missing_id_df = shapes_df[shapes_df['shape_model_node_id'].isnull()].copy()
+        # bus shapes have shape_model_node_id
+        shapes_with_id_df = shapes_df[~shapes_df['shape_model_node_id'].isnull()].copy()
+
+        if 'shape_model_node_id' in shapes_missing_id_df.columns:
+            shapes_missing_id_df = shapes_missing_id_df.drop('shape_model_node_id', axis = 1)
+
+        join_df = pd.merge(
+            shapes_missing_id_df,
             roadway_nodes_df.rename(
                 columns = {
                     'shst_node_id' : 'shape_shst_node_id',
@@ -1178,6 +1184,12 @@ class StandardTransit(object):
             how = 'left',
             on = ['shape_shst_node_id', 'shape_osm_node_id']
         )
+
+        final_shapes_df = shapes_with_id_df.append(join_df)
+        assert len(final_shapes_df) == len(shapes_df)
+
+        final_shapes_df = final_shapes_df.sort_values(by='shape_pt_sequence', ascending=True)
+        self.feed.shapes = final_shapes_df
         
         trip_stop_times_df = self.feed.stop_times.copy()
         trip_stop_times_df = trip_stop_times_df[
@@ -1205,13 +1217,13 @@ class StandardTransit(object):
 
         # node list
         node_list_str = ""
-        for nodeIdx in range(len(trip_node_list)):
+        for nodeIdx in range(len(trip_node_list)):         
             if trip_node_list[nodeIdx] in stop_node_id_list:
-                node_list_str += "\n %s" % int(trip_node_list[nodeIdx])
+                node_list_str += "\n %s" % int(float(trip_node_list[nodeIdx]))
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
-            else:
-                node_list_str += "\n -%s" % int(trip_node_list[nodeIdx])
+            else:                
+                node_list_str += "\n -%s" % int(float(trip_node_list[nodeIdx]))
                 if nodeIdx < (len(trip_node_list) - 1):
                     node_list_str += ","
 
