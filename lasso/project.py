@@ -79,6 +79,7 @@ class Project(object):
         project_name: Optional[str] = "",
         evaluate: Optional[bool] = False,
         parameters: Union[dict, Parameters] = {},
+        transit_shape_crosswalk_dict: dict = None,
     ):
         """
         ProjectCard constructor.
@@ -92,6 +93,7 @@ class Project(object):
             project_name: name of the project
             evaluate: defaults to false, but if true, will create card data
             parameters: dictionary of parameter settings (see Parameters class) or an instance of Parameters. If not specified, will use default parameters.
+            base_transit_shape_crosswalk_dict: dictionary of model shape id to standard shape id for transit shape crosswalk, if any
 
         returns: instance of ProjectCard
         """
@@ -121,6 +123,9 @@ class Project(object):
             self.determine_roadway_network_changes_compatibility(
                 self.base_roadway_network, self.roadway_changes, self.parameters
             )
+        
+        if transit_shape_crosswalk_dict is not None:
+            self.transit_shape_crosswalk_dict = transit_shape_crosswalk_dict
 
         if evaluate:
             self.evaluate_changes()
@@ -154,6 +159,8 @@ class Project(object):
         recalculate_calculated_variables: Optional[bool] = False,
         recalculate_distance: Optional[bool] = False,
         parameters: Optional[dict] = {},
+        transit_shape_crosswalk_file: Optional[str] = None,
+        model_shape_id_column: Optional[str] = "model_shape_id",
     ):
         """
         Constructor for a Project instance.
@@ -176,16 +183,47 @@ class Project(object):
             recalculate_calculated_variables: if reading in a base network, if this is true it will recalculate variables such as area type, etc. This only needs to be true if you are creating project cards that are changing the calculated variables.
             recalculate_distance:  recalculate the distance variable. This only needs to be true if you are creating project cards that change the distance.
             parameters: dictionary of parameters
+            transit_shape_crosswalk_file: File path to transit shape crosswalk file.
         Returns:
             A Project instance.
         """
+
+        
+        if transit_shape_crosswalk_file:
+            WranglerLogger.info(
+                "Reading transit shape crosswalk file: {}".format(
+                    transit_shape_crosswalk_file
+                )
+            )
+            transit_shape_crosswalk_df = pd.read_csv(transit_shape_crosswalk_file)
+            WranglerLogger.info(
+                "Will convert model shape id {} to standard shape_id".format(
+                    model_shape_id_column
+                )
+            )
+            
+            assert "shape_id" in transit_shape_crosswalk_df.columns, "shape_id not found in transit shape crosswalk file"
+            assert model_shape_id_column in transit_shape_crosswalk_df.columns, "model shape id {} not found in transit shape crosswalk file".format(model_shape_id_column)
+            
+            transit_shape_crosswalk_dict = dict(
+                zip(
+                    transit_shape_crosswalk_df[model_shape_id_column].astype(str),
+                    transit_shape_crosswalk_df["shape_id"].astype(str)
+                )
+            )
+        else:
+            transit_shape_crosswalk_dict = None
 
         if base_transit_source and base_transit_network:
             msg = "Method takes only one of 'base_transit_source' and 'base_transit_network' but both given"
             WranglerLogger.error(msg)
             raise ValueError(msg)
         if base_transit_source:
-            base_transit_network = CubeTransit.create_from_cube(base_transit_source, parameters)
+            base_transit_network = CubeTransit.create_from_cube(
+                base_transit_source, 
+                parameters,
+                transit_shape_crosswalk_dict,
+            )
             WranglerLogger.debug(
                 "Base network has {} lines".format(len(base_transit_network.lines))
             )
@@ -208,7 +246,11 @@ class Project(object):
             raise ValueError(msg)
         if build_transit_source:
             WranglerLogger.debug("build")
-            build_transit_network = CubeTransit.create_from_cube(build_transit_source, parameters)
+            build_transit_network = CubeTransit.create_from_cube(
+                build_transit_source, 
+                parameters,
+                transit_shape_crosswalk_dict,    
+            )
             WranglerLogger.debug(
                 "Build network has {} lines".format(len(build_transit_network.lines))
             )
@@ -308,6 +350,7 @@ class Project(object):
             evaluate=True,
             project_name=project_name,
             parameters=parameters,
+            transit_shape_crosswalk_dict=transit_shape_crosswalk_dict,
         )
 
         return project

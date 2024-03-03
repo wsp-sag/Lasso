@@ -64,7 +64,11 @@ class CubeTransit(object):
         diff_dict (dict):
     """
 
-    def __init__(self, parameters: Union[Parameters, dict] = {}):
+    def __init__(
+        self, 
+        parameters: Union[Parameters, dict] = {}, 
+        transit_shape_crosswalk_dict: dict | None = None,
+    ):
         """
         Constructor  for CubeTransit
 
@@ -79,6 +83,8 @@ class CubeTransit(object):
         self.shapes = {}
 
         self.program_type = None
+
+        self.transit_shape_crosswalk_dict = transit_shape_crosswalk_dict
 
         if type(parameters) is dict:
             self.parameters = Parameters(**parameters)
@@ -172,7 +178,11 @@ class CubeTransit(object):
         WranglerLogger.debug("Added lines to CubeTransit: \n".format(new_lines))
 
     @staticmethod
-    def create_from_cube(transit_source: str, parameters: Optional[dict] = {}):
+    def create_from_cube(
+        transit_source: str, 
+        parameters: Optional[dict] = {},
+        transit_shape_crosswalk_dict: Optional[dict | None] = None,
+    ):
         """
         Reads a cube .lin file and stores as TransitNetwork object.
 
@@ -183,7 +193,7 @@ class CubeTransit(object):
             A ::CubeTransit object created from the transit_source.
         """
 
-        tn = CubeTransit(parameters)
+        tn = CubeTransit(parameters, transit_shape_crosswalk_dict)
         tn.add_cube(transit_source)
 
         return tn
@@ -422,7 +432,9 @@ class CubeTransit(object):
             "facility": {
                 "route_id": line.split("_")[0].strip('"'),
                 "direction_id": int(line.split("_")[1].strip('d')[-1]),
-                "shape_id": line.split("_")[-1].strip('"'),
+                "shape_id": self.transit_shape_crosswalk_dict.get(
+                    line.split("_")[-1].strip('"')
+                ) if self.transit_shape_crosswalk_dict else line.split("_")[-1].strip('"'),
                 "time_periods": [
                     {"start_time": tp[0], "end_time": tp[1]} for tp in time_period_list
                 ],
