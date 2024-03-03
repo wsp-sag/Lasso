@@ -439,7 +439,7 @@ class CubeTransit(object):
                     {"start_time": tp[0], "end_time": tp[1]} for tp in time_period_list
                 ],
             },
-            "properties": updated_properties_dict,
+            "properties": updated_properties_dict if isinstance(updated_properties_dict, list) else [updated_properties_dict]
         }
         WranglerLogger.debug(
             "Updating {} route to changes:\n{}".format(line, str(update_card_dict))
