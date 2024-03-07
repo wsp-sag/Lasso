@@ -738,12 +738,15 @@ class Project(object):
                 WranglerLogger.debug("Assessing Column: {}".format(col))
                 # if it is the same as before, or a static value, don't process as a change
                 if isinstance(base_row[col], bool) | isinstance(base_row[col], np.bool_):
+                    # when base is boolean, change should be boolean
                     if int(change_row[col]) == base_row[col]:
                         continue
                 if isinstance(base_row[col], (int, float)) & isinstance(change_row[col], (int, float)):
+                    # when base and change are both numeric, compare as numeric
                     if base_row[col] == change_row[col]:
                         continue
                 if str(change_row[col]).strip('"\'').replace(".0","") == str(base_row[col]).strip('"\'').replace(".0",""):
+                    # when base and change are inconsisteny in type, compare as string
                     continue
                 if (col == "roadway_class") & (change_row[col] == 0):
                     continue
