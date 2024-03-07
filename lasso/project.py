@@ -740,7 +740,10 @@ class Project(object):
                 if isinstance(base_row[col], bool) | isinstance(base_row[col], np.bool_):
                     if int(change_row[col]) == base_row[col]:
                         continue
-                if str(change_row[col]).strip('"\'') == str(base_row[col]).strip('"\''):
+                if isinstance(base_row[col], (int, float)) & isinstance(change_row[col], (int, float)):
+                    if base_row[col] == change_row[col]:
+                        continue
+                if str(change_row[col]).strip('"\'').replace(".0","") == str(base_row[col]).strip('"\'').replace(".0",""):
                     continue
                 if (col == "roadway_class") & (change_row[col] == 0):
                     continue
@@ -973,6 +976,14 @@ class Project(object):
                     )
                 )
 
+            for c in changeable_col:
+                if c in self.parameters.string_col:
+                    self.base_roadway_network.links_df[c].fillna("", inplace=True)
+                elif c in self.parameters.bool_col:
+                    self.base_roadway_network.links_df[c].fillna(False, inplace=True)
+                else:
+                    self.base_roadway_network.links_df[c].fillna(0, inplace=True)
+            
             change_link_dict_list = _process_link_changes(link_changes_df, changeable_col)
 
         if len(node_changes_df) != 0:
