@@ -67,7 +67,7 @@ class CubeTransit(object):
     def __init__(
         self, 
         parameters: Union[Parameters, dict] = {}, 
-        transit_shape_crosswalk_dict: dict | None = None,
+        transit_shape_crosswalk_dict: Optional[dict] = None,
     ):
         """
         Constructor  for CubeTransit
@@ -181,7 +181,7 @@ class CubeTransit(object):
     def create_from_cube(
         transit_source: str, 
         parameters: Optional[dict] = {},
-        transit_shape_crosswalk_dict: Optional[dict | None] = None,
+        transit_shape_crosswalk_dict: Optional[dict] = None,
     ):
         """
         Reads a cube .lin file and stores as TransitNetwork object.
