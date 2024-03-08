@@ -281,6 +281,8 @@ class CubeTransit(object):
                 for updates in updated_shapes:
                     if (len(updates.get("existing"))==0) or (len(updates.get("set"))==0):
                         WranglerLogger.info("Review transit routing project, manual correction needed for line {}!".format(line))
+                        # change the 'set' to be the same as 'existing'
+                        updates['set'] = copy.deepcopy(updates['existing'])
                 update_shape_card_dict = self.create_update_route_card_dict(
                     line, updated_shapes
                 )
@@ -1164,27 +1166,35 @@ class StandardTransit(object):
         if 'shape_osm_node_id' in self.feed.shapes.columns:
             self.feed.shapes['shape_osm_node_id'] = self.feed.shapes['shape_osm_node_id'].fillna(0)
             self.feed.shapes['shape_osm_node_id'] = self.feed.shapes['shape_osm_node_id'].astype(float)
-
-        if 'model_node_id' in self.feed.stops.columns:
-            self.feed.stops = self.feed.stops.drop('model_node_id', axis = 1)
         
-        self.feed.stops = pd.merge(
-            self.feed.stops,
+        stops_df = self.feed.stops.copy()
+        stops_missing_id_df = stops_df[(stops_df['model_node_id'].isnull() )| (stops_df['model_node_id']=="")].copy()
+        stops_with_id_df = stops_df[~((stops_df['model_node_id'].isnull() )| (stops_df['model_node_id']==""))].copy()
+
+        if 'model_node_id' in stops_missing_id_df.columns:
+            stops_missing_id_df = stops_missing_id_df.drop('model_node_id', axis = 1)
+
+        stops_join_df = pd.merge(
+            stops_missing_id_df,
             roadway_nodes_df,
             how = 'left',
             on = ['shst_node_id', 'osm_node_id']
         )
 
+        final_stops_df = stops_with_id_df.append(stops_join_df)
+        assert len(final_stops_df) == len(stops_df)
+        self.feed.stops = final_stops_df
+
         shapes_df = self.feed.shapes.copy()
         # rail shapes missing shape_model_node_id
-        shapes_missing_id_df = shapes_df[shapes_df['shape_model_node_id'].isnull()].copy()
+        shapes_missing_id_df = shapes_df[(shapes_df['shape_model_node_id'].isnull()) | (shapes_df['shape_model_node_id']=="")].copy()
         # bus shapes have shape_model_node_id
-        shapes_with_id_df = shapes_df[~shapes_df['shape_model_node_id'].isnull()].copy()
+        shapes_with_id_df = shapes_df[~((shapes_df['shape_model_node_id'].isnull()) | (shapes_df['shape_model_node_id']==""))].copy()
 
         if 'shape_model_node_id' in shapes_missing_id_df.columns:
             shapes_missing_id_df = shapes_missing_id_df.drop('shape_model_node_id', axis = 1)
 
-        join_df = pd.merge(
+        shapes_join_df = pd.merge(
             shapes_missing_id_df,
             roadway_nodes_df.rename(
                 columns = {
@@ -1197,7 +1207,7 @@ class StandardTransit(object):
             on = ['shape_shst_node_id', 'shape_osm_node_id']
         )
 
-        final_shapes_df = shapes_with_id_df.append(join_df)
+        final_shapes_df = shapes_with_id_df.append(shapes_join_df)
         assert len(final_shapes_df) == len(shapes_df)
 
         final_shapes_df = final_shapes_df.sort_values(by='shape_pt_sequence', ascending=True)
@@ -1225,7 +1235,9 @@ class StandardTransit(object):
             )
 
         stop_node_id_list = trip_stop_times_df["model_node_id"].tolist()
+        stop_node_id_list = [float(node_id) for node_id in stop_node_id_list]
         trip_node_list = trip_node_df["shape_model_node_id"].tolist()
+        trip_node_list = [float(node_id) for node_id in trip_node_list]
 
         # node list
         node_list_str = ""
