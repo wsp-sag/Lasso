@@ -1754,8 +1754,8 @@ def roadway_standard_to_mtc_network(
     roadway_network.nodes_mtc_df["pnr"] = np.where(roadway_network.nodes_mtc_df['pnr']==0, '0.0', '1.0')
 
     # CUBE expect node id to be N
-    # roadway_network.nodes_mtc_df.rename(columns={"model_node_id": "N"}, inplace=True)
-    roadway_network.nodes_mtc_df['model_node_id']=roadway_network.nodes_mtc_df['N']
+    roadway_network.nodes_mtc_df.rename(columns={"model_node_id": "N"}, inplace=True)
+    # roadway_network.nodes_mtc_df['model_node_id']=roadway_network.nodes_mtc_df['N']
 
     return roadway_network
 
