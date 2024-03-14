@@ -281,8 +281,6 @@ class CubeTransit(object):
                 for updates in updated_shapes:
                     if (len(updates.get("existing"))==0) or (len(updates.get("set"))==0):
                         WranglerLogger.info("Review transit routing project, manual correction needed for line {}!".format(line))
-                        # change the 'set' to be the same as 'existing'
-                        updates['set'] = copy.deepcopy(updates['existing'])
                 update_shape_card_dict = self.create_update_route_card_dict(
                     line, updated_shapes
                 )
@@ -801,6 +799,13 @@ class CubeTransit(object):
                     end_pos + 2 if end_pos < -2 else None
                 )
             ]
+
+            # When route has complicated loops, 
+            # for condition below where Lasso could not identify the start or end point
+            # ask Lasso to dump out the complete node sequence for existing and set
+            if len(existing)==0 or len(set)==0:
+                existing = base_node_list
+                set = build_node_list   
 
             shape_change_list.append(
                 {"property": "routing", "existing": existing, "set": set}
