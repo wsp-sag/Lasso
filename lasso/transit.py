@@ -278,9 +278,9 @@ class CubeTransit(object):
                     project_card_changes.append(update_prop_card_dict)
 
             if updated_shapes:
-                # for updates in updated_shapes:
-                #     if (len(updates.get("existing"))==0) or (len(updates.get("set"))==0):
-                        # WranglerLogger.info("Review transit routing project, manual correction needed for line {}!".format(line))
+                for updates in updated_shapes:
+                    if (len(updates.get("existing"))==0) or (len(updates.get("set"))==0):
+                        WranglerLogger.info("Review transit routing project, manual correction needed for line {}!".format(line))
                 update_shape_card_dict = self.create_update_route_card_dict(
                     line, updated_shapes
                 )
