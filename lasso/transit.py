@@ -957,7 +957,10 @@ class StandardTransit(object):
         # trip_df["shp_index"] = trip_df.groupby(['agency_raw_name', "route_id", "tod_name", "direction_id"]).cumcount()+1
         # trip_df["shp_index"] = trip_df["shp_index"].astype(str)
         # trip_df["shp_index"] = "shp" + trip_df["shp_index"]
-        trip_df['shp_index'] = trip_df['shape_id'].rank(method='dense').astype(int)
+        # trip_df['shp_index'] = trip_df['shape_id'].rank(method='dense').astype(int)
+        # TODO: use the index from the previous??
+        trip_df['shp_index'], unique = pd.factorize(trip_df['shape_id'])
+        trip_df['shp_index'] = trip_df['shp_index'] + 1
 
 
         trip_df["route_short_name"] = trip_df["route_short_name"].str.replace("-", "_").str.replace(" ", ".").str.replace(",", "_").str.slice(stop = 50)
@@ -1075,7 +1078,9 @@ class StandardTransit(object):
         if not cube_mode:
             if "express" in str(row["route_long_name"]).lower():
                 cube_mode = 7  # Express
-            elif int(row["route_id"].split("-")[0]) > 99:
+            elif (row["route_id"].split("-")[0].isdigit() 
+                and int(row["route_id"].split("-")[0]) > 99
+            ):
                 cube_mode = 6  # Suburban Local
             else:
                 cube_mode = 5  # Urban Local
